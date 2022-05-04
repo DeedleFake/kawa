@@ -1,4 +1,4 @@
-github.com/swaywm/go-wlroots v0.0.0-20211204114921-045c6ce49bf0 h1:juH4Zqq8diZ6Z3Eoxsmdo29uPXSIiDsM6lzEcP5NN4A=
-github.com/swaywm/go-wlroots v0.0.0-20211204114921-045c6ce49bf0/go.mod h1:ovOIOi98MHuJFJshQad5ntbSYebznHFE2YyopDvslsU=
-golang.org/x/sys v0.0.0-20200918174421-af09f7315aff h1:1CPUrky56AcgSpxz/KfgzQWzfG09u5YOL8MvPYBlrL8=
-golang.org/x/sys v0.0.0-20200918174421-af09f7315aff/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+deedles.dev/wlr v0.0.0-20220504193058-86a4db1105e8 h1:8o+UYb+CJksilbyTWVeNL/MN6o+wrdSRNDSLok7dy/g=
+deedles.dev/wlr v0.0.0-20220504193058-86a4db1105e8/go.mod h1:Mf/zxdDHTSvNbXDJw45Ofl4PMK9ruNiqRri6AbWbuRY=
+golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 h1:nonptSpoQ4vQjyraW20DXPAglgQfVnM9ZC6MmNLMR60=
+golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=

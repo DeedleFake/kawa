@@ -1,19 +1,19 @@
 package main
 
-import "github.com/swaywm/go-wlroots/wlroots"
+import "deedles.dev/wlr"
 
 type Server struct {
 	Cage string
 	Term string
 
-	display wlroots.Display
+	display wlr.Display
 
-	backend      wlroots.Backend
-	cursor       wlroots.Cursor
-	outputLayout wlroots.outputLayout
-	renderer     wlroots.Renderer
-	seat         wlroots.Seat
-	cursorMgr    wlroots.XCursorManager
-	xdgShell     wlroots.XDGShell
-	layerShell   wlroots.LayerShellV1
+	backend      wlr.Backend
+	cursor       wlr.Cursor
+	outputLayout wlr.OutputLayout
+	renderer     wlr.Renderer
+	seat         wlr.Seat
+	cursorMgr    wlr.XCursorManager
+	xdgShell     wlr.XDGShell
+	layerShell   wlr.LayerShellV1
 }
