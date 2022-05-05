@@ -1,6 +1,10 @@
 package main
 
-import "deedles.dev/wlr"
+import (
+	"time"
+
+	"deedles.dev/wlr"
+)
 
 type Server struct {
 	Cage string
@@ -17,22 +21,22 @@ type Server struct {
 	xdgShell     wlr.XDGShell
 	layerShell   wlr.LayerShellV1
 
-	outputs       []wlr.Output
+	outputs       []*wlr.Output
 	outputConfigs []OutputConfig
-	inputs        []wlr.InputDevice
-	pointers      []wlr.InputDevice
-	keyboards     []wlr.Keyboard
+	inputs        []*wlr.InputDevice
+	pointers      []*wlr.InputDevice
+	keyboards     []*wlr.Keyboard
 	views         []View
 	newViews      []NewView
 
-	newOutput            func(wlr.Output)
-	newInput             func(wlr.InputDevice)
-	cursorMotion         func(wlr.EventPointerMotion)
-	cursorMotionAbsolute func(wlr.EventPointerMotionAbsolute)
-	cursorButton         func(wlr.EventPointerButton)
-	cursorAxis           func(wlr.EventPointerAxis)
-	cursorFrame          func(wlr.EventPointerFrame)
-	requestCursor        func(wlr.SeatPointerRequestSetCursorEvent) // What the heck? Is that correct?
+	newOutput            func(*wlr.Output)
+	newInput             func(*wlr.InputDevice)
+	cursorMotion         func(*wlr.InputDevice, time.Time, float64, float64)
+	cursorMotionAbsolute func(*wlr.InputDevice, time.Time, float64, float64)
+	cursorButton         func(*wlr.InputDevice, time.Time, uint32, wlr.ButtonState)
+	cursorAxis           func(*wlr.InputDevice, time.Time, wlr.AxisSource, wlr.AxisOrientation, float64, int32)
+	cursorFrame          func()
+	requestCursor        func(*wlr.SeatClient, *wlr.Surface, uint32, int32, int32)
 
 	menu struct {
 		X, Y             int
