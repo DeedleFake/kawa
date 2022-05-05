@@ -19,6 +19,7 @@ Wishful Thinking
 ----------------
 
 * Touchscreen support. I'm not entirely sure how this would work, but since rio's design is heavily mouse-oriented, if it _does_ work it could be quite nice.
+* Theming support.
 
 Prior Art
 ---------
