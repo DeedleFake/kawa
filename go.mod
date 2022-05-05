@@ -1,4 +1,4 @@
-module deedles.dev/gwio
+module deedles.dev/kawa
 
 go 1.18
 
