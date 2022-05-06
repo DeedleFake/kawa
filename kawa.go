@@ -25,4 +25,10 @@ func main() {
 	server.renderer.InitWLDisplay(server.display)
 
 	wlr.CreateCompositor(server.display, server.renderer)
+	wlr.CreateDataDeviceManager(server.display)
+
+	wlr.CreateExportDMABufV1(server.display)
+	wlr.CreateScreencopyManagerV1(server.display)
+	wlr.CreateDataControlManagerV1(server.display)
+	wlr.CreatePrimarySelectionV1DeviceManager(server.display)
 }
