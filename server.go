@@ -7,8 +7,8 @@ import (
 )
 
 type Server struct {
-	Cage string
-	Term string
+	Cage []string
+	Term []string
 
 	display wlr.Display
 
