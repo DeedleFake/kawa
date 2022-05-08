@@ -1,9 +1,12 @@
 package main
 
 import (
-	"time"
-
 	"deedles.dev/wlr"
+)
+
+const (
+	MinWidth  = 100
+	MinHeight = 100
 )
 
 type Server struct {
@@ -21,22 +24,25 @@ type Server struct {
 	xdgShell     wlr.XDGShell
 	layerShell   wlr.LayerShellV1
 
-	outputs       []wlr.Output
+	outputs       []Output
 	outputConfigs []OutputConfig
 	inputs        []wlr.InputDevice
 	pointers      []wlr.InputDevice
-	keyboards     []wlr.Keyboard
+	keyboards     []Keyboard
 	views         []View
 	newViews      []NewView
 
-	newOutput            func(wlr.Output)
-	newInput             func(wlr.InputDevice)
-	cursorMotion         func(wlr.InputDevice, time.Time, float64, float64)
-	cursorMotionAbsolute func(wlr.InputDevice, time.Time, float64, float64)
-	cursorButton         func(wlr.InputDevice, time.Time, uint32, wlr.ButtonState)
-	cursorAxis           func(wlr.InputDevice, time.Time, wlr.AxisSource, wlr.AxisOrientation, float64, int32)
-	cursorFrame          func()
-	requestCursor        func(*wlr.SeatClient, *wlr.Surface, uint32, int32, int32)
+	newOutput            wlr.Listener
+	newInput             wlr.Listener
+	cursorMotion         wlr.Listener
+	cursorMotionAbsolute wlr.Listener
+	cursorButton         wlr.Listener
+	cursorAxis           wlr.Listener
+	cursorFrame          wlr.Listener
+	requestCursor        wlr.Listener
+
+	newXDGSurface   wlr.Listener
+	newLayerSurface wlr.Listener
 
 	menu struct {
 		X, Y             int
@@ -54,6 +60,13 @@ type Server struct {
 	inputState InputState
 }
 
+type Output struct {
+	Server *Server
+	Output wlr.Output
+	Layers [][4]LayerSurface
+	Frame  wlr.Listener
+}
+
 type OutputConfig struct {
 	Name          string
 	X, Y          int
@@ -64,15 +77,35 @@ type OutputConfig struct {
 
 type View struct {
 	X, Y       int
+	Area       ViewArea
 	XDGSurface wlr.XDGSurface
 	Server     *Server
-	Map        func()
-	Destroy    func()
+	Map        wlr.Listener
+	Destroy    wlr.Listener
 }
 
 type NewView struct {
 	PID int
 	Box wlr.Box
+}
+
+type Keyboard struct {
+	Server    *Server
+	Device    wlr.InputDevice
+	Modifiers wlr.Listener
+	Key       wlr.Listener
+}
+
+type LayerSurface struct {
+	LayerSurface wlr.LayerSurfaceV1
+	Server       *Server
+
+	Destroy       wlr.Listener
+	Map           wlr.Listener
+	SurfaceCommit wlr.Listener
+	OutputDestroy wlr.Listener
+
+	Geo *wlr.Box
 }
 
 type InputState uint
@@ -93,4 +126,18 @@ const (
 	InputStateBorderDragLeft
 	InputStateDeleteSelect
 	InputStateHideSelect
+)
+
+type ViewArea int
+
+const (
+	BorderTopLeft ViewArea = iota
+	BorderTop
+	BorderTopRight
+	BorderLeft
+	Surface
+	BorderRight
+	BorderBottomLeft
+	BorderBottom
+	BorderBottomRight
 )
