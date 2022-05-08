@@ -15,6 +15,7 @@ type Server struct {
 
 	display wlr.Display
 
+	allocator    wlr.Allocator
 	backend      wlr.Backend
 	cursor       wlr.Cursor
 	outputLayout wlr.OutputLayout

@@ -17,11 +17,12 @@ func main() {
 		Term: strings.Fields(*term),
 	}
 
-	wlr.LogInit(wlr.Debug, nil)
+	wlr.InitLog(wlr.Debug, nil)
 
 	server.display = wlr.CreateDisplay()
 	server.backend = wlr.AutocreateBackend(server.display)
 	server.renderer = wlr.AutocreateRenderer(server.backend)
+	server.allocator = wlr.AutocreateAllocator(server.backend, server.renderer)
 	server.renderer.InitWLDisplay(server.display)
 
 	wlr.CreateCompositor(server.display, server.renderer)
