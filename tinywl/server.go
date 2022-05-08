@@ -81,8 +81,8 @@ func NewServer() (*Server, error) {
 	s.cursor.OnAxis(s.handleCursorAxis)
 	s.cursor.OnFrame(s.handleCursorFrame)
 	s.cursor.AttachOutputLayout(s.layout)
-	s.cursorMgr = wlr.CreateXCursorManager()
-	s.cursorMgr.Load()
+	s.cursorMgr = wlr.CreateXCursorManager("", 24)
+	s.cursorMgr.Load(1)
 
 	// configure seat
 	s.seat = wlr.CreateSeat(s.display, "seat0")
