@@ -40,10 +40,10 @@ func main() {
 	server.outputLayout = wlr.CreateOutputLayout()
 	wlr.CreateXDGOutputManagerV1(server.display, server.outputLayout)
 
-	//server.cursor = wlr_cursor_create();
-	//wlr_cursor_attach_output_layout(server.cursor, server.output_layout);
-	//server.cursor_mgr = wlr_xcursor_manager_create(NULL, 24);
-	//wlr_xcursor_manager_load(server.cursor_mgr, 1);
+	server.cursor = wlr.CreateCursor()
+	server.cursor.AttachOutputLayout(server.outputLayout)
+	server.cursorMgr = wlr.CreateXCursorManager("", 24)
+	server.cursorMgr.Load(1)
 
 	//struct wio_output_config *config;
 	//wl_list_for_each(config, &server.output_configs, link) {
