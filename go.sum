@@ -1,5 +1,5 @@
-deedles.dev/wlr v0.0.0-20220508143131-1b755fc64691 h1:93uaayLiwVqtIMq/4oEMQGE2GHb6cEu8RsKxQzLTzzs=
-deedles.dev/wlr v0.0.0-20220508143131-1b755fc64691/go.mod h1:Mf/zxdDHTSvNbXDJw45Ofl4PMK9ruNiqRri6AbWbuRY=
+deedles.dev/wlr v0.0.0-20220508170932-aa0991b2b495 h1:VagSEq0h1f3zSlONJ4zZ4KGWzStPPEM2/ag/QVtavfQ=
+deedles.dev/wlr v0.0.0-20220508170932-aa0991b2b495/go.mod h1:Mf/zxdDHTSvNbXDJw45Ofl4PMK9ruNiqRri6AbWbuRY=
 github.com/ungerik/go-cairo v0.0.0-20220112164238-998c7c11be17 h1:jOpdiCW331r/FDOJ9nnOFeNDrdAUrU8h3Hjt5yVgpqk=
 github.com/ungerik/go-cairo v0.0.0-20220112164238-998c7c11be17/go.mod h1:yLTJg56omDJ+JVxZ5whpCrZgQdaSs+OBdFa+X6ViJcI=
 golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 h1:nonptSpoQ4vQjyraW20DXPAglgQfVnM9ZC6MmNLMR60=

@@ -3,7 +3,7 @@ module deedles.dev/kawa
 go 1.18
 
 require (
-	deedles.dev/wlr v0.0.0-20220508143131-1b755fc64691
+	deedles.dev/wlr v0.0.0-20220508170932-aa0991b2b495
 	github.com/ungerik/go-cairo v0.0.0-20220112164238-998c7c11be17
 )
 
