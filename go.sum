@@ -1,9 +1,10 @@
-deedles.dev/wlr v0.0.0-20220508170932-aa0991b2b495 h1:VagSEq0h1f3zSlONJ4zZ4KGWzStPPEM2/ag/QVtavfQ=
-deedles.dev/wlr v0.0.0-20220508170932-aa0991b2b495/go.mod h1:Mf/zxdDHTSvNbXDJw45Ofl4PMK9ruNiqRri6AbWbuRY=
+deedles.dev/wlr v0.0.0-20220508184219-6f5edfb8a3fa h1:fx6posjPS/loV7FhzRHvVHxnGy9BZG3ucSq8ereB+OM=
+deedles.dev/wlr v0.0.0-20220508184219-6f5edfb8a3fa/go.mod h1:Mf/zxdDHTSvNbXDJw45Ofl4PMK9ruNiqRri6AbWbuRY=
 golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9 h1:LRtI4W37N+KFebI/qV0OFiLUv4GLOWeEW5hn/KEJvxE=
 golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9/go.mod h1:023OzeP/+EPmXeapQh35lcL3II3LrY8Ic+EFFKVhULM=
 golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 h1:nonptSpoQ4vQjyraW20DXPAglgQfVnM9ZC6MmNLMR60=
 golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/text v0.3.6 h1:aRYxNxv6iGQlyVaZmk6ZgYEDa+Jg18DxebPSrd6bg1M=
 golang.org/x/text v0.3.6/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
+golang.org/x/text v0.3.8-0.20220124021120-d1c84af989ab h1:eHo2TTVBaAPw9lDGK2Gb9GyPMXT6g7O63W6sx3ylbzU=
+golang.org/x/text v0.3.8-0.20220124021120-d1c84af989ab/go.mod h1:EFNZuWvGYxIRUEX+K8UmCFwYmZjqcrnq15ZuVldZkZ0=
 golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
