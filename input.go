@@ -75,7 +75,7 @@ func (server *Server) newKeyboard(device wlr.InputDevice) {
 }
 
 func (server *Server) newPointer(device wlr.InputDevice) {
-	panic("Not implemented.")
+	server.cursor.AttachInputDevice(device)
 }
 
 func (server *Server) onRequestCursor(client wlr.SeatClient, surface wlr.Surface, serial uint32, hotspotX, hotspotY int32) {
