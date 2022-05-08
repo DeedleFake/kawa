@@ -6,4 +6,5 @@ package drm
 
 const (
 	FormatARGB8888 = 'A' | ('R' << 8) | ('2' << 16) | ('4' << 24)
+	FormatRGBA8888 = 'R' | ('A' << 8) | ('2' << 16) | ('4' << 24)
 )
