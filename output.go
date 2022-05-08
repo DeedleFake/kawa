@@ -2,6 +2,6 @@ package main
 
 import "deedles.dev/wlr"
 
-func (server *Server) NewOutput(output wlr.Output) {
+func (server *Server) onNewOutput(output wlr.Output) {
 	panic("Not implemented.")
 }

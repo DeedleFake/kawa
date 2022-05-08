@@ -40,7 +40,7 @@ func main() {
 
 	wlr.CreateGammaControlManagerV1(server.display)
 
-	server.newOutput = server.backend.OnNewOutput(server.NewOutput)
+	server.newOutput = server.backend.OnNewOutput(server.onNewOutput)
 
 	server.outputLayout = wlr.CreateOutputLayout()
 	wlr.CreateXDGOutputManagerV1(server.display, server.outputLayout)
@@ -54,22 +54,22 @@ func main() {
 		server.cursorMgr.Load(float64(c.Scale))
 	}
 
-	server.cursorMotion = server.cursor.OnMotion(server.CursorMotion)
-	server.cursorMotionAbsolute = server.cursor.OnMotionAbsolute(server.CursorMotionAbsolute)
-	server.cursorButton = server.cursor.OnButton(server.CursorButton)
-	server.cursorAxis = server.cursor.OnAxis(server.CursorAxis)
-	server.cursorFrame = server.cursor.OnFrame(server.CursorFrame)
+	server.cursorMotion = server.cursor.OnMotion(server.onCursorMotion)
+	server.cursorMotionAbsolute = server.cursor.OnMotionAbsolute(server.onCursorMotionAbsolute)
+	server.cursorButton = server.cursor.OnButton(server.onCursorButton)
+	server.cursorAxis = server.cursor.OnAxis(server.onCursorAxis)
+	server.cursorFrame = server.cursor.OnFrame(server.onCursorFrame)
 
-	server.newInput = server.backend.OnNewInput(server.NewInput)
+	server.newInput = server.backend.OnNewInput(server.onNewInput)
 
 	server.seat = wlr.CreateSeat(server.display, "seat0")
-	server.requestCursor = server.seat.OnRequestSetCursor(server.RequestCursor)
+	server.requestCursor = server.seat.OnRequestSetCursor(server.onRequestCursor)
 
 	server.xdgShell = wlr.CreateXDGShell(server.display)
-	server.newXDGSurface = server.xdgShell.OnNewSurface(server.NewXDGSurface)
+	server.newXDGSurface = server.xdgShell.OnNewSurface(server.onNewXDGSurface)
 
 	server.layerShell = wlr.CreateLayerShellV1(server.display)
-	server.newLayerSurface = server.layerShell.OnNewSurface(server.NewLayerSurface)
+	server.newLayerSurface = server.layerShell.OnNewSurface(server.onNewLayerSurface)
 
 	server.menu.X, server.menu.Y = -1, -1
 	server.genMenuTextures()

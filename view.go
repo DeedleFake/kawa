@@ -2,6 +2,6 @@ package main
 
 import "deedles.dev/wlr"
 
-func (server *Server) NewXDGSurface(surface wlr.XDGSurface) {
+func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
 	panic("Not implemented.")
 }
