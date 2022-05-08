@@ -7,11 +7,62 @@ import (
 	"strconv"
 	"strings"
 
+	"deedles.dev/kawa/internal/drm"
 	"deedles.dev/wlr"
+	"github.com/ungerik/go-cairo"
 )
 
 func (server *Server) genMenuTextures() {
-	panic("Not implemented.")
+	ren := server.renderer
+
+	surf := cairo.NewSurface(cairo.FORMAT_ARGB32, 128, 128)
+	defer surf.Destroy()
+
+	surf.SelectFontFace("Go Mono", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+	surf.SetFontSize(14)
+	surf.SetSourceRGB(0, 0, 0)
+
+	text := []string{"New", "Resize", "Move", "Delete", "Hide"}
+
+	for i, item := range text {
+		surf.SetOperator(cairo.OPERATOR_CLEAR)
+		surf.Paint()
+		surf.SetOperator(cairo.OPERATOR_SOURCE)
+		extents := surf.TextExtents(item)
+		surf.MoveTo(0, extents.Height)
+		surf.ShowText(item)
+		surf.Flush()
+
+		data := surf.GetData()
+		server.menu.InactiveTextures[i] = wlr.TextureFromPixels(
+			ren,
+			drm.FormatARGB8888,
+			uint32(surf.GetStride()),
+			uint32(extents.Width+2),
+			uint32(extents.Height+2),
+			data,
+		)
+	}
+
+	for i, item := range text {
+		surf.SetOperator(cairo.OPERATOR_CLEAR)
+		surf.Paint()
+		surf.SetOperator(cairo.OPERATOR_SOURCE)
+		extents := surf.TextExtents(item)
+		surf.MoveTo(0, extents.Height)
+		surf.ShowText(item)
+		surf.Flush()
+
+		data := surf.GetData()
+		server.menu.ActiveTextures[i] = wlr.TextureFromPixels(
+			ren,
+			drm.FormatARGB8888,
+			uint32(surf.GetStride()),
+			uint32(extents.Width+2),
+			uint32(extents.Height+2),
+			data,
+		)
+	}
 }
 
 func parseTransform(str string) (wlr.OutputTransform, error) {
@@ -42,6 +93,7 @@ func parseOutputConfigs(outputConfigs string) (configs []OutputConfig, err error
 		return
 	}
 
+	// TODO: Handle errors.
 	for _, config := range strings.Split(outputConfigs, ",") {
 		parts := strings.Split(config, ":")
 		c := OutputConfig{Name: parts[0]}
