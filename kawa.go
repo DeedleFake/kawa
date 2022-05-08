@@ -45,22 +45,15 @@ func main() {
 	server.cursorMgr = wlr.CreateXCursorManager("", 24)
 	server.cursorMgr.Load(1)
 
-	//struct wio_output_config *config;
-	//wl_list_for_each(config, &server.output_configs, link) {
-	//	if (config->scale > 1)
-	//		wlr_xcursor_manager_load(server.cursor_mgr, config->scale);
-	//}
+	for _, c := range server.outputConfigs {
+		server.cursorMgr.Load(float64(c.Scale))
+	}
 
-	//server.cursor_motion.notify = server_cursor_motion;
-	//wl_signal_add(&server.cursor->events.motion, &server.cursor_motion);
-	//server.cursor_motion_absolute.notify = server_cursor_motion_absolute;
-	//wl_signal_add(&server.cursor->events.motion_absolute, &server.cursor_motion_absolute);
-	//server.cursor_button.notify = server_cursor_button;
-	//wl_signal_add(&server.cursor->events.button, &server.cursor_button);
-	//server.cursor_axis.notify = server_cursor_axis;
-	//wl_signal_add(&server.cursor->events.axis, &server.cursor_axis);
-	//server.cursor_frame.notify = server_cursor_frame;
-	//wl_signal_add(&server.cursor->events.frame, &server.cursor_frame);
+	server.cursorMotion = server.cursor.OnMotion(server.CursorMotion)
+	server.cursorMotionAbsolute = server.cursor.OnMotionAbsolute(server.CursorMotionAbsolute)
+	server.cursorButton = server.cursor.OnButton(server.CursorButton)
+	server.cursorAxis = server.cursor.OnAxis(server.CursorAxis)
+	server.cursorFrame = server.cursor.OnFrame(server.CursorFrame)
 
 	//wl_list_init(&server.inputs);
 	//server.new_input.notify = server_new_input;
