@@ -10,8 +10,9 @@ const (
 )
 
 type Server struct {
-	Cage []string
-	Term []string
+	Cage          []string
+	Term          []string
+	OutputConfigs []OutputConfig
 
 	display wlr.Display
 
@@ -25,13 +26,12 @@ type Server struct {
 	xdgShell     wlr.XDGShell
 	layerShell   wlr.LayerShellV1
 
-	outputs       []Output
-	outputConfigs []OutputConfig
-	inputs        []wlr.InputDevice
-	pointers      []wlr.InputDevice
-	keyboards     []Keyboard
-	views         []View
-	newViews      []NewView
+	outputs   []Output
+	inputs    []wlr.InputDevice
+	pointers  []wlr.InputDevice
+	keyboards []Keyboard
+	views     []View
+	newViews  []NewView
 
 	newOutput            wlr.Listener
 	newInput             wlr.Listener
