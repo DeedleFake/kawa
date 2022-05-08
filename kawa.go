@@ -3,64 +3,85 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
 	"os"
 	"strconv"
 	"strings"
 
 	"deedles.dev/kawa/internal/drm"
 	"deedles.dev/wlr"
-	"github.com/ungerik/go-cairo"
+	"golang.org/x/image/draw"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/gomono"
+	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/font/sfnt"
+	"golang.org/x/image/math/fixed"
 )
+
+var monoFont *sfnt.Font
+
+func init() {
+	gomonoFont, err := opentype.Parse(gomono.TTF)
+	if err != nil {
+		panic(fmt.Errorf("parse font: %w", err))
+	}
+
+	monoFont = gomonoFont
+}
 
 func (server *Server) genMenuTextures() {
 	ren := server.renderer
 
-	surf := cairo.NewSurface(cairo.FORMAT_ARGB32, 128, 128)
-	defer surf.Destroy()
+	gomono, err := opentype.NewFace(monoFont, &opentype.FaceOptions{
+		Size: 24,
+	})
+	if err != nil {
+		panic(fmt.Errorf("create font face: %w", err))
+	}
 
-	surf.SelectFontFace("Go Mono", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-	surf.SetFontSize(14)
-	surf.SetSourceRGB(0, 0, 0)
+	surf := image.NewNRGBA(image.Rect(0, 0, 128, 128))
+
+	fdraw := font.Drawer{
+		Dst:  surf,
+		Src:  image.Black,
+		Face: gomono,
+	}
 
 	text := []string{"New", "Resize", "Move", "Delete", "Hide"}
 
 	for i, item := range text {
-		surf.SetOperator(cairo.OPERATOR_CLEAR)
-		surf.Paint()
-		surf.SetOperator(cairo.OPERATOR_SOURCE)
-		extents := surf.TextExtents(item)
-		surf.MoveTo(0, extents.Height)
-		surf.ShowText(item)
-		surf.Flush()
+		draw.Copy(surf, image.ZP, image.Transparent, image.Transparent.Bounds(), draw.Src, nil)
 
-		data := surf.GetData()
+		fdraw.Dot = fixed.P(0, 0)
+		fdraw.DrawString(item)
+
+		extents, _ := fdraw.BoundString(item)
 		server.menu.InactiveTextures[i] = wlr.TextureFromPixels(
 			ren,
-			drm.FormatARGB8888,
-			uint32(surf.GetStride()),
-			uint32(extents.Width+2),
-			uint32(extents.Height+2),
-			data,
+			drm.FormatRGBA8888,
+			uint32(surf.Stride),
+			uint32((extents.Max.X-extents.Min.X)+2),
+			uint32((extents.Max.Y-extents.Min.Y)+2),
+			surf.Pix,
 		)
 	}
 
-	for i, item := range text {
-		surf.SetOperator(cairo.OPERATOR_CLEAR)
-		surf.Paint()
-		surf.SetOperator(cairo.OPERATOR_SOURCE)
-		extents := surf.TextExtents(item)
-		surf.MoveTo(0, extents.Height)
-		surf.ShowText(item)
-		surf.Flush()
+	fdraw.Src = image.White
 
-		data := surf.GetData()
+	for i, item := range text {
+		draw.Copy(surf, image.ZP, image.Transparent, image.Transparent.Bounds(), draw.Src, nil)
+
+		fdraw.Dot = fixed.P(0, 0)
+		fdraw.DrawString(item)
+
+		extents, _ := fdraw.BoundString(item)
 		server.menu.ActiveTextures[i] = wlr.TextureFromPixels(
 			ren,
-			drm.FormatARGB8888,
-			uint32(surf.GetStride()),
-			uint32(extents.Width+2),
-			uint32(extents.Height+2),
-			data,
+			drm.FormatRGBA8888,
+			uint32(surf.Stride),
+			uint32((extents.Max.X-extents.Min.X)+2),
+			uint32((extents.Max.Y-extents.Min.Y)+2),
+			surf.Pix,
 		)
 	}
 }
