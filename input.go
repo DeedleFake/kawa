@@ -25,3 +25,11 @@ func (server *Server) CursorAxis(dev wlr.InputDevice, t time.Time, source wlr.Ax
 func (server *Server) CursorFrame() {
 	panic("Not implemented.")
 }
+
+func (server *Server) NewInput(input wlr.InputDevice) {
+	panic("Not implemented.")
+}
+
+func (server *Server) RequestCursor(client wlr.SeatClient, surface wlr.Surface, serial uint32, hotspotX, hotspotY int32) {
+	panic("Not implemented.")
+}

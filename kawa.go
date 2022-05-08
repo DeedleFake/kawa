@@ -2,10 +2,15 @@ package main
 
 import (
 	"flag"
+	"os"
 	"strings"
 
 	"deedles.dev/wlr"
 )
+
+func (server *Server) genMenuTextures() {
+	panic("Not implemented.")
+}
 
 func main() {
 	cage := flag.String("cage", "cage -d", "wrapper to use for caging windows")
@@ -55,48 +60,38 @@ func main() {
 	server.cursorAxis = server.cursor.OnAxis(server.CursorAxis)
 	server.cursorFrame = server.cursor.OnFrame(server.CursorFrame)
 
-	//wl_list_init(&server.inputs);
-	//server.new_input.notify = server_new_input;
-	//wl_signal_add(&server.backend->events.new_input, &server.new_input);
+	server.newInput = server.backend.OnNewInput(server.NewInput)
 
-	//server.seat = wlr_seat_create(server.wl_display, "seat0");
-	//server.request_cursor.notify = seat_request_cursor;
-	//wl_signal_add(&server.seat->events.request_set_cursor, &server.request_cursor);
-	//wl_list_init(&server.keyboards);
-	//wl_list_init(&server.pointers);
+	server.seat = wlr.CreateSeat(server.display, "seat0")
+	server.requestCursor = server.seat.OnRequestSetCursor(server.RequestCursor)
 
-	//wl_list_init(&server.views);
-	//server.xdg_shell = wlr_xdg_shell_create(server.wl_display);
-	//server.new_xdg_surface.notify = server_new_xdg_surface;
-	//wl_signal_add(&server.xdg_shell->events.new_surface, &server.new_xdg_surface);
+	server.xdgShell = wlr.CreateXDGShell(server.display)
+	server.newXDGSurface = server.xdgShell.OnNewSurface(server.NewXDGSurface)
 
-	//wl_list_init(&server.new_views);
+	server.layerShell = wlr.CreateLayerShellV1(server.display)
+	server.newLayerSurface = server.layerShell.OnNewSurface(server.NewLayerSurface)
 
-	//server.layer_shell = wlr_layer_shell_v1_create(server.wl_display);
-	//server.new_layer_surface.notify = server_new_layer_surface;
-	//wl_signal_add(&server.layer_shell->events.new_surface, &server.new_layer_surface);
+	server.menu.X, server.menu.Y = -1, -1
+	server.genMenuTextures()
+	server.inputState = InputStateNone
 
-	//server.menu.x = server.menu.y = -1;
-	//gen_menu_textures(&server);
-	//server.input_state = INPUT_STATE_NONE;
+	socket, err := server.display.AddSocketAuto()
+	if err != nil {
+		server.backend.Destroy()
+		os.Exit(1)
+	}
 
-	//const char *socket = wl_display_add_socket_auto(server.wl_display);
-	//if (!socket) {
-	//	wlr_backend_destroy(server.backend);
-	//	return 1;
-	//}
+	err = server.backend.Start()
+	if err != nil {
+		server.backend.Destroy()
+		server.display.Destroy()
+		os.Exit(1)
+	}
 
-	//if (!wlr_backend_start(server.backend)) {
-	//	wlr_backend_destroy(server.backend);
-	//	wl_display_destroy(server.wl_display);
-	//	return 1;
-	//}
+	os.Setenv("WAYLAND_DISPLAY", socket)
+	wlr.Log(wlr.Info, "Running Wayland compositor on WAYLAND_DISPLAY=%v", socket)
+	server.display.Run()
 
-	//setenv("WAYLAND_DISPLAY", socket, true);
-	//wlr_log(WLR_INFO, "Running Wayland compositor on WAYLAND_DISPLAY=%s", socket);
-	//wl_display_run(server.wl_display);
-
-	//wl_display_destroy_clients(server.wl_display);
-	//wl_display_destroy(server.wl_display);
-	//return 0;
+	server.display.DestroyClients()
+	server.display.Destroy()
 }
