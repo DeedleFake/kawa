@@ -24,5 +24,5 @@ Wishful Thinking
 Prior Art
 ---------
 
-* [wio](https://wio-project.org)
+* [wio](https://gitlab.com/Rubo/wio)
 * [wio+](https://notabug.org/Leon_Plickat/wio-plus)
