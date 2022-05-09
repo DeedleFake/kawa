@@ -11,6 +11,12 @@ import (
 func (out *Output) onFrame(output wlr.Output) {
 	server := out.Server
 
+	_, err := output.AttachRender()
+	if err != nil {
+		wlr.Log(wlr.Error, "output attach render: %v", err)
+		return
+	}
+
 	server.renderer.Begin(output, output.Width(), output.Height())
 	server.renderer.Clear(ColorBackground)
 
