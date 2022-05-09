@@ -8,6 +8,18 @@ import (
 	"deedles.dev/wlr/xkb"
 )
 
+var corners = [...]string{
+	"top_left_corner",
+	"top_side",
+	"top_right_corner",
+	"left_side",
+	"",
+	"right_side",
+	"bottom_left_corner",
+	"bottom_side",
+	"bottom_right_corner",
+}
+
 func (server *Server) onCursorMotion(dev wlr.InputDevice, t time.Time, dx, dy float64) {
 	server.cursor.Move(dev, dx, dy)
 	server.processCursorMotion(t)
@@ -19,7 +31,34 @@ func (server *Server) onCursorMotionAbsolute(dev wlr.InputDevice, t time.Time, x
 }
 
 func (server *Server) processCursorMotion(t time.Time) {
-	// TODO
+	var sx, sy float64
+	var surface wlr.Surface
+	var view *View
+	defer func() {
+		if surface.Valid() {
+			focusChanged := server.seat.PointerState().FocusedSurface() != surface
+			server.seat.PointerNotifyEnter(surface, sx, sy)
+			if !focusChanged {
+				server.seat.PointerNotifyMotion(t, sx, sy)
+			}
+			return
+		}
+
+		if view != nil {
+			server.cursorMgr.SetCursorImage(corners[view.Area], server.cursor)
+		}
+
+		server.seat.PointerClearFocus()
+	}()
+
+	if server.inputState == InputStateNone {
+		view, surface, sx, sy = server.viewAt(server.cursor.X(), server.cursor.Y())
+	}
+	if view == nil {
+		return
+	}
+
+	panic("Not implemented.")
 }
 
 func (server *Server) onCursorButton(dev wlr.InputDevice, t time.Time, b uint32, state wlr.ButtonState) {

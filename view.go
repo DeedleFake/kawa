@@ -100,3 +100,7 @@ func (view *View) Move(x, y int) {
 		view.XDGSurface.Surface().SendEnter(out.Output)
 	}
 }
+
+func (server *Server) viewAt(lx, ly float64) (view *View, surface wlr.Surface, sx, sy float64) {
+	panic("Not implemented.")
+}
