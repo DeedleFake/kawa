@@ -9,15 +9,21 @@ import (
 )
 
 func (server *Server) onCursorMotion(dev wlr.InputDevice, t time.Time, dx, dy float64) {
-	panic("Not implemented.")
+	server.cursor.Move(dev, dx, dy)
+	server.processCursorMotion(t)
 }
 
 func (server *Server) onCursorMotionAbsolute(dev wlr.InputDevice, t time.Time, x, y float64) {
-	panic("Not implemented.")
+	server.cursor.WarpAbsolute(dev, x, y)
+	server.processCursorMotion(t)
+}
+
+func (server *Server) processCursorMotion(t time.Time) {
+	// TODO
 }
 
 func (server *Server) onCursorButton(dev wlr.InputDevice, t time.Time, b uint32, state wlr.ButtonState) {
-	panic("Not implemented.")
+	// TODO
 }
 
 func (server *Server) onCursorAxis(dev wlr.InputDevice, t time.Time, source wlr.AxisSource, orient wlr.AxisOrientation, delta float64, deltaDiscrete int32) {
@@ -25,7 +31,7 @@ func (server *Server) onCursorAxis(dev wlr.InputDevice, t time.Time, source wlr.
 }
 
 func (server *Server) onCursorFrame() {
-	panic("Not implemented.")
+	server.seat.PointerNotifyFrame()
 }
 
 func (server *Server) onNewInput(device wlr.InputDevice) {
@@ -83,9 +89,24 @@ func (server *Server) onRequestCursor(client wlr.SeatClient, surface wlr.Surface
 }
 
 func (kb *Keyboard) onModifiers(keyboard wlr.Keyboard) {
-	panic("Not implemented.")
+	server := kb.Server
+
+	server.seat.SetKeyboard(kb.Device)
+	server.seat.KeyboardNotifyModifiers(keyboard.Modifiers())
 }
 
 func (kb *Keyboard) onKey(keyboard wlr.Keyboard, t time.Time, code uint32, update bool, state wlr.KeyState) {
-	panic("Not implemented.")
+	server := kb.Server
+
+	if server.handleShortcut() {
+		return
+	}
+
+	server.seat.SetKeyboard(kb.Device)
+	server.seat.KeyboardNotifyKey(t, code, state)
+}
+
+func (server *Server) handleShortcut() bool {
+	// TODO
+	return false
 }
