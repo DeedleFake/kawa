@@ -27,7 +27,7 @@ func (server *Server) onCursorButton(dev wlr.InputDevice, t time.Time, b uint32,
 }
 
 func (server *Server) onCursorAxis(dev wlr.InputDevice, t time.Time, source wlr.AxisSource, orient wlr.AxisOrientation, delta float64, deltaDiscrete int32) {
-	panic("Not implemented.")
+	server.seat.PointerNotifyAxis(t, orient, delta, deltaDiscrete, source)
 }
 
 func (server *Server) onCursorFrame() {
