@@ -19,7 +19,28 @@ func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
 	view.Destroy = surface.OnDestroy(view.onDestroy)
 	view.Map = surface.OnMap(view.onMap)
 
-	panic("Not implemented.")
+	surface.TopLevelSetTiled(wlr.EdgeLeft | wlr.EdgeRight | wlr.EdgeTop | wlr.EdgeBottom)
+
+	client := surface.Resource().GetClient()
+	pid, _, _ := client.GetCredentials()
+
+	for i, newView := range server.newViews {
+		if newView.PID != pid {
+			continue
+		}
+
+		view.X = newView.Box.X
+		view.Y = newView.Box.Y
+		surface.TopLevelSetSize(
+			uint32(newView.Box.Width),
+			uint32(newView.Box.Height),
+		)
+
+		slices.Delete(server.newViews, i, i)
+		break
+	}
+
+	server.views = append(server.views, &view)
 }
 
 func (view *View) onDestroy(surface wlr.XDGSurface) {
