@@ -9,6 +9,8 @@ import (
 )
 
 func (out *Output) onFrame(output wlr.Output) {
+	now := time.Now()
+
 	server := out.Server
 
 	_, err := output.AttachRender()
@@ -20,10 +22,9 @@ func (out *Output) onFrame(output wlr.Output) {
 	server.renderer.Begin(output, output.Width(), output.Height())
 	server.renderer.Clear(ColorBackground)
 
-	out.renderLayer(out.Layers[wlr.LayerShellV1LayerBackground])
-	out.renderLayer(out.Layers[wlr.LayerShellV1LayerBottom])
+	out.renderLayer(out.Layers[wlr.LayerShellV1LayerBackground], now)
+	out.renderLayer(out.Layers[wlr.LayerShellV1LayerBottom], now)
 
-	now := time.Now()
 	for _, view := range server.views {
 		if !view.XDGSurface.Mapped() {
 			continue
@@ -59,13 +60,13 @@ func (out *Output) onFrame(output wlr.Output) {
 		panic("Not implemented.")
 	}
 
-	out.renderLayer(out.Layers[wlr.LayerShellV1LayerTop])
+	out.renderLayer(out.Layers[wlr.LayerShellV1LayerTop], now)
 
 	if (server.menu.X != -1) && (server.menu.Y != -1) {
 		out.renderMenu()
 	}
 
-	out.renderLayer(out.Layers[wlr.LayerShellV1LayerOverlay])
+	out.renderLayer(out.Layers[wlr.LayerShellV1LayerOverlay], now)
 
 	output.RenderSoftwareCursors(image.ZR)
 	server.renderer.End()
@@ -129,14 +130,16 @@ func (server *Server) onNewOutput(output wlr.Output) {
 	output.CreateGlobal()
 }
 
-func (out *Output) renderLayer(layers []LayerSurface) {
+func (out *Output) renderLayer(layers []LayerSurface, t time.Time) {
 	for _, surface := range layers {
 		sv1 := surface.LayerSurface
-		sv1.Surface().ForEachSurface(out.renderLayerSurface)
+		sv1.Surface().ForEachSurface(func(surface wlr.Surface, sx, sy int) {
+			out.renderLayerSurface(surface, sx, sy, t)
+		})
 	}
 }
 
-func (out *Output) renderLayerSurface(surface wlr.Surface, sx, sy int) {
+func (out *Output) renderLayerSurface(surface wlr.Surface, sx, sy int, t time.Time) {
 	panic("Not implemented.")
 }
 
@@ -203,14 +206,13 @@ func (view *View) renderSurface(surface wlr.Surface, sx, sy int, output wlr.Outp
 	}
 
 	ox, oy := server.outputLayout.OutputCoords(output)
-	ox += float64(view.X + sx)
-	oy += float64(view.Y + sy)
+	current := surface.Current()
 
 	box := box(
-		int(ox*float64(output.Scale())),
-		int(oy*float64(output.Scale())),
-		int(float64(surface.Current().Width())*float64(output.Scale())),
-		int(float64(surface.Current().Height())*float64(output.Scale())),
+		int((ox+float64(view.X+sx))*float64(output.Scale())),
+		int((oy+float64(view.Y+sy))*float64(output.Scale())),
+		int(float64(current.Width())*float64(output.Scale())),
+		int(float64(current.Height())*float64(output.Scale())),
 	)
 	transform := surface.Current().Transform().Invert()
 	matrix := wlr.ProjectBoxMatrix(box, transform, 0, output.TransformMatrix())

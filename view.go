@@ -107,7 +107,7 @@ func (view *View) Move(x, y int) {
 
 func (server *Server) viewAt(lx, ly float64) (view *View, surface wlr.Surface, sx, sy float64, ok bool) {
 	for _, view := range server.views {
-		surface, sx, sy, ok := view.XDGSurface.SurfaceAt(lx, ly)
+		surface, sx, sy, ok := view.XDGSurface.SurfaceAt(lx-float64(view.X), ly-float64(view.Y))
 		if ok {
 			view.Area = ViewAreaSurface
 			return view, surface, sx, sy, true
