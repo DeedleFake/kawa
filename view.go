@@ -54,5 +54,28 @@ func (view *View) onDestroy(surface wlr.XDGSurface) {
 }
 
 func (view *View) onMap(surface wlr.XDGSurface) {
+	server := view.Server
+	view.Focus(surface.Surface())
+
+	output := server.outputLayout.OutputAt(server.cursor.X(), server.cursor.Y())
+	layout := server.outputLayout.Get(output)
+	if (view.X != -1) || (view.Y != -1) {
+		view.Move(view.X, view.Y)
+		return
+	}
+
+	current := view.XDGSurface.Surface().Current()
+	ow, oh := output.EffectiveResolution()
+	view.Move(
+		layout.X()+(ow/2-current.Width()/2),
+		layout.Y()+(oh/2-current.Height()/2),
+	)
+}
+
+func (view *View) Focus(surface wlr.Surface) {
+	panic("Not implemented.")
+}
+
+func (view *View) Move(x, y int) {
 	panic("Not implemented.")
 }
