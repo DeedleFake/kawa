@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image"
+
 	"deedles.dev/wlr"
 )
 
@@ -94,7 +96,7 @@ func (view *View) Release() {
 
 type NewView struct {
 	PID int
-	Box wlr.Box
+	Box image.Rectangle
 }
 
 type Keyboard struct {
@@ -113,7 +115,7 @@ type LayerSurface struct {
 	SurfaceCommit wlr.Listener
 	OutputDestroy wlr.Listener
 
-	Geo *wlr.Box
+	Geo image.Rectangle
 }
 
 type InputState uint
@@ -136,13 +138,13 @@ const (
 type ViewArea int
 
 const (
-	BorderTopLeft ViewArea = iota
-	BorderTop
-	BorderTopRight
-	BorderLeft
-	Surface
-	BorderRight
-	BorderBottomLeft
-	BorderBottom
-	BorderBottomRight
+	ViewAreaBorderTopLeft ViewArea = iota
+	ViewAreaBorderTop
+	ViewAreaBorderTopRight
+	ViewAreaBorderLeft
+	ViewAreaSurface
+	ViewAreaBorderRight
+	ViewAreaBorderBottomLeft
+	ViewAreaBorderBottom
+	ViewAreaBorderBottomRight
 )

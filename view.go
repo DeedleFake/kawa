@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image"
+
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 )
@@ -29,11 +31,11 @@ func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
 			continue
 		}
 
-		view.X = newView.Box.X
-		view.Y = newView.Box.Y
+		view.X = newView.Box.Min.X
+		view.Y = newView.Box.Min.Y
 		surface.TopLevelSetSize(
-			uint32(newView.Box.Width),
-			uint32(newView.Box.Height),
+			uint32(newView.Box.Dx()),
+			uint32(newView.Box.Dy()),
 		)
 
 		slices.Delete(server.newViews, i, i)
@@ -101,6 +103,42 @@ func (view *View) Move(x, y int) {
 	}
 }
 
-func (server *Server) viewAt(lx, ly float64) (view *View, surface wlr.Surface, sx, sy float64) {
-	panic("Not implemented.")
+func (server *Server) viewAt(lx, ly float64) (view *View, surface wlr.Surface, sx, sy float64, ok bool) {
+	for _, view := range server.views {
+		surface, sx, sy, ok := view.XDGSurface.SurfaceAt(lx, ly)
+		if ok {
+			view.Area = ViewAreaSurface
+			return view, surface, sx, sy, true
+		}
+
+		current := view.XDGSurface.Surface().Current()
+		border := box(
+			view.X-WindowBorder,
+			view.Y-WindowBorder,
+			current.Width()+WindowBorder*2,
+			current.Width()+WindowBorder*2,
+		)
+		if image.Pt(int(lx), int(ly)).In(border) {
+			view.Area = whichCorner(border, lx, ly)
+			return view, wlr.Surface{}, lx - float64(view.X), ly - float64(view.Y), true
+		}
+	}
+	return nil, wlr.Surface{}, 0, 0, false
+}
+
+func whichCorner(r image.Rectangle, lx, ly float64) ViewArea {
+	portion := func(x, lo, width int) ViewArea {
+		x -= lo
+		if x < 20 {
+			return 0
+		}
+		if x > width-20 {
+			return 2
+		}
+		return 1
+	}
+
+	i := portion(int(lx), r.Min.X, r.Dx())
+	j := portion(int(ly), r.Min.Y, r.Dy())
+	return 3*j + i
 }

@@ -158,36 +158,36 @@ func (out *Output) renderViewBorder(view *View, x, y, w, h int, selection bool) 
 	oy *= scale
 
 	// Top border.
-	server.renderer.RenderRect(&wlr.Box{
-		X:      int(float64(x-WindowBorder)*scale + ox),
-		Y:      int(float64(y-WindowBorder)*scale + oy),
-		Width:  int(float64(w+WindowBorder*2) * scale),
-		Height: int(WindowBorder * scale),
-	}, color, output.TransformMatrix())
+	server.renderer.RenderRect(box(
+		int(float64(x-WindowBorder)*scale+ox),
+		int(float64(y-WindowBorder)*scale+oy),
+		int(float64(w+WindowBorder*2)*scale),
+		int(WindowBorder*scale),
+	), color, output.TransformMatrix())
 
 	// Right border.
-	server.renderer.RenderRect(&wlr.Box{
-		X:      int(float64(x-WindowBorder)*scale + ox),
-		Y:      int(float64(y-WindowBorder)*scale + oy),
-		Width:  int(WindowBorder * scale),
-		Height: int(float64(h+WindowBorder*2) * scale),
-	}, color, output.TransformMatrix())
+	server.renderer.RenderRect(box(
+		int(float64(x-WindowBorder)*scale+ox),
+		int(float64(y-WindowBorder)*scale+oy),
+		int(WindowBorder*scale),
+		int(float64(h+WindowBorder*2)*scale),
+	), color, output.TransformMatrix())
 
 	// Bottom border.
-	server.renderer.RenderRect(&wlr.Box{
-		X:      int(float64(x-WindowBorder)*scale + ox),
-		Y:      int(float64(y+h)*scale + oy),
-		Width:  int(float64(w+WindowBorder*2) * scale),
-		Height: int(WindowBorder * scale),
-	}, color, output.TransformMatrix())
+	server.renderer.RenderRect(box(
+		int(float64(x-WindowBorder)*scale+ox),
+		int(float64(y+h)*scale+oy),
+		int(float64(w+WindowBorder*2)*scale),
+		int(WindowBorder*scale),
+	), color, output.TransformMatrix())
 
 	// Left border.
-	server.renderer.RenderRect(&wlr.Box{
-		X:      int(float64(x+w)*scale + ox),
-		Y:      int(float64(y-WindowBorder)*scale + oy),
-		Width:  int(WindowBorder * scale),
-		Height: int(float64(h+WindowBorder*2) * scale),
-	}, color, output.TransformMatrix())
+	server.renderer.RenderRect(box(
+		int(float64(x+w)*scale+ox),
+		int(float64(y-WindowBorder)*scale+oy),
+		int(WindowBorder*scale),
+		int(float64(h+WindowBorder*2)*scale),
+	), color, output.TransformMatrix())
 }
 
 func (out *Output) renderMenu() {
@@ -206,14 +206,14 @@ func (view *View) renderSurface(surface wlr.Surface, sx, sy int, output wlr.Outp
 	ox += float64(view.X + sx)
 	oy += float64(view.Y + sy)
 
-	box := wlr.Box{
-		X:      int(ox * float64(output.Scale())),
-		Y:      int(oy * float64(output.Scale())),
-		Width:  int(float64(surface.Current().Width()) * float64(output.Scale())),
-		Height: int(float64(surface.Current().Height()) * float64(output.Scale())),
-	}
+	box := box(
+		int(ox*float64(output.Scale())),
+		int(oy*float64(output.Scale())),
+		int(float64(surface.Current().Width())*float64(output.Scale())),
+		int(float64(surface.Current().Height())*float64(output.Scale())),
+	)
 	transform := surface.Current().Transform().Invert()
-	matrix := wlr.ProjectBoxMatrix(&box, transform, 0, output.TransformMatrix())
+	matrix := wlr.ProjectBoxMatrix(box, transform, 0, output.TransformMatrix())
 
 	server.renderer.RenderTextureWithMatrix(texture, matrix, 1)
 	surface.SendFrameDone(t)

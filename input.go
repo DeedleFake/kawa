@@ -51,10 +51,11 @@ func (server *Server) processCursorMotion(t time.Time) {
 		server.seat.PointerClearFocus()
 	}()
 
+	var ok bool
 	if server.inputState == InputStateNone {
-		view, surface, sx, sy = server.viewAt(server.cursor.X(), server.cursor.Y())
+		view, surface, sx, sy, ok = server.viewAt(server.cursor.X(), server.cursor.Y())
 	}
-	if view == nil {
+	if !ok {
 		return
 	}
 

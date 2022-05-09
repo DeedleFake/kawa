@@ -86,6 +86,10 @@ func (server *Server) genMenuTextures() {
 	}
 }
 
+func box(x, y, w, h int) image.Rectangle {
+	return image.Rect(x, y, x+w, y+h)
+}
+
 func parseTransform(str string) (wlr.OutputTransform, error) {
 	switch str {
 	case "normal", "0":
