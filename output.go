@@ -141,7 +141,53 @@ func (out *Output) renderLayerSurface(surface wlr.Surface, sx, sy int) {
 }
 
 func (out *Output) renderViewBorder(view *View, x, y, w, h int, selection bool) {
-	panic("Not implemented.")
+	server := out.Server
+	output := out.Output
+
+	color := ColorInactiveBorder
+	switch {
+	case selection:
+		color = ColorSelectionBox
+	case (view == nil) || view.XDGSurface.TopLevel().Current().Activated():
+		color = ColorActiveBorder
+	}
+
+	scale := float64(output.Scale())
+	ox, oy := server.outputLayout.OutputCoords(output)
+	ox *= scale
+	oy *= scale
+
+	// Top border.
+	server.renderer.RenderRect(&wlr.Box{
+		X:      int(float64(x-WindowBorder)*scale + ox),
+		Y:      int(float64(y-WindowBorder)*scale + oy),
+		Width:  int(float64(w+WindowBorder*2) * scale),
+		Height: int(WindowBorder * scale),
+	}, color, output.TransformMatrix())
+
+	// Right border.
+	server.renderer.RenderRect(&wlr.Box{
+		X:      int(float64(x-WindowBorder)*scale + ox),
+		Y:      int(float64(y-WindowBorder)*scale + oy),
+		Width:  int(WindowBorder * scale),
+		Height: int(float64(h+WindowBorder*2) * scale),
+	}, color, output.TransformMatrix())
+
+	// Bottom border.
+	server.renderer.RenderRect(&wlr.Box{
+		X:      int(float64(x-WindowBorder)*scale + ox),
+		Y:      int(float64(y+h)*scale + oy),
+		Width:  int(float64(w+WindowBorder*2) * scale),
+		Height: int(WindowBorder * scale),
+	}, color, output.TransformMatrix())
+
+	// Left border.
+	server.renderer.RenderRect(&wlr.Box{
+		X:      int(float64(x+w)*scale + ox),
+		Y:      int(float64(y-WindowBorder)*scale + oy),
+		Width:  int(WindowBorder * scale),
+		Height: int(float64(h+WindowBorder*2) * scale),
+	}, color, output.TransformMatrix())
 }
 
 func (out *Output) renderSurface(surface wlr.Surface, sx, sy int, view *View, renderer wlr.Renderer, t time.Time) {

@@ -7,6 +7,8 @@ import (
 const (
 	MinWidth  = 100
 	MinHeight = 100
+
+	WindowBorder = 5
 )
 
 type Server struct {
