@@ -1,12 +1,69 @@
 package main
 
 import (
+	"image"
+	"time"
+
 	"deedles.dev/kawa/internal/util"
 	"deedles.dev/wlr"
 )
 
 func (out *Output) onFrame(output wlr.Output) {
-	panic("Not implemented.")
+	server := out.Server
+
+	server.renderer.Begin(output, output.Width(), output.Height())
+	server.renderer.Clear(ColorBackground)
+
+	out.renderLayer(out.Layers[wlr.LayerShellV1LayerBackground])
+	out.renderLayer(out.Layers[wlr.LayerShellV1LayerBottom])
+
+	now := time.Now()
+	for _, view := range server.views {
+		if !view.XDGSurface.Mapped() {
+			continue
+		}
+		view := view
+
+		out.renderViewBorder(
+			&view,
+			view.X,
+			view.Y,
+			view.XDGSurface.Surface().Current().Width(),
+			view.XDGSurface.Surface().Current().Height(),
+			false,
+		)
+		view.XDGSurface.ForEachSurface(func(surface wlr.Surface, sx, sy int) {
+			view.renderSurface(
+				surface,
+				sx,
+				sy,
+				output,
+				now,
+			)
+		})
+	}
+
+	//view := server.interactive.View
+	switch server.inputState {
+	case InputStateBorderDrag:
+		panic("Not implemented.")
+	case InputStateMove:
+		panic("Not implemented.")
+	case InputStateNewEnd, InputStateResizeEnd:
+		panic("Not implemented.")
+	}
+
+	out.renderLayer(out.Layers[wlr.LayerShellV1LayerTop])
+
+	if (server.menu.X != -1) && (server.menu.Y != -1) {
+		out.renderMenu()
+	}
+
+	out.renderLayer(out.Layers[wlr.LayerShellV1LayerOverlay])
+
+	output.RenderSoftwareCursors(image.ZR)
+	server.renderer.End()
+	output.Commit()
 }
 
 func (server *Server) onNewOutput(output wlr.Output) {
@@ -64,4 +121,24 @@ func (server *Server) onNewOutput(output wlr.Output) {
 
 	output.Commit()
 	output.CreateGlobal()
+}
+
+func (out *Output) renderLayer(layers []LayerSurface) {
+	panic("Not implemented.")
+}
+
+func (out *Output) renderViewBorder(view *View, x, y, w, h int, selection bool) {
+	panic("Not implemented.")
+}
+
+func (out *Output) renderSurface(surface wlr.Surface, sx, sy int, view *View, renderer wlr.Renderer, t time.Time) {
+	panic("Not implemented.")
+}
+
+func (out *Output) renderMenu() {
+	panic("Not implemented.")
+}
+
+func (view *View) renderSurface(surface wlr.Surface, sx, sy int, output wlr.Output, t time.Time) {
+	panic("Not implemented.")
 }

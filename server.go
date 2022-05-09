@@ -64,7 +64,7 @@ type Server struct {
 type Output struct {
 	Server *Server
 	Output wlr.Output
-	Layers [][4]LayerSurface
+	Layers [4][]LayerSurface
 	Frame  wlr.Listener
 }
 
@@ -121,10 +121,7 @@ const (
 	InputStateResizeSelect
 	InputStateResizeStart
 	InputStateResizeEnd
-	InputStateBorderDragTop
-	InputStateBorderDragRight
-	InputStateBorderDragBottom
-	InputStateBorderDragLeft
+	InputStateBorderDrag
 	InputStateDeleteSelect
 	InputStateHideSelect
 )
