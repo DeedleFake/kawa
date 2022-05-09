@@ -57,7 +57,7 @@ func (view *View) onDestroy(surface wlr.XDGSurface) {
 
 func (view *View) onMap(surface wlr.XDGSurface) {
 	server := view.Server
-	view.Focus(surface.Surface())
+	view.focus(surface.Surface())
 
 	output := server.outputLayout.OutputAt(server.cursor.X(), server.cursor.Y())
 	layout := server.outputLayout.Get(output)
@@ -74,7 +74,7 @@ func (view *View) onMap(surface wlr.XDGSurface) {
 	)
 }
 
-func (view *View) Focus(surface wlr.Surface) {
+func (view *View) focus(surface wlr.Surface) {
 	server := view.Server
 	prevSurface := server.seat.KeyboardState().FocusedSurface()
 	if prevSurface == surface {

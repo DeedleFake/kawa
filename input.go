@@ -74,8 +74,76 @@ func (server *Server) processCursorMotion(t time.Time) {
 	server.seat.PointerClearFocus()
 }
 
-func (server *Server) onCursorButton(dev wlr.InputDevice, t time.Time, b uint32, state wlr.ButtonState) {
-	// TODO
+func (server *Server) onCursorButton(dev wlr.InputDevice, t time.Time, b wlr.CursorButton, state wlr.ButtonState) {
+	var view *View
+	var surface wlr.Surface
+	var sx, sy float64
+	var ok bool
+	if server.inputState == InputStateNone {
+		view, surface, sx, sy, ok = server.viewAt(server.cursor.X(), server.cursor.Y())
+	}
+	if !ok {
+		if (state == wlr.ButtonPressed) && (b == wlr.BtnRight) {
+			server.viewEndInteractive()
+		}
+		server.cursorButtonInternal(dev, t, b, state)
+		return
+	}
+
+	view.focus(surface)
+	switch view.Area {
+	case ViewAreaSurface:
+		server.seat.PointerNotifyButton(t, b, state)
+	default:
+		switch b {
+		case wlr.BtnRight:
+			view.beginInteractive(
+				surface,
+				sx,
+				sy,
+				"grabbing",
+				InputStateBorderDrag,
+			)
+		default:
+			server.corner = corners[view.Area]
+			view.beginInteractive(
+				surface,
+				float64(view.X),
+				float64(view.Y),
+				server.corner,
+				InputStateBorderDrag,
+			)
+		}
+	}
+}
+
+func (server *Server) cursorButtonInternal(dev wlr.InputDevice, t time.Time, b wlr.CursorButton, state wlr.ButtonState) {
+	panic("Not implemented.")
+}
+
+func (server *Server) menuSelect() {
+	server.menu.X = -1
+	server.menu.Y = -1
+	switch server.menu.Selected {
+	case 0:
+		server.inputState = InputStateNewStart
+		server.cursorMgr.SetCursorImage("top_left_corner", server.cursor)
+
+	case 1:
+		server.inputState = InputStateResizeSelect
+		server.cursorMgr.SetCursorImage("hand1", server.cursor)
+
+	case 2:
+		server.inputState = InputStateMoveSelect
+		server.cursorMgr.SetCursorImage("hand1", server.cursor)
+
+	case 3:
+		server.inputState = InputStateDeleteSelect
+		server.cursorMgr.SetCursorImage("hand1", server.cursor)
+
+	default:
+		server.inputState = InputStateNone
+	}
 }
 
 func (server *Server) onCursorAxis(dev wlr.InputDevice, t time.Time, source wlr.AxisSource, orient wlr.AxisOrientation, delta float64, deltaDiscrete int32) {
@@ -164,4 +232,12 @@ func (kb *Keyboard) onKey(keyboard wlr.Keyboard, t time.Time, code uint32, updat
 func (server *Server) handleShortcut() bool {
 	// TODO
 	return false
+}
+
+func (view *View) beginInteractive(surface wlr.Surface, sx, sy float64, cname string, state InputState) {
+	panic("Not implemented.")
+}
+
+func (server *Server) viewEndInteractive() {
+	panic("Not implemented.")
 }
