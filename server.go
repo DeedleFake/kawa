@@ -26,12 +26,12 @@ type Server struct {
 	xdgShell     wlr.XDGShell
 	layerShell   wlr.LayerShellV1
 
-	outputs   []Output
+	outputs   []*Output
 	inputs    []wlr.InputDevice
 	pointers  []wlr.InputDevice
-	keyboards []Keyboard
-	views     []View
-	newViews  []NewView
+	keyboards []*Keyboard
+	views     []*View
+	newViews  []*NewView
 
 	newOutput            wlr.Listener
 	newInput             wlr.Listener
@@ -83,6 +83,11 @@ type View struct {
 	Server     *Server
 	Map        wlr.Listener
 	Destroy    wlr.Listener
+}
+
+func (view *View) Release() {
+	view.Destroy.Destroy()
+	view.Map.Destroy()
 }
 
 type NewView struct {

@@ -31,7 +31,7 @@ func (out *Output) onFrame(output wlr.Output) {
 		view := view
 
 		out.renderViewBorder(
-			&view,
+			view,
 			view.X,
 			view.Y,
 			view.XDGSurface.Surface().Current().Width(),
@@ -80,7 +80,7 @@ func (server *Server) onNewOutput(output wlr.Output) {
 		Server: server,
 	}
 	out.Frame = output.OnFrame(out.onFrame)
-	server.outputs = append(server.outputs, out)
+	server.outputs = append(server.outputs, &out)
 
 	config, ok := util.FindFunc(server.OutputConfigs, func(c OutputConfig) bool { return c.Name == output.Name() })
 	if !ok {

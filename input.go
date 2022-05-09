@@ -77,7 +77,7 @@ func (server *Server) newKeyboard(device wlr.InputDevice) {
 	kb.Key = wkb.OnKey(kb.onKey)
 
 	server.seat.SetKeyboard(device)
-	server.keyboards = append(server.keyboards, kb)
+	server.keyboards = append(server.keyboards, &kb)
 }
 
 func (server *Server) newPointer(device wlr.InputDevice) {
