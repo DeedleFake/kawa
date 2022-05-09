@@ -130,6 +130,13 @@ func (server *Server) onNewOutput(output wlr.Output) {
 }
 
 func (out *Output) renderLayer(layers []LayerSurface) {
+	for _, surface := range layers {
+		sv1 := surface.LayerSurface
+		sv1.Surface().ForEachSurface(out.renderLayerSurface)
+	}
+}
+
+func (out *Output) renderLayerSurface(surface wlr.Surface, sx, sy int) {
 	panic("Not implemented.")
 }
 
