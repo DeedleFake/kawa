@@ -77,5 +77,10 @@ func (view *View) Focus(surface wlr.Surface) {
 }
 
 func (view *View) Move(x, y int) {
-	panic("Not implemented.")
+	view.X = x
+	view.Y = y
+
+	for _, out := range view.Server.outputs {
+		view.XDGSurface.Surface().SendEnter(out.Output)
+	}
 }
