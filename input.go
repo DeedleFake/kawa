@@ -34,32 +34,44 @@ func (server *Server) processCursorMotion(t time.Time) {
 	var sx, sy float64
 	var surface wlr.Surface
 	var view *View
-	defer func() {
-		if surface.Valid() {
-			focusChanged := server.seat.PointerState().FocusedSurface() != surface
-			server.seat.PointerNotifyEnter(surface, sx, sy)
-			if !focusChanged {
-				server.seat.PointerNotifyMotion(t, sx, sy)
-			}
-			return
-		}
-
-		if view != nil {
-			server.cursorMgr.SetCursorImage(corners[view.Area], server.cursor)
-		}
-
-		server.seat.PointerClearFocus()
-	}()
 
 	var ok bool
 	if server.inputState == InputStateNone {
 		view, surface, sx, sy, ok = server.viewAt(server.cursor.X(), server.cursor.Y())
 	}
 	if !ok {
+		switch server.inputState {
+		case InputStateMoveSelect, InputStateResizeSelect, InputStateDeleteSelect, InputStateHideSelect:
+			server.cursorMgr.SetCursorImage("hand1", server.cursor)
+
+		case InputStateMove, InputStateResizeEnd, InputStateNewEnd:
+			server.cursorMgr.SetCursorImage("grabbing", server.cursor)
+
+		case InputStateBorderDrag:
+			server.cursorMgr.SetCursorImage(server.corner, server.cursor)
+
+		case InputStateResizeStart, InputStateNewStart:
+			server.cursorMgr.SetCursorImage("top_left_corner", server.cursor)
+
+		default:
+			server.cursorMgr.SetCursorImage("left_ptr", server.cursor)
+		}
+	}
+
+	if surface.Valid() {
+		focusChanged := server.seat.PointerState().FocusedSurface() != surface
+		server.seat.PointerNotifyEnter(surface, sx, sy)
+		if !focusChanged {
+			server.seat.PointerNotifyMotion(t, sx, sy)
+		}
 		return
 	}
 
-	panic("Not implemented.")
+	if view != nil {
+		server.cursorMgr.SetCursorImage(corners[view.Area], server.cursor)
+	}
+
+	server.seat.PointerClearFocus()
 }
 
 func (server *Server) onCursorButton(dev wlr.InputDevice, t time.Time, b uint32, state wlr.ButtonState) {

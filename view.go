@@ -98,6 +98,8 @@ func (view *View) Move(x, y int) {
 	view.X = x
 	view.Y = y
 
+	// TODO: Do this properly. The view isn't entering every single
+	// output.
 	for _, out := range view.Server.outputs {
 		view.XDGSurface.Surface().SendEnter(out.Output)
 	}

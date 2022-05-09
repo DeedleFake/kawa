@@ -36,6 +36,7 @@ type Server struct {
 	keyboards []*Keyboard
 	views     []*View
 	newViews  []*NewView
+	corner    string
 
 	newOutput            wlr.Listener
 	newInput             wlr.Listener
