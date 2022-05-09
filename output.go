@@ -190,14 +190,31 @@ func (out *Output) renderViewBorder(view *View, x, y, w, h int, selection bool) 
 	}, color, output.TransformMatrix())
 }
 
-func (out *Output) renderSurface(surface wlr.Surface, sx, sy int, view *View, renderer wlr.Renderer, t time.Time) {
-	panic("Not implemented.")
-}
-
 func (out *Output) renderMenu() {
 	panic("Not implemented.")
 }
 
 func (view *View) renderSurface(surface wlr.Surface, sx, sy int, output wlr.Output, t time.Time) {
-	panic("Not implemented.")
+	server := view.Server
+
+	texture := surface.GetTexture()
+	if !texture.Valid() {
+		return
+	}
+
+	ox, oy := server.outputLayout.OutputCoords(output)
+	ox += float64(view.X + sx)
+	oy += float64(view.Y + sy)
+
+	box := wlr.Box{
+		X:      int(ox * float64(output.Scale())),
+		Y:      int(oy * float64(output.Scale())),
+		Width:  int(float64(surface.Current().Width()) * float64(output.Scale())),
+		Height: int(float64(surface.Current().Height()) * float64(output.Scale())),
+	}
+	transform := surface.Current().Transform().Invert()
+	matrix := wlr.ProjectBoxMatrix(&box, transform, 0, output.TransformMatrix())
+
+	server.renderer.RenderTextureWithMatrix(texture, matrix, 1)
+	surface.SendFrameDone(t)
 }
