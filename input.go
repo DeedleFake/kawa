@@ -85,7 +85,10 @@ func (server *Server) newPointer(device wlr.InputDevice) {
 }
 
 func (server *Server) onRequestCursor(client wlr.SeatClient, surface wlr.Surface, serial uint32, hotspotX, hotspotY int32) {
-	panic("Not implemented.")
+	focused := server.seat.PointerState().FocusedClient()
+	if (focused == client) && (server.inputState == InputStateNone) {
+		server.cursor.SetSurface(surface, hotspotX, hotspotY)
+	}
 }
 
 func (kb *Keyboard) onModifiers(keyboard wlr.Keyboard) {
