@@ -73,7 +73,23 @@ func (view *View) onMap(surface wlr.XDGSurface) {
 }
 
 func (view *View) Focus(surface wlr.Surface) {
-	panic("Not implemented.")
+	server := view.Server
+	prevSurface := server.seat.KeyboardState().FocusedSurface()
+	if prevSurface == surface {
+		return
+	}
+	if prevSurface.Valid() {
+		prev := wlr.XDGSurfaceFromWLRSurface(prevSurface)
+		prev.TopLevelSetActivated(false)
+	}
+
+	keyboard := server.seat.GetKeyboard()
+	view.XDGSurface.TopLevelSetActivated(true)
+	server.seat.KeyboardNotifyEnter(view.XDGSurface.Surface(), keyboard.Keycodes(), keyboard.Modifiers())
+
+	i := slices.Index(server.views, view)
+	server.views = slices.Delete(server.views, i, i)
+	server.views = append(server.views, view)
 }
 
 func (view *View) Move(x, y int) {
