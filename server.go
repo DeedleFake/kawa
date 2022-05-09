@@ -60,7 +60,7 @@ type Server struct {
 
 	interactive struct {
 		SX, SY int
-		View   View
+		View   *View
 	}
 
 	inputState InputState

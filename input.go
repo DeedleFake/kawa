@@ -235,9 +235,18 @@ func (server *Server) handleShortcut() bool {
 }
 
 func (view *View) beginInteractive(surface wlr.Surface, sx, sy float64, cname string, state InputState) {
-	panic("Not implemented.")
+	server := view.Server
+
+	view.focus(surface)
+	server.interactive.View = view
+	server.interactive.SX = int(sx)
+	server.interactive.SY = int(sy)
+	server.inputState = state
+	server.cursorMgr.SetCursorImage(cname, server.cursor)
 }
 
 func (server *Server) viewEndInteractive() {
-	panic("Not implemented.")
+	server.inputState = InputStateNone
+	server.interactive.View = nil
+	server.cursorMgr.SetCursorImage("left_ptr", server.cursor)
 }
