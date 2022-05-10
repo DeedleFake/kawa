@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image"
 
 	"deedles.dev/wlr"
@@ -58,36 +59,45 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, ViewArea, wlr.Su
 		}
 
 		r := server.viewBounds(nil, view)
+		if !p.In(r.Inset(-WindowBorder)) {
+			continue
+		}
+
 		left := image.Rect(r.Min.X-WindowBorder, r.Min.Y, r.Max.X, r.Max.Y)
-		top := image.Rect(r.Min.X, r.Min.Y-WindowBorder, r.Max.X, r.Max.Y)
-		right := image.Rect(r.Min.X, r.Min.Y, r.Max.X+WindowBorder, r.Max.Y)
-		bottom := image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y+WindowBorder)
-
-		if p.In(top.Union(left)) {
-			return view, ViewAreaBorderTopLeft, wlr.Surface{}, 0, 0
-		}
-		if p.In(top.Union(right)) {
-			return view, ViewAreaBorderTopRight, wlr.Surface{}, 0, 0
-		}
-		if p.In(bottom.Union(left)) {
-			return view, ViewAreaBorderBottomLeft, wlr.Surface{}, 0, 0
-		}
-		if p.In(bottom.Union(right)) {
-			return view, ViewAreaBorderBottomRight, wlr.Surface{}, 0, 0
-		}
-
 		if p.In(left) {
 			return view, ViewAreaBorderLeft, wlr.Surface{}, 0, 0
 		}
+
+		top := image.Rect(r.Min.X, r.Min.Y-WindowBorder, r.Max.X, r.Max.Y)
 		if p.In(top) {
 			return view, ViewAreaBorderTop, wlr.Surface{}, 0, 0
 		}
+
+		right := image.Rect(r.Min.X, r.Min.Y, r.Max.X+WindowBorder, r.Max.Y)
 		if p.In(right) {
 			return view, ViewAreaBorderRight, wlr.Surface{}, 0, 0
 		}
+
+		bottom := image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y+WindowBorder)
 		if p.In(bottom) {
 			return view, ViewAreaBorderBottom, wlr.Surface{}, 0, 0
 		}
+
+		if (p.X < r.Min.X) && (p.Y < r.Min.Y) {
+			return view, ViewAreaBorderTopLeft, wlr.Surface{}, 0, 0
+		}
+		if (p.X > r.Max.X) && (p.Y < r.Min.Y) {
+			return view, ViewAreaBorderTopRight, wlr.Surface{}, 0, 0
+		}
+		if (p.X < r.Min.X) && (p.Y > r.Min.Y) {
+			return view, ViewAreaBorderBottomLeft, wlr.Surface{}, 0, 0
+		}
+		if (p.X > r.Max.X) && (p.Y > r.Min.Y) {
+			return view, ViewAreaBorderBottomRight, wlr.Surface{}, 0, 0
+		}
+
+		// Where else could it possibly be if it gets to here?
+		panic(fmt.Errorf("If you see this, there's a bug.\np = %+v\nr = %+v", p, r))
 	}
 
 	return nil, ViewAreaNone, wlr.Surface{}, 0, 0
