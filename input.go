@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image"
 	"os"
 	"time"
 
@@ -83,9 +84,11 @@ func (server *Server) onCursorButton(dev wlr.InputDevice, t time.Time, b wlr.Cur
 		view, surface, sx, sy, ok = server.viewAt(server.cursor.X(), server.cursor.Y())
 	}
 	if !ok {
-		if (state == wlr.ButtonPressed) && (b == wlr.BtnRight) {
+		if (state == wlr.ButtonPressed) && (b != wlr.BtnRight) {
 			server.viewEndInteractive()
+			return
 		}
+
 		server.cursorButtonInternal(dev, t, b, state)
 		return
 	}
@@ -118,7 +121,65 @@ func (server *Server) onCursorButton(dev wlr.InputDevice, t time.Time, b wlr.Cur
 }
 
 func (server *Server) cursorButtonInternal(dev wlr.InputDevice, t time.Time, b wlr.CursorButton, state wlr.ButtonState) {
-	panic("Not implemented.")
+	menu := box(server.menu.X, server.menu.Y, server.menu.Width, server.menu.Height)
+
+	switch server.inputState {
+	case InputStateNone:
+		if state == wlr.ButtonPressed {
+			server.inputState = InputStateMenu
+			server.menu.X = int(server.cursor.X())
+			server.menu.Y = int(server.cursor.Y())
+		}
+
+	case InputStateMenu:
+		if image.Pt(int(server.cursor.X()), int(server.cursor.Y())).In(menu) {
+			server.menuSelect()
+			break
+		}
+		if state == wlr.ButtonPressed {
+			server.inputState = InputStateNone
+			server.menu.X = -1
+			server.menu.Y = -1
+		}
+
+	case InputStateNewStart:
+		if state != wlr.ButtonPressed {
+			break
+		}
+
+		server.interactive.SX = int(server.cursor.X())
+		server.interactive.SY = int(server.cursor.Y())
+		server.inputState = InputStateNewEnd
+
+	case InputStateNewEnd:
+		server.newView()
+		server.viewEndInteractive()
+
+	case InputStateResizeSelect:
+		if state != wlr.ButtonPressed {
+			break
+		}
+
+		view, surface, sx, sy, ok := server.viewAt(server.cursor.X(), server.cursor.Y())
+		if !ok {
+			server.viewEndInteractive()
+			break
+		}
+		view.beginInteractive(surface, sx, sy, "grabbing", InputStateResizeStart)
+
+	case InputStateResizeStart:
+		if state != wlr.ButtonPressed {
+			break
+		}
+
+		server.interactive.SX = int(server.cursor.X())
+		server.interactive.SY = int(server.cursor.Y())
+		server.interactive.View.Area = ViewAreaBorderBottomRight
+		server.inputState = InputStateResizeEnd
+
+	default:
+		panic("Not implemented.")
+	}
 }
 
 func (server *Server) menuSelect() {
@@ -249,4 +310,8 @@ func (server *Server) viewEndInteractive() {
 	server.inputState = InputStateNone
 	server.interactive.View = nil
 	server.cursorMgr.SetCursorImage("left_ptr", server.cursor)
+}
+
+func (server *Server) newView() {
+	panic("Not implemented.")
 }
