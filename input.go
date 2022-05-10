@@ -8,18 +8,6 @@ import (
 	"deedles.dev/wlr/xkb"
 )
 
-var corners = [...]string{
-	"top_left_corner",
-	"top_side",
-	"top_right_corner",
-	"left_side",
-	"",
-	"right_side",
-	"bottom_left_corner",
-	"bottom_side",
-	"bottom_right_corner",
-}
-
 func (server *Server) onNewInput(device wlr.InputDevice) {
 	switch device.Type() {
 	case wlr.InputDeviceTypeKeyboard:
@@ -128,6 +116,14 @@ func (server *Server) onRequestCursor(client wlr.SeatClient, surface wlr.Surface
 	if focused == client {
 		m.RequestCursor(server, surface, int(hotspotX), int(hotspotY))
 	}
+}
+
+func (server *Server) setCursor(name string) {
+	if name == "" {
+		return
+	}
+
+	server.cursorMgr.SetCursorImage(name, server.cursor)
 }
 
 //func (server *Server) processCursorMotion(t time.Time) {

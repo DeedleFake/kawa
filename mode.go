@@ -17,7 +17,8 @@ type inputModeNormal struct{}
 func (m inputModeNormal) CursorMoved(server *Server, t time.Time) {
 	x, y := server.cursor.X(), server.cursor.Y()
 
-	view := server.viewAt(nil, x, y)
+	view, area := server.viewAt(nil, x, y)
+	server.setCursor(area.Cursor())
 	if view != nil {
 		surface := view.XDGSurface.Surface()
 		focus := server.seat.PointerState().FocusedSurface() != surface

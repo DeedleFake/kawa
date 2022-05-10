@@ -24,7 +24,7 @@ func (server *Server) surfaceBounds(out *Output, surface wlr.Surface, x, y int) 
 	)
 }
 
-func (server *Server) viewAt(out *Output, x, y float64) *View {
+func (server *Server) viewAt(out *Output, x, y float64) (*View, ViewArea) {
 	if out == nil {
 		out = server.outputAt(x, y)
 	}
@@ -33,11 +33,42 @@ func (server *Server) viewAt(out *Output, x, y float64) *View {
 	for _, view := range server.views {
 		r := server.viewBounds(out, view)
 		if p.In(r) {
-			return view
+			return view, ViewAreaSurface
+		}
+
+		left := image.Rect(r.Min.X-WindowBorder, r.Min.Y, r.Max.X, r.Max.Y)
+		top := image.Rect(r.Min.X, r.Min.Y-WindowBorder, r.Max.X, r.Max.Y)
+		right := image.Rect(r.Min.X, r.Min.Y, r.Max.X+WindowBorder, r.Max.Y)
+		bottom := image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y+WindowBorder)
+
+		if p.In(top.Union(left)) {
+			return view, ViewAreaBorderTopLeft
+		}
+		if p.In(top.Union(right)) {
+			return view, ViewAreaBorderTopRight
+		}
+		if p.In(bottom.Union(left)) {
+			return view, ViewAreaBorderBottomLeft
+		}
+		if p.In(bottom.Union(right)) {
+			return view, ViewAreaBorderBottomRight
+		}
+
+		if p.In(left) {
+			return view, ViewAreaBorderLeft
+		}
+		if p.In(top) {
+			return view, ViewAreaBorderTop
+		}
+		if p.In(right) {
+			return view, ViewAreaBorderRight
+		}
+		if p.In(bottom) {
+			return view, ViewAreaBorderBottom
 		}
 	}
 
-	return nil
+	return nil, ViewAreaNone
 }
 
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
@@ -119,4 +150,39 @@ func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
 		out = server.outputAt(float64(x), float64(y))
 	}
 	view.XDGSurface.Surface().SendEnter(out.Output)
+}
+
+var areaCursors = [...]string{
+	"ptr_left",
+	"",
+	"top_left_corner",
+	"top_side",
+	"top_right_corner",
+	"left_side",
+	"right_side",
+	"bottom_left_corner",
+	"bottom_side",
+	"bottom_right_corner",
+}
+
+type ViewArea int
+
+const (
+	ViewAreaNone ViewArea = iota
+	ViewAreaBorderTopLeft
+	ViewAreaBorderTop
+	ViewAreaBorderTopRight
+	ViewAreaBorderLeft
+	ViewAreaSurface
+	ViewAreaBorderRight
+	ViewAreaBorderBottomLeft
+	ViewAreaBorderBottom
+	ViewAreaBorderBottomRight
+)
+
+func (area ViewArea) Cursor() string {
+	if (area < 0) || (int(area) >= len(areaCursors)) {
+		return ""
+	}
+	return areaCursors[area]
 }
