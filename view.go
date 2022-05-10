@@ -7,6 +7,18 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+type View struct {
+	X, Y       int
+	XDGSurface wlr.XDGSurface
+	Map        wlr.Listener
+	Destroy    wlr.Listener
+}
+
+func (view *View) Release() {
+	view.Destroy.Destroy()
+	view.Map.Destroy()
+}
+
 func (server *Server) viewBounds(out *Output, view *View) image.Rectangle {
 	var r image.Rectangle
 	view.XDGSurface.ForEachSurface(func(s wlr.Surface, sx, sy int) {

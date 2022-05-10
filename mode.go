@@ -19,22 +19,23 @@ func (m inputModeNormal) CursorMoved(server *Server, t time.Time) {
 
 	_, area, surface, sx, sy := server.viewAt(nil, x, y)
 	server.setCursor(area.Cursor())
-	if surface.Valid() {
-		focus := server.seat.PointerState().FocusedSurface() != surface
-		server.seat.PointerNotifyEnter(surface, sx, sy)
-		if !focus {
-			server.seat.PointerNotifyMotion(t, x, y)
-		}
+	if !surface.Valid() {
+		server.seat.PointerNotifyClearFocus()
 		return
 	}
 
-	server.seat.PointerNotifyClearFocus()
+	focus := server.seat.PointerState().FocusedSurface() != surface
+	server.seat.PointerNotifyEnter(surface, sx, sy)
+	if !focus {
+		server.seat.PointerNotifyMotion(t, sx, sy)
+	}
 }
 
 func (m inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	view, area, surface, _, _ := server.viewAt(nil, server.cursor.X(), server.cursor.Y())
 	if view != nil {
 		server.focusView(view, surface)
+
 		switch area {
 		case ViewAreaSurface:
 			server.seat.PointerNotifyButton(t, b, wlr.ButtonPressed)

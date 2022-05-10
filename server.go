@@ -75,18 +75,6 @@ type OutputConfig struct {
 	Transform     wlr.OutputTransform
 }
 
-type View struct {
-	X, Y       int
-	XDGSurface wlr.XDGSurface
-	Map        wlr.Listener
-	Destroy    wlr.Listener
-}
-
-func (view *View) Release() {
-	view.Destroy.Destroy()
-	view.Map.Destroy()
-}
-
 type Keyboard struct {
 	Device    wlr.InputDevice
 	Modifiers wlr.Listener
