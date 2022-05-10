@@ -58,11 +58,6 @@ type Server struct {
 		Selected         int
 	}
 
-	interactive struct {
-		SX, SY int
-		View   *View
-	}
-
 	inputMode InputMode
 }
 
