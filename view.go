@@ -12,8 +12,13 @@ func (server *Server) viewBounds(out *Output, view *View) image.Rectangle {
 }
 
 func (server *Server) surfaceBounds(out *Output, surface wlr.Surface, x, y int) image.Rectangle {
-	ox, oy := server.outputLayout.OutputCoords(out.Output)
-	scale := out.Output.Scale()
+	var ox, oy float64
+	scale := float32(1)
+	if out != nil {
+		ox, oy = server.outputLayout.OutputCoords(out.Output)
+		scale = out.Output.Scale()
+	}
+
 	current := surface.Current()
 
 	return box(
@@ -24,51 +29,52 @@ func (server *Server) surfaceBounds(out *Output, surface wlr.Surface, x, y int) 
 	)
 }
 
-func (server *Server) viewAt(out *Output, x, y float64) (*View, ViewArea) {
+func (server *Server) viewAt(out *Output, x, y float64) (*View, ViewArea, wlr.Surface, float64, float64) {
 	if out == nil {
 		out = server.outputAt(x, y)
 	}
 
 	p := image.Pt(int(x), int(y))
 	for _, view := range server.views {
-		r := server.viewBounds(out, view)
-		if p.In(r) {
-			return view, ViewAreaSurface
+		surface, sx, sy, ok := view.XDGSurface.SurfaceAt(x-float64(view.X), y-float64(view.Y))
+		if ok {
+			return view, ViewAreaSurface, surface, sx, sy
 		}
 
+		r := server.viewBounds(nil, view)
 		left := image.Rect(r.Min.X-WindowBorder, r.Min.Y, r.Max.X, r.Max.Y)
 		top := image.Rect(r.Min.X, r.Min.Y-WindowBorder, r.Max.X, r.Max.Y)
 		right := image.Rect(r.Min.X, r.Min.Y, r.Max.X+WindowBorder, r.Max.Y)
 		bottom := image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y+WindowBorder)
 
 		if p.In(top.Union(left)) {
-			return view, ViewAreaBorderTopLeft
+			return view, ViewAreaBorderTopLeft, wlr.Surface{}, 0, 0
 		}
 		if p.In(top.Union(right)) {
-			return view, ViewAreaBorderTopRight
+			return view, ViewAreaBorderTopRight, wlr.Surface{}, 0, 0
 		}
 		if p.In(bottom.Union(left)) {
-			return view, ViewAreaBorderBottomLeft
+			return view, ViewAreaBorderBottomLeft, wlr.Surface{}, 0, 0
 		}
 		if p.In(bottom.Union(right)) {
-			return view, ViewAreaBorderBottomRight
+			return view, ViewAreaBorderBottomRight, wlr.Surface{}, 0, 0
 		}
 
 		if p.In(left) {
-			return view, ViewAreaBorderLeft
+			return view, ViewAreaBorderLeft, wlr.Surface{}, 0, 0
 		}
 		if p.In(top) {
-			return view, ViewAreaBorderTop
+			return view, ViewAreaBorderTop, wlr.Surface{}, 0, 0
 		}
 		if p.In(right) {
-			return view, ViewAreaBorderRight
+			return view, ViewAreaBorderRight, wlr.Surface{}, 0, 0
 		}
 		if p.In(bottom) {
-			return view, ViewAreaBorderBottom
+			return view, ViewAreaBorderBottom, wlr.Surface{}, 0, 0
 		}
 	}
 
-	return nil, ViewAreaNone
+	return nil, ViewAreaNone, wlr.Surface{}, 0, 0
 }
 
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
@@ -102,6 +108,10 @@ func (server *Server) onDestroyView(view *View) {
 
 func (server *Server) onMapView(view *View) {
 	out := server.outputAt(server.cursor.X(), server.cursor.Y())
+	if out == nil {
+		return
+	}
+
 	if (view.X == -1) || (view.Y == -1) {
 		server.centerViewOnOutput(out, view)
 		return
@@ -150,6 +160,30 @@ func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
 		out = server.outputAt(float64(x), float64(y))
 	}
 	view.XDGSurface.Surface().SendEnter(out.Output)
+}
+
+func (server *Server) focusView(view *View, s wlr.Surface) {
+	prev := server.seat.KeyboardState().FocusedSurface()
+	if prev == s {
+		return
+	}
+	if prev.Valid() {
+		xdg := wlr.XDGSurfaceFromWLRSurface(prev)
+		xdg.TopLevelSetActivated(false)
+	}
+
+	view.XDGSurface.TopLevelSetActivated(true)
+
+	k := server.seat.GetKeyboard()
+	server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
+
+	server.bringViewToFront(view)
+}
+
+func (server *Server) bringViewToFront(view *View) {
+	i := slices.Index(server.views, view)
+	server.views = slices.Delete(server.views, i, i)
+	server.views = append(server.views)
 }
 
 var areaCursors = [...]string{

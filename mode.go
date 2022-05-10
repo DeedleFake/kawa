@@ -17,13 +17,11 @@ type inputModeNormal struct{}
 func (m inputModeNormal) CursorMoved(server *Server, t time.Time) {
 	x, y := server.cursor.X(), server.cursor.Y()
 
-	view, area := server.viewAt(nil, x, y)
+	_, area, surface, sx, sy := server.viewAt(nil, x, y)
 	server.setCursor(area.Cursor())
-	if view != nil {
-		surface := view.XDGSurface.Surface()
+	if surface.Valid() {
 		focus := server.seat.PointerState().FocusedSurface() != surface
-
-		server.seat.PointerNotifyEnter(surface, x, y)
+		server.seat.PointerNotifyEnter(surface, sx, sy)
 		if !focus {
 			server.seat.PointerNotifyMotion(t, x, y)
 		}
@@ -32,56 +30,24 @@ func (m inputModeNormal) CursorMoved(server *Server, t time.Time) {
 
 	// TODO: Handle moving cursor over window borders.
 
-	server.seat.PointerClearFocus()
+	server.seat.PointerNotifyClearFocus()
 }
 
 func (m inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	//var view *View
-	//var surface wlr.Surface
-	//var sx, sy float64
-	//var ok bool
-	//if server.inputState == InputStateNone {
-	//	view, surface, sx, sy, ok = server.viewAt(server.cursor.X(), server.cursor.Y())
-	//}
-	//if !ok {
-	//	if (state == wlr.ButtonPressed) && (b != wlr.BtnRight) {
-	//		server.viewEndInteractive()
-	//		return
-	//	}
-
-	//	server.cursorButtonInternal(dev, t, b, state)
-	//	return
-	//}
-
-	//view.focus(surface)
-	//switch view.Area {
-	//case ViewAreaSurface:
-	//	server.seat.PointerNotifyButton(t, b, state)
-	//default:
-	//	switch b {
-	//	case wlr.BtnRight:
-	//		view.beginInteractive(
-	//			surface,
-	//			sx,
-	//			sy,
-	//			"grabbing",
-	//			InputStateBorderDrag,
-	//		)
-	//	default:
-	//		server.corner = corners[view.Area]
-	//		view.beginInteractive(
-	//			surface,
-	//			float64(view.X),
-	//			float64(view.Y),
-	//			server.corner,
-	//			InputStateBorderDrag,
-	//		)
-	//	}
-	//}
+	view, area, surface, _, _ := server.viewAt(nil, server.cursor.X(), server.cursor.Y())
+	if view != nil {
+		server.focusView(view, surface)
+		switch area {
+		case ViewAreaSurface:
+			server.seat.PointerNotifyButton(t, b, wlr.ButtonPressed)
+		default:
+			// TODO: Handle clicking on the border.
+		}
+	}
 }
 
 func (m inputModeNormal) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	// TODO
+	server.seat.PointerNotifyButton(t, b, wlr.ButtonReleased)
 }
 
 func (m inputModeNormal) RequestCursor(server *Server, s wlr.Surface, x, y int) {

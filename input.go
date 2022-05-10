@@ -44,12 +44,7 @@ func (server *Server) addKeyboard(dev wlr.InputDevice) {
 		server.onKeyboardModifiers(&kb)
 	})
 	kb.Key = wkb.OnKey(func(k wlr.Keyboard, t time.Time, code uint32, update bool, state wlr.KeyState) {
-		switch state {
-		case wlr.KeyStatePressed:
-			server.onKeyboardKeyPressed(&kb, code, update, t)
-		case wlr.KeyStateReleased:
-			server.onKeyboardKeyReleased(&kb, code, update, t)
-		}
+		server.onKeyboardKey(&kb, code, update, state, t)
 	})
 
 	server.seat.SetKeyboard(dev)
@@ -67,6 +62,15 @@ func (server *Server) addPointer(dev wlr.InputDevice) {
 
 func (server *Server) onKeyboardModifiers(kb *Keyboard) {
 	// TODO
+}
+
+func (server *Server) onKeyboardKey(kb *Keyboard, code uint32, update bool, state wlr.KeyState, t time.Time) {
+	switch state {
+	case wlr.KeyStatePressed:
+		server.onKeyboardKeyPressed(kb, code, update, t)
+	case wlr.KeyStateReleased:
+		server.onKeyboardKeyReleased(kb, code, update, t)
+	}
 }
 
 func (server *Server) onKeyboardKeyPressed(kb *Keyboard, code uint32, update bool, t time.Time) {
