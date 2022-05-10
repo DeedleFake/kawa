@@ -8,10 +8,11 @@ import (
 )
 
 type View struct {
-	X, Y       int
-	XDGSurface wlr.XDGSurface
-	Map        wlr.Listener
-	Destroy    wlr.Listener
+	X, Y        int
+	XDGSurface  wlr.XDGSurface
+	Map         wlr.Listener
+	Destroy     wlr.Listener
+	RequestMove wlr.Listener
 }
 
 func (view *View) Release() {
@@ -107,6 +108,9 @@ func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
 	})
 	view.Map = surface.OnMap(func(s wlr.XDGSurface) {
 		server.onMapView(&view)
+	})
+	view.RequestMove = surface.TopLevel().OnRequestMove(func(client wlr.SeatClient, serial uint32) {
+		server.startMove(&view)
 	})
 
 	server.addView(&view)
