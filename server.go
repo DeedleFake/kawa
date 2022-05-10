@@ -95,7 +95,6 @@ func (view *View) Release() {
 }
 
 type Keyboard struct {
-	Server    *Server
 	Device    wlr.InputDevice
 	Modifiers wlr.Listener
 	Key       wlr.Listener
@@ -103,7 +102,6 @@ type Keyboard struct {
 
 type LayerSurface struct {
 	LayerSurface wlr.LayerSurfaceV1
-	Server       *Server
 
 	Destroy       wlr.Listener
 	Map           wlr.Listener

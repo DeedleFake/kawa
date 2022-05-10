@@ -31,7 +31,6 @@ func (server *Server) onNewInput(device wlr.InputDevice) {
 
 func (server *Server) addKeyboard(dev wlr.InputDevice) {
 	kb := Keyboard{
-		Server: server,
 		Device: dev,
 	}
 
@@ -53,8 +52,17 @@ func (server *Server) addKeyboard(dev wlr.InputDevice) {
 	wkb.SetKeymap(keymap)
 	wkb.SetRepeatInfo(25, 600)
 
-	//kb.Modifiers = wkb.OnModifiers(server.onKeyboardModifiers)
-	//kb.Key = wkb.OnKey(kb.onKeyboardKey)
+	kb.Modifiers = wkb.OnModifiers(func(k wlr.Keyboard) {
+		server.onKeyboardModifiers(&kb)
+	})
+	kb.Key = wkb.OnKey(func(k wlr.Keyboard, t time.Time, code uint32, update bool, state wlr.KeyState) {
+		switch state {
+		case wlr.KeyStatePressed:
+			server.onKeyboardKeyPressed(&kb, code, update, t)
+		case wlr.KeyStateReleased:
+			server.onKeyboardKeyReleased(&kb, code, update, t)
+		}
+	})
 
 	server.seat.SetKeyboard(dev)
 	server.keyboards = append(server.keyboards, &kb)
@@ -67,6 +75,18 @@ func (server *Server) addPointer(dev wlr.InputDevice) {
 	server.seat.SetCapabilities(server.seat.Capabilities() | wlr.SeatCapabilityPointer)
 
 	server.pointers = append(server.pointers, dev)
+}
+
+func (server *Server) onKeyboardModifiers(kb *Keyboard) {
+	// TODO
+}
+
+func (server *Server) onKeyboardKeyPressed(kb *Keyboard, code uint32, update bool, t time.Time) {
+	// TODO
+}
+
+func (server *Server) onKeyboardKeyReleased(kb *Keyboard, code uint32, update bool, t time.Time) {
+	// TODO
 }
 
 func (server *Server) onCursorMotion(dev wlr.InputDevice, t time.Time, dx, dy float64) {
