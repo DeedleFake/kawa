@@ -24,7 +24,6 @@ func (server *Server) surfaceBounds(out *Output, surface wlr.Surface, x, y int) 
 	}
 
 	current := surface.Current()
-
 	return box(
 		int((ox+float64(x))*float64(scale)),
 		int((oy+float64(y))*float64(scale)),

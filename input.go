@@ -31,11 +31,17 @@ func (server *Server) onKeyboardKey(kb *Keyboard, code uint32, update bool, stat
 }
 
 func (server *Server) onKeyboardKeyPressed(kb *Keyboard, code uint32, update bool, t time.Time) {
-	// TODO
+	if server.handleKeyboardShortcut(kb, code, t) {
+		return
+	}
+
+	server.seat.SetKeyboard(kb.Device)
+	server.seat.KeyboardNotifyKey(t, code, wlr.KeyStatePressed)
 }
 
 func (server *Server) onKeyboardKeyReleased(kb *Keyboard, code uint32, update bool, t time.Time) {
-	// TODO
+	server.seat.SetKeyboard(kb.Device)
+	server.seat.KeyboardNotifyKey(t, code, wlr.KeyStateReleased)
 }
 
 func (server *Server) onCursorMotion(dev wlr.InputDevice, t time.Time, dx, dy float64) {
@@ -128,6 +134,11 @@ func (server *Server) setCursor(name string) {
 	}
 
 	server.cursorMgr.SetCursorImage(name, server.cursor)
+}
+
+func (server *Server) handleKeyboardShortcut(kb *Keyboard, code uint32, t time.Time) bool {
+	// TODO
+	return false
 }
 
 //func (server *Server) processCursorMotion(t time.Time) {
