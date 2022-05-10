@@ -118,7 +118,7 @@ func (server *Server) onDestroyView(view *View) {
 	i := slices.IndexFunc(server.views, func(v *View) bool {
 		return v.XDGSurface == view.XDGSurface
 	})
-	server.views = slices.Delete(server.views, i, i)
+	server.views = slices.Delete(server.views, i, i+1)
 }
 
 func (server *Server) onMapView(view *View) {
@@ -185,23 +185,22 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 	if prev == s {
 		return
 	}
-
 	if prev.Valid() && (prev.Type() == wlr.SurfaceTypeXDG) {
 		xdg := wlr.XDGSurfaceFromWLRSurface(prev)
 		xdg.TopLevelSetActivated(false)
 	}
-	view.XDGSurface.TopLevelSetActivated(true)
 
 	k := server.seat.GetKeyboard()
 	server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
 
+	view.XDGSurface.TopLevelSetActivated(true)
 	server.bringViewToFront(view)
 }
 
 func (server *Server) bringViewToFront(view *View) {
 	i := slices.Index(server.views, view)
-	server.views = slices.Delete(server.views, i, i)
-	server.views = append(server.views)
+	server.views = slices.Delete(server.views, i, i+1)
+	server.views = append(server.views, view)
 }
 
 var areaCursors = [...]string{
