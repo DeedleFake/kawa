@@ -161,7 +161,8 @@ func main() {
 		Term:          strings.Fields(*term),
 		OutputConfigs: outputConfigsParsed,
 
-		newViews: make(map[int]image.Rectangle),
+		newViews:  make(map[int]image.Rectangle),
+		inputMode: &inputModeNormal{},
 	}
 
 	server.display = wlr.CreateDisplay()
