@@ -8,7 +8,11 @@ import (
 )
 
 func (server *Server) viewBounds(out *Output, view *View) image.Rectangle {
-	return server.surfaceBounds(out, view.XDGSurface.Surface(), view.X, view.Y)
+	var r image.Rectangle
+	view.XDGSurface.ForEachSurface(func(s wlr.Surface, sx, sy int) {
+		r = r.Union(server.surfaceBounds(out, s, view.X+sx, view.Y+sy))
+	})
+	return r
 }
 
 func (server *Server) surfaceBounds(out *Output, surface wlr.Surface, x, y int) image.Rectangle {
