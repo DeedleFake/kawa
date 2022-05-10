@@ -204,7 +204,7 @@ func (server *Server) bringViewToFront(view *View) {
 }
 
 var areaCursors = [...]string{
-	"ptr_left",
+	"left_ptr",
 	"",
 	"top_left_corner",
 	"top_side",
