@@ -185,6 +185,10 @@ func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
 }
 
 func (server *Server) focusView(view *View, s wlr.Surface) {
+	if !s.Valid() {
+		s = view.XDGSurface.Surface()
+	}
+
 	prev := server.seat.KeyboardState().FocusedSurface()
 	if prev == s {
 		return
