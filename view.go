@@ -170,11 +170,11 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 	if prev == s {
 		return
 	}
-	if prev.Valid() {
+
+	if prev.Valid() && (prev.Type() == wlr.SurfaceTypeXDG) {
 		xdg := wlr.XDGSurfaceFromWLRSurface(prev)
 		xdg.TopLevelSetActivated(false)
 	}
-
 	view.XDGSurface.TopLevelSetActivated(true)
 
 	k := server.seat.GetKeyboard()
