@@ -35,34 +35,13 @@ func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
 		XDGSurface: surface,
 	}
 	view.Destroy = surface.OnDestroy(func(s wlr.XDGSurface) {
-		server.onDestroyView(view)
+		server.onDestroyView(&view)
 	})
 	view.Map = surface.OnMap(func(s wlr.XDGSurface) {
-		server.onMapView(view)
+		server.onMapView(&view)
 	})
 
 	server.addView(&view)
-
-	client := surface.Resource().GetClient()
-	pid, _, _ := client.GetCredentials()
-
-	for i, newView := range server.newViews {
-		if newView.PID != pid {
-			continue
-		}
-
-		view.X = newView.Box.Min.X
-		view.Y = newView.Box.Min.Y
-		surface.TopLevelSetSize(
-			uint32(newView.Box.Dx()),
-			uint32(newView.Box.Dy()),
-		)
-
-		slices.Delete(server.newViews, i, i)
-		break
-	}
-
-	server.views = append(server.views, &view)
 }
 
 func (server *Server) onDestroyView(view *View) {
@@ -84,6 +63,25 @@ func (server *Server) onMapView(view *View) {
 	server.moveViewTo(out, view, view.X, view.Y)
 }
 
+func (server *Server) addView(view *View) {
+	client := view.XDGSurface.Resource().GetClient()
+	pid, _, _ := client.GetCredentials()
+
+	nv, ok := server.newViews[pid]
+	if ok {
+		delete(server.newViews, pid)
+
+		view.X = nv.Min.X
+		view.Y = nv.Min.Y
+		view.XDGSurface.TopLevelSetSize(
+			uint32(nv.Dx()),
+			uint32(nv.Dy()),
+		)
+	}
+
+	server.views = append(server.views, view)
+}
+
 func (server *Server) centerViewOnOutput(out *Output, view *View) {
 	layout := server.outputLayout.Get(out.Output)
 	current := view.XDGSurface.Surface().Current()
@@ -93,7 +91,7 @@ func (server *Server) centerViewOnOutput(out *Output, view *View) {
 		out,
 		view,
 		layout.X()+(ow/2-current.Width()/2),
-		layout.Y()+(oh/2-current.Height/2),
+		layout.Y()+(oh/2-current.Height()/2),
 	)
 }
 
@@ -102,7 +100,7 @@ func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
 	view.Y = y
 
 	if out == nil {
-		out = server.outputAt(x, y)
+		out = server.outputAt(float64(x), float64(y))
 	}
 	view.XDGSurface.Surface().SendEnter(out.Output)
 }

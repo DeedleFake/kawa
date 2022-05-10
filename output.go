@@ -2,7 +2,7 @@ package main
 
 import "deedles.dev/wlr"
 
-func (server *Server) outputAt(x, y int) *Output {
+func (server *Server) outputAt(x, y float64) *Output {
 	wout := server.outputLayout.OutputAt(x, y)
 	for _, out := range server.outputs {
 		if out.Output == wout {

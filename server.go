@@ -35,7 +35,7 @@ type Server struct {
 	pointers  []wlr.InputDevice
 	keyboards []*Keyboard
 	views     []*View
-	newViews  []*NewView
+	newViews  map[int]image.Rectangle
 	corner    string
 
 	newOutput            wlr.Listener
@@ -91,11 +91,6 @@ type View struct {
 func (view *View) Release() {
 	view.Destroy.Destroy()
 	view.Map.Destroy()
-}
-
-type NewView struct {
-	PID int
-	Box image.Rectangle
 }
 
 type Keyboard struct {

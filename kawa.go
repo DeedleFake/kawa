@@ -160,6 +160,8 @@ func main() {
 		Cage:          strings.Fields(*cage),
 		Term:          strings.Fields(*term),
 		OutputConfigs: outputConfigsParsed,
+
+		newViews: make(map[int]image.Rectangle),
 	}
 
 	server.display = wlr.CreateDisplay()
