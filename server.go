@@ -67,7 +67,6 @@ type Server struct {
 }
 
 type Output struct {
-	Server *Server
 	Output wlr.Output
 	Layers [4][]LayerSurface
 	Frame  wlr.Listener
@@ -77,7 +76,7 @@ type OutputConfig struct {
 	Name          string
 	X, Y          int
 	Width, Height int
-	Scale         int
+	Scale         float32
 	Transform     wlr.OutputTransform
 }
 
@@ -85,7 +84,6 @@ type View struct {
 	X, Y       int
 	Area       ViewArea
 	XDGSurface wlr.XDGSurface
-	Server     *Server
 	Map        wlr.Listener
 	Destroy    wlr.Listener
 }

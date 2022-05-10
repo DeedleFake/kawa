@@ -129,7 +129,8 @@ func parseOutputConfigs(outputConfigs string) (configs []OutputConfig, err error
 			c.Height, _ = strconv.Atoi(parts[4])
 		}
 		if len(parts) >= 6 {
-			c.Scale, _ = strconv.Atoi(parts[5])
+			scale, _ := strconv.ParseFloat(parts[5], 32)
+			c.Scale = float32(scale)
 		}
 		if len(parts) >= 7 {
 			c.Transform, _ = parseTransform(parts[6])
