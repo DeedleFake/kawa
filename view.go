@@ -62,13 +62,13 @@ func (view *View) onMap(surface wlr.XDGSurface) {
 	output := server.outputLayout.OutputAt(server.cursor.X(), server.cursor.Y())
 	layout := server.outputLayout.Get(output)
 	if (view.X != -1) || (view.Y != -1) {
-		view.Move(view.X, view.Y)
+		view.move(view.X, view.Y)
 		return
 	}
 
 	current := view.XDGSurface.Surface().Current()
 	ow, oh := output.EffectiveResolution()
-	view.Move(
+	view.move(
 		layout.X()+(ow/2-current.Width()/2),
 		layout.Y()+(oh/2-current.Height()/2),
 	)
@@ -94,7 +94,7 @@ func (view *View) focus(surface wlr.Surface) {
 	server.views = append(server.views, view)
 }
 
-func (view *View) Move(x, y int) {
+func (view *View) move(x, y int) {
 	view.X = x
 	view.Y = y
 
