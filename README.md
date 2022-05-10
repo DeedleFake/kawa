@@ -20,6 +20,7 @@ Wishful Thinking
 
 * Touchscreen support. I'm not entirely sure how this would work, but since rio's design is heavily mouse-oriented, if it _does_ work it could be quite nice.
 * Theming support.
+* When a window is maximized, maybe it automatically enters a tiled mode and is always underneath non-maximized windows. I'm not sure how feasible this is.
 
 Prior Art
 ---------
