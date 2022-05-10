@@ -214,7 +214,6 @@ func main() {
 
 	server.menu.X, server.menu.Y = -1, -1
 	server.genMenuTextures()
-	server.inputState = InputStateNone
 
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {

@@ -63,8 +63,7 @@ type Server struct {
 		View   *View
 	}
 
-	inputState InputState
-	inputMode  InputMode
+	inputMode InputMode
 }
 
 type Output struct {
@@ -83,7 +82,6 @@ type OutputConfig struct {
 
 type View struct {
 	X, Y       int
-	Area       ViewArea
 	XDGSurface wlr.XDGSurface
 	Map        wlr.Listener
 	Destroy    wlr.Listener
@@ -110,34 +108,3 @@ type LayerSurface struct {
 
 	Geo image.Rectangle
 }
-
-type InputState uint
-
-const (
-	InputStateNone InputState = iota
-	InputStateMenu
-	InputStateNewStart
-	InputStateNewEnd
-	InputStateMoveSelect
-	InputStateMove
-	InputStateResizeSelect
-	InputStateResizeStart
-	InputStateResizeEnd
-	InputStateBorderDrag
-	InputStateDeleteSelect
-	InputStateHideSelect
-)
-
-type ViewArea int
-
-const (
-	ViewAreaBorderTopLeft ViewArea = iota
-	ViewAreaBorderTop
-	ViewAreaBorderTopRight
-	ViewAreaBorderLeft
-	ViewAreaSurface
-	ViewAreaBorderRight
-	ViewAreaBorderBottomLeft
-	ViewAreaBorderBottom
-	ViewAreaBorderBottomRight
-)

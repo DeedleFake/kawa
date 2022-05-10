@@ -82,3 +82,7 @@ func (m inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevice
 func (m inputModeNormal) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	// TODO
 }
+
+func (m inputModeNormal) RequestCursor(server *Server, s wlr.Surface, x, y int) {
+	server.cursor.SetSurface(s, int32(x), int32(y))
+}

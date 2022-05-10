@@ -117,9 +117,16 @@ func (server *Server) onCursorFrame() {
 }
 
 func (server *Server) onRequestCursor(client wlr.SeatClient, surface wlr.Surface, serial uint32, hotspotX, hotspotY int32) {
+	m, ok := server.inputMode.(interface {
+		RequestCursor(*Server, wlr.Surface, int, int)
+	})
+	if !ok {
+		return
+	}
+
 	focused := server.seat.PointerState().FocusedClient()
-	if (focused == client) && (server.inputState == InputStateNone) {
-		server.cursor.SetSurface(surface, hotspotX, hotspotY)
+	if focused == client {
+		m.RequestCursor(server, surface, int(hotspotX), int(hotspotY))
 	}
 }
 
