@@ -64,6 +64,7 @@ type Server struct {
 	}
 
 	inputState InputState
+	inputMode  InputMode
 }
 
 type Output struct {

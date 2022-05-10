@@ -24,6 +24,22 @@ func (server *Server) surfaceBounds(out *Output, surface wlr.Surface, x, y int) 
 	)
 }
 
+func (server *Server) viewAt(out *Output, x, y float64) *View {
+	if out == nil {
+		out = server.outputAt(x, y)
+	}
+
+	p := image.Pt(int(x), int(y))
+	for _, view := range server.views {
+		r := server.viewBounds(out, view)
+		if p.In(r) {
+			return view
+		}
+	}
+
+	return nil
+}
+
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
 	if surface.Role() != wlr.XDGSurfaceRoleTopLevel {
 		return
@@ -104,63 +120,3 @@ func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
 	}
 	view.XDGSurface.Surface().SendEnter(out.Output)
 }
-
-//func (view *View) focus(surface wlr.Surface) {
-//	server := view.Server
-//	prevSurface := server.seat.KeyboardState().FocusedSurface()
-//	if prevSurface == surface {
-//		return
-//	}
-//	if prevSurface.Valid() {
-//		prev := wlr.XDGSurfaceFromWLRSurface(prevSurface)
-//		prev.TopLevelSetActivated(false)
-//	}
-//
-//	keyboard := server.seat.GetKeyboard()
-//	view.XDGSurface.TopLevelSetActivated(true)
-//	server.seat.KeyboardNotifyEnter(view.XDGSurface.Surface(), keyboard.Keycodes(), keyboard.Modifiers())
-//
-//	i := slices.Index(server.views, view)
-//	server.views = slices.Delete(server.views, i, i)
-//	server.views = append(server.views, view)
-//}
-//
-//func (server *Server) viewAt(lx, ly float64) (view *View, surface wlr.Surface, sx, sy float64, ok bool) {
-//	for _, view := range server.views {
-//		surface, sx, sy, ok := view.XDGSurface.SurfaceAt(lx-float64(view.X), ly-float64(view.Y))
-//		if ok {
-//			view.Area = ViewAreaSurface
-//			return view, surface, sx, sy, true
-//		}
-//
-//		current := view.XDGSurface.Surface().Current()
-//		border := box(
-//			view.X-WindowBorder,
-//			view.Y-WindowBorder,
-//			current.Width()+WindowBorder*2,
-//			current.Width()+WindowBorder*2,
-//		)
-//		if image.Pt(int(lx), int(ly)).In(border) {
-//			view.Area = whichCorner(border, lx, ly)
-//			return view, wlr.Surface{}, lx - float64(view.X), ly - float64(view.Y), true
-//		}
-//	}
-//	return nil, wlr.Surface{}, 0, 0, false
-//}
-//
-//func whichCorner(r image.Rectangle, lx, ly float64) ViewArea {
-//	portion := func(x, lo, width int) ViewArea {
-//		x -= lo
-//		if x < 20 {
-//			return 0
-//		}
-//		if x > width-20 {
-//			return 2
-//		}
-//		return 1
-//	}
-//
-//	i := portion(int(lx), r.Min.X, r.Dx())
-//	j := portion(int(ly), r.Min.Y, r.Dy())
-//	return 3*j + i
-//}
