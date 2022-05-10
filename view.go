@@ -109,7 +109,10 @@ func (server *Server) onDestroyView(view *View) {
 func (server *Server) onMapView(view *View) {
 	out := server.outputAt(server.cursor.X(), server.cursor.Y())
 	if out == nil {
-		return
+		if len(server.outputs) == 0 {
+			return
+		}
+		out = server.outputs[0]
 	}
 
 	if (view.X == -1) || (view.Y == -1) {

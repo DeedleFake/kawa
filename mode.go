@@ -28,8 +28,6 @@ func (m inputModeNormal) CursorMoved(server *Server, t time.Time) {
 		return
 	}
 
-	// TODO: Handle moving cursor over window borders.
-
 	server.seat.PointerNotifyClearFocus()
 }
 

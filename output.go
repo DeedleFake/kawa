@@ -39,12 +39,16 @@ func (server *Server) addOutput(out *Output) {
 		return
 	}
 
-	server.setOutputMode(out, nil)
+	server.configureOutput(out, nil)
 }
 
 func (server *Server) configureOutput(out *Output, config *OutputConfig) {
 	server.layoutOutput(out, config)
 	server.setOutputMode(out, config)
+
+	if config == nil {
+		return
+	}
 
 	if config.Scale != 0 {
 		out.Output.SetScale(config.Scale)
