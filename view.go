@@ -203,11 +203,11 @@ type ViewArea int
 
 const (
 	ViewAreaNone ViewArea = iota
+	ViewAreaSurface
 	ViewAreaBorderTopLeft
 	ViewAreaBorderTop
 	ViewAreaBorderTopRight
 	ViewAreaBorderLeft
-	ViewAreaSurface
 	ViewAreaBorderRight
 	ViewAreaBorderBottomLeft
 	ViewAreaBorderBottom

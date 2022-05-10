@@ -17,49 +17,6 @@ func (server *Server) onNewInput(device wlr.InputDevice) {
 	}
 }
 
-func (server *Server) addKeyboard(dev wlr.InputDevice) {
-	kb := Keyboard{
-		Device: dev,
-	}
-
-	rules := xkb.RuleNames{
-		Rules:   os.Getenv("XKB_DEFAULT_RULES"),
-		Model:   os.Getenv("XKB_DEFAULT_MODEL"),
-		Layout:  os.Getenv("XKB_DEFAULT_LAYOUT"),
-		Variant: os.Getenv("XKB_DEFAULT_VARIANT"),
-		Options: os.Getenv("XKB_DEFAULT_OPTIONS"),
-	}
-
-	ctx := xkb.NewContext(xkb.ContextNoFlags)
-	defer ctx.Unref()
-
-	keymap := xkb.NewKeymapFromNames(ctx, &rules, xkb.KeymapCompileNoFlags)
-	defer keymap.Unref()
-
-	wkb := dev.Keyboard()
-	wkb.SetKeymap(keymap)
-	wkb.SetRepeatInfo(25, 600)
-
-	kb.Modifiers = wkb.OnModifiers(func(k wlr.Keyboard) {
-		server.onKeyboardModifiers(&kb)
-	})
-	kb.Key = wkb.OnKey(func(k wlr.Keyboard, t time.Time, code uint32, update bool, state wlr.KeyState) {
-		server.onKeyboardKey(&kb, code, update, state, t)
-	})
-
-	server.seat.SetKeyboard(dev)
-	server.keyboards = append(server.keyboards, &kb)
-
-	server.seat.SetCapabilities(server.seat.Capabilities() | wlr.SeatCapabilityKeyboard)
-}
-
-func (server *Server) addPointer(dev wlr.InputDevice) {
-	server.cursor.AttachInputDevice(dev)
-	server.seat.SetCapabilities(server.seat.Capabilities() | wlr.SeatCapabilityPointer)
-
-	server.pointers = append(server.pointers, dev)
-}
-
 func (server *Server) onKeyboardModifiers(kb *Keyboard) {
 	// TODO
 }
@@ -120,6 +77,49 @@ func (server *Server) onRequestCursor(client wlr.SeatClient, surface wlr.Surface
 	if focused == client {
 		m.RequestCursor(server, surface, int(hotspotX), int(hotspotY))
 	}
+}
+
+func (server *Server) addKeyboard(dev wlr.InputDevice) {
+	kb := Keyboard{
+		Device: dev,
+	}
+
+	rules := xkb.RuleNames{
+		Rules:   os.Getenv("XKB_DEFAULT_RULES"),
+		Model:   os.Getenv("XKB_DEFAULT_MODEL"),
+		Layout:  os.Getenv("XKB_DEFAULT_LAYOUT"),
+		Variant: os.Getenv("XKB_DEFAULT_VARIANT"),
+		Options: os.Getenv("XKB_DEFAULT_OPTIONS"),
+	}
+
+	ctx := xkb.NewContext(xkb.ContextNoFlags)
+	defer ctx.Unref()
+
+	keymap := xkb.NewKeymapFromNames(ctx, &rules, xkb.KeymapCompileNoFlags)
+	defer keymap.Unref()
+
+	wkb := dev.Keyboard()
+	wkb.SetKeymap(keymap)
+	wkb.SetRepeatInfo(25, 600)
+
+	kb.Modifiers = wkb.OnModifiers(func(k wlr.Keyboard) {
+		server.onKeyboardModifiers(&kb)
+	})
+	kb.Key = wkb.OnKey(func(k wlr.Keyboard, t time.Time, code uint32, update bool, state wlr.KeyState) {
+		server.onKeyboardKey(&kb, code, update, state, t)
+	})
+
+	server.seat.SetKeyboard(dev)
+	server.keyboards = append(server.keyboards, &kb)
+
+	server.seat.SetCapabilities(server.seat.Capabilities() | wlr.SeatCapabilityKeyboard)
+}
+
+func (server *Server) addPointer(dev wlr.InputDevice) {
+	server.cursor.AttachInputDevice(dev)
+	server.seat.SetCapabilities(server.seat.Capabilities() | wlr.SeatCapabilityPointer)
+
+	server.pointers = append(server.pointers, dev)
 }
 
 func (server *Server) setCursor(name string) {
