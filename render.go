@@ -24,15 +24,7 @@ func (server *Server) onFrame(out *Output) {
 
 	server.renderLayer(out, wlr.LayerShellV1LayerBackground, now)
 	server.renderLayer(out, wlr.LayerShellV1LayerBottom, now)
-
-	for _, view := range server.views {
-		if !view.XDGSurface.Mapped() {
-			continue
-		}
-
-		server.renderView(out, view, now)
-	}
-
+	server.renderViews(out, now)
 	server.renderManipBox(out, now)
 	server.renderLayer(out, wlr.LayerShellV1LayerTop, now)
 	server.renderMenu(out, now)
@@ -42,6 +34,16 @@ func (server *Server) onFrame(out *Output) {
 
 func (server *Server) renderLayer(out *Output, layer wlr.LayerShellV1Layer, t time.Time) {
 	// TODO
+}
+
+func (server *Server) renderViews(out *Output, t time.Time) {
+	for _, view := range server.views {
+		if !view.XDGSurface.Mapped() {
+			continue
+		}
+
+		server.renderView(out, view, t)
+	}
 }
 
 func (server *Server) renderView(out *Output, view *View, t time.Time) {
@@ -55,16 +57,13 @@ func (server *Server) renderViewBorder(out *Output, view *View, t time.Time) {
 		color = ColorActiveBorder
 	}
 
-	r := server.viewBounds(out, view)
-	server.renderer.RenderRect(r, ColorBackground, out.Output.TransformMatrix())
-
-	r = r.Inset(-WindowBorder)
+	r := server.viewBounds(out, view).Inset(-WindowBorder)
 	server.renderer.RenderRect(r, color, out.Output.TransformMatrix())
 }
 
 func (server *Server) renderViewSurfaces(out *Output, view *View, t time.Time) {
 	view.XDGSurface.ForEachSurface(func(s wlr.Surface, x, y int) {
-		server.renderSurface(out, s, x, y, t)
+		server.renderSurface(out, s, view.X+x, view.Y+y, t)
 	})
 }
 
