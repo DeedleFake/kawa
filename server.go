@@ -55,5 +55,11 @@ type Server struct {
 }
 
 func (server *Server) selectMainMenu(n int) {
-	server.startNormal()
+	switch n {
+	case 0: // New
+	case 1: // Resize
+	case 2: // Move
+	case 3: // Delete
+	case 4: // Hide
+	}
 }
