@@ -35,6 +35,7 @@ func (server *Server) createMenu(text ...string) *Menu {
 
 	gomono, err := opentype.NewFace(monoFont, &opentype.FaceOptions{
 		Size: 24,
+		DPI:  72,
 	})
 	if err != nil {
 		panic(fmt.Errorf("create font face: %w", err))
@@ -42,20 +43,14 @@ func (server *Server) createMenu(text ...string) *Menu {
 
 	buf := image.NewNRGBA(image.Rect(0, 0, 128, 128))
 
-	fdraw := font.Drawer{
-		Dst:  buf,
-		Src:  image.Black,
-		Face: gomono,
-	}
 	inactive := make([]wlr.Texture, 0, len(text))
 	for _, item := range text {
-		inactive = append(inactive, createTextTexture(ren, buf, fdraw, item))
+		inactive = append(inactive, createTextTexture(ren, buf, image.Black, gomono, item))
 	}
 
-	fdraw.Src = image.White
 	active := make([]wlr.Texture, 0, len(text))
 	for _, item := range text {
-		active = append(active, createTextTexture(ren, buf, fdraw, item))
+		active = append(active, createTextTexture(ren, buf, image.White, gomono, item))
 	}
 
 	return &Menu{
@@ -64,19 +59,37 @@ func (server *Server) createMenu(text ...string) *Menu {
 	}
 }
 
-func createTextTexture(ren wlr.Renderer, buf *image.NRGBA, fdraw font.Drawer, item string) wlr.Texture {
-	draw.Copy(buf, image.ZP, image.Transparent, image.Transparent.Bounds(), draw.Src, nil)
+func (m *Menu) Bounds() image.Rectangle {
+	var w, h int
+	for _, t := range m.active {
+		if tw := t.Width(); tw > w {
+			w = tw
+		}
+		h += t.Height()
+	}
 
-	fdraw.Dot = fixed.P(0, 0)
-	fdraw.DrawString(item)
+	return box(0, 0, w, h)
+}
+
+func createTextTexture(ren wlr.Renderer, dst *image.NRGBA, src image.Image, face font.Face, item string) wlr.Texture {
+	draw.Copy(dst, image.ZP, image.Transparent, image.Transparent.Bounds(), draw.Src, nil)
+
+	fdraw := font.Drawer{
+		Dst:  dst,
+		Src:  src,
+		Face: face,
+		Dot:  fixed.P(0, 24),
+	}
 
 	extents, _ := fdraw.BoundString(item)
+	fdraw.DrawString(item)
+
 	return wlr.TextureFromPixels(
 		ren,
 		drm.FormatRGBA8888,
-		uint32(buf.Stride),
+		uint32(dst.Stride),
 		uint32((extents.Max.X-extents.Min.X)+2),
 		uint32((extents.Max.Y-extents.Min.Y)+2),
-		buf.Pix,
+		dst.Pix,
 	)
 }

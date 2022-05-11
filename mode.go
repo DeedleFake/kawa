@@ -44,7 +44,7 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevic
 	view, edges, surface, _, _ := server.viewAt(nil, server.cursor.X(), server.cursor.Y())
 	if view == nil {
 		if b == wlr.BtnRight {
-			server.startMenu()
+			server.startMenu(server.mainMenu)
 		}
 		return
 	}
@@ -183,11 +183,13 @@ func (m *inputModeBorderResize) TargetView() *View {
 }
 
 type inputModeMenu struct {
+	m    *Menu
 	x, y float64
 }
 
-func (server *Server) startMenu() {
+func (server *Server) startMenu(m *Menu) {
 	server.inputMode = &inputModeMenu{
+		m: m,
 		x: server.cursor.X(),
 		y: server.cursor.Y(),
 	}
@@ -210,4 +212,15 @@ func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {
 	r := box(int(m.x), int(m.y), 100, 24*5)
 	server.renderer.RenderRect(r.Inset(-WindowBorder), ColorMenuBorder, out.Output.TransformMatrix())
 	server.renderer.RenderRect(r, ColorMenuUnselected, out.Output.TransformMatrix())
+
+	r.Max.Y = r.Min.Y
+	for i := range m.m.inactive {
+		t := m.m.inactive[i]
+
+		r.Min.Y += r.Dy()
+		r.Max.Y = r.Min.Y + t.Height()
+
+		matrix := wlr.ProjectBoxMatrix(r, wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
+		server.renderer.RenderTextureWithMatrix(t, matrix, 1)
+	}
 }
