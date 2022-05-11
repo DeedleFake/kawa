@@ -59,7 +59,7 @@ func (server *Server) selectMainMenu(n int) {
 	case 0: // New
 	case 1: // Resize
 	case 2: // Move
-		server.startMoveSelect()
+		server.startSelectView(wlr.BtnRight, server.startMove)
 	case 3: // Delete
 	case 4: // Hide
 	}
