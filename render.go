@@ -121,6 +121,7 @@ func (server *Server) renderMenu(out *Output, m *Menu, x, y float64) int {
 		r.Max.Y = r.Min.Y + t.Height()
 
 		if p.In(r) {
+			t = m.active[i]
 			server.renderer.RenderRect(r, ColorMenuSelected, out.Output.TransformMatrix())
 			sel = i
 		}
