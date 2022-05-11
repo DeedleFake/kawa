@@ -1,5 +1,5 @@
-deedles.dev/wlr v0.0.0-20220511002556-4e609c85c285 h1:M0XSMvZ9Lg3wEg4jnTqjwFNPF954V66cVfEd41saB4Q=
-deedles.dev/wlr v0.0.0-20220511002556-4e609c85c285/go.mod h1:LmadgvQ3D/gdbHEte73gY+aTsWsySoeIQeFQrcApSXc=
+deedles.dev/wlr v0.0.0-20220511041615-db6d3879d55e h1:Vy1WYNGI1ZOFMCTMFiInOQa1ATjXnJ2Nd6jjE2W2ZZE=
+deedles.dev/wlr v0.0.0-20220511041615-db6d3879d55e/go.mod h1:LmadgvQ3D/gdbHEte73gY+aTsWsySoeIQeFQrcApSXc=
 golang.org/x/exp v0.0.0-20220428152302-39d4317da171 h1:TfdoLivD44QwvssI9Sv1xwa5DcL5XQr4au4sZ2F2NV4=
 golang.org/x/exp v0.0.0-20220428152302-39d4317da171/go.mod h1:lgLbSvA5ygNOMpwM/9anMpWVlVJ7Z+cHWq/eFuinpGE=
 golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9 h1:LRtI4W37N+KFebI/qV0OFiLUv4GLOWeEW5hn/KEJvxE=

@@ -84,12 +84,25 @@ func createTextTexture(ren wlr.Renderer, dst *image.NRGBA, src image.Image, face
 	extents, _ := fdraw.BoundString(item)
 	fdraw.DrawString(item)
 
+	buf := image.NewNRGBA(image.Rect(
+		0,
+		0,
+		int(extents.Max.X-extents.Min.X),
+		int(extents.Max.Y-extents.Min.Y),
+	))
+	draw.Copy(buf, image.ZP, dst, image.Rect(
+		int(extents.Min.X),
+		int(extents.Min.Y),
+		int(extents.Max.X),
+		int(extents.Max.Y),
+	), draw.Src, nil)
+
 	return wlr.TextureFromPixels(
 		ren,
-		drm.FormatRGBA8888,
-		uint32(dst.Stride),
-		uint32((extents.Max.X-extents.Min.X)+2),
-		uint32((extents.Max.Y-extents.Min.Y)+2),
-		dst.Pix,
+		drm.FormatABGR8888,
+		uint32(buf.Stride),
+		uint32(buf.Bounds().Dx()),
+		uint32(buf.Bounds().Dy()),
+		buf.Pix,
 	)
 }
