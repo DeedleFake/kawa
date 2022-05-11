@@ -126,7 +126,7 @@ func (server *Server) renderMenu(out *Output, m *Menu, x, y float64) int {
 			sel = i
 		}
 
-		matrix := wlr.ProjectBoxMatrix(r, wlr.OutputTransformNormal.Invert(), 0, out.Output.TransformMatrix())
+		matrix := wlr.ProjectBoxMatrix(r, wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
 		server.renderer.RenderTextureWithMatrix(t, matrix, 1)
 	}
 
