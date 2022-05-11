@@ -8,6 +8,18 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+var edgeCursors = [...]string{
+	wlr.EdgeNone:                   "",
+	wlr.EdgeTop:                    "top_side",
+	wlr.EdgeLeft:                   "left_side",
+	wlr.EdgeRight:                  "right_side",
+	wlr.EdgeBottom:                 "bottom_side",
+	wlr.EdgeTop | wlr.EdgeLeft:     "top_left_corner",
+	wlr.EdgeTop | wlr.EdgeRight:    "top_right_corner",
+	wlr.EdgeBottom | wlr.EdgeLeft:  "bottom_left_corner",
+	wlr.EdgeBottom | wlr.EdgeRight: "bottom_right_corner",
+}
+
 type View struct {
 	X, Y          int
 	XDGSurface    wlr.XDGSurface
@@ -58,7 +70,7 @@ func (server *Server) targetView() *View {
 	return m.TargetView()
 }
 
-func (server *Server) viewAt(out *Output, x, y float64) (*View, ViewArea, wlr.Surface, float64, float64) {
+func (server *Server) viewAt(out *Output, x, y float64) (*View, wlr.Edges, wlr.Surface, float64, float64) {
 	if out == nil {
 		out = server.outputAt(x, y)
 	}
@@ -67,7 +79,7 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, ViewArea, wlr.Su
 	for _, view := range server.views {
 		surface, sx, sy, ok := view.XDGSurface.SurfaceAt(x-float64(view.X), y-float64(view.Y))
 		if ok {
-			return view, ViewAreaSurface, surface, sx, sy
+			return view, wlr.EdgeNone, surface, sx, sy
 		}
 
 		r := server.viewBounds(nil, view)
@@ -77,42 +89,42 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, ViewArea, wlr.Su
 
 		left := image.Rect(r.Min.X-WindowBorder, r.Min.Y, r.Max.X, r.Max.Y)
 		if p.In(left) {
-			return view, ViewAreaBorderLeft, wlr.Surface{}, 0, 0
+			return view, wlr.EdgeLeft, wlr.Surface{}, 0, 0
 		}
 
 		top := image.Rect(r.Min.X, r.Min.Y-WindowBorder, r.Max.X, r.Max.Y)
 		if p.In(top) {
-			return view, ViewAreaBorderTop, wlr.Surface{}, 0, 0
+			return view, wlr.EdgeTop, wlr.Surface{}, 0, 0
 		}
 
 		right := image.Rect(r.Min.X, r.Min.Y, r.Max.X+WindowBorder, r.Max.Y)
 		if p.In(right) {
-			return view, ViewAreaBorderRight, wlr.Surface{}, 0, 0
+			return view, wlr.EdgeRight, wlr.Surface{}, 0, 0
 		}
 
 		bottom := image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y+WindowBorder)
 		if p.In(bottom) {
-			return view, ViewAreaBorderBottom, wlr.Surface{}, 0, 0
+			return view, wlr.EdgeBottom, wlr.Surface{}, 0, 0
 		}
 
 		if (p.X < r.Min.X) && (p.Y < r.Min.Y) {
-			return view, ViewAreaBorderTopLeft, wlr.Surface{}, 0, 0
+			return view, wlr.EdgeTop | wlr.EdgeLeft, wlr.Surface{}, 0, 0
 		}
 		if (p.X >= r.Max.X) && (p.Y < r.Min.Y) {
-			return view, ViewAreaBorderTopRight, wlr.Surface{}, 0, 0
+			return view, wlr.EdgeTop | wlr.EdgeRight, wlr.Surface{}, 0, 0
 		}
 		if (p.X < r.Min.X) && (p.Y >= r.Max.Y) {
-			return view, ViewAreaBorderBottomLeft, wlr.Surface{}, 0, 0
+			return view, wlr.EdgeBottom | wlr.EdgeLeft, wlr.Surface{}, 0, 0
 		}
 		if (p.X >= r.Max.X) && (p.Y >= r.Max.Y) {
-			return view, ViewAreaBorderBottomRight, wlr.Surface{}, 0, 0
+			return view, wlr.EdgeBottom | wlr.EdgeRight, wlr.Surface{}, 0, 0
 		}
 
 		// Where else could it possibly be if it gets to here?
 		panic(fmt.Errorf("If you see this, there's a bug.\np = %+v\nr = %+v", p, r))
 	}
 
-	return nil, ViewAreaNone, wlr.Surface{}, 0, 0
+	return nil, wlr.EdgeNone, wlr.Surface{}, 0, 0
 }
 
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
@@ -256,57 +268,4 @@ func (server *Server) bringViewToFront(view *View) {
 	i := slices.Index(server.views, view)
 	server.views = slices.Delete(server.views, i, i+1)
 	server.views = append(server.views, view)
-}
-
-var areaCursors = [...]string{
-	"left_ptr",
-	"",
-	"top_left_corner",
-	"top_side",
-	"top_right_corner",
-	"left_side",
-	"right_side",
-	"bottom_left_corner",
-	"bottom_side",
-	"bottom_right_corner",
-}
-
-type ViewArea int
-
-const (
-	ViewAreaNone ViewArea = iota
-	ViewAreaSurface
-	ViewAreaBorderTopLeft
-	ViewAreaBorderTop
-	ViewAreaBorderTopRight
-	ViewAreaBorderLeft
-	ViewAreaBorderRight
-	ViewAreaBorderBottomLeft
-	ViewAreaBorderBottom
-	ViewAreaBorderBottomRight
-)
-
-func (area ViewArea) Cursor() string {
-	if (area < 0) || (int(area) >= len(areaCursors)) {
-		return ""
-	}
-	return areaCursors[area]
-}
-
-func (area ViewArea) Edges() (e wlr.Edges) {
-	switch area {
-	case ViewAreaBorderTopLeft, ViewAreaBorderTop, ViewAreaBorderTopRight:
-		e |= wlr.EdgeTop
-	case ViewAreaBorderBottomLeft, ViewAreaBorderBottom, ViewAreaBorderBottomRight:
-		e |= wlr.EdgeBottom
-	}
-
-	switch area {
-	case ViewAreaBorderTopLeft, ViewAreaBorderLeft, ViewAreaBorderBottomLeft:
-		e |= wlr.EdgeLeft
-	case ViewAreaBorderTopRight, ViewAreaBorderRight, ViewAreaBorderBottomRight:
-		e |= wlr.EdgeRight
-	}
-
-	return e
 }

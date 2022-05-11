@@ -23,8 +23,11 @@ func (server *Server) startNormal() {
 func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 	x, y := server.cursor.X(), server.cursor.Y()
 
-	_, area, surface, sx, sy := server.viewAt(nil, x, y)
-	server.setCursor(area.Cursor())
+	view, edges, surface, sx, sy := server.viewAt(nil, x, y)
+	server.setCursor(edgeCursors[edges])
+	if view == nil {
+		server.setCursor("left_ptr")
+	}
 	if !surface.Valid() {
 		server.seat.PointerNotifyClearFocus()
 		return
@@ -38,19 +41,17 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 }
 
 func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	view, area, surface, _, _ := server.viewAt(nil, server.cursor.X(), server.cursor.Y())
+	view, edges, surface, _, _ := server.viewAt(nil, server.cursor.X(), server.cursor.Y())
 	if view != nil {
 		server.focusView(view, surface)
 
-		switch area {
-		case ViewAreaNone:
-			// Huh?
-		case ViewAreaSurface:
+		switch edges {
+		case wlr.EdgeNone:
 			server.seat.PointerNotifyButton(t, b, wlr.ButtonPressed)
 		default:
 			switch b {
 			case wlr.BtnLeft:
-				server.startBorderResize(view, area.Edges())
+				server.startBorderResize(view, edges)
 			case wlr.BtnRight:
 				server.startMove(view)
 			}
