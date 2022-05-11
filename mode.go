@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"math"
 	"time"
 
 	"deedles.dev/wlr"
@@ -105,11 +106,14 @@ type inputModeBorderResize struct {
 
 func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
 	vb := server.viewBounds(nil, view)
+	server.startBorderResizeFrom(view, edges, vb)
+}
 
+func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from image.Rectangle) {
 	server.inputMode = &inputModeBorderResize{
 		view:  view,
 		edges: edges,
-		cur:   vb,
+		cur:   from,
 	}
 }
 
@@ -160,8 +164,8 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 		m.edges &^= wlr.EdgeTop
 	}
 
-	server.resizeViewTo(nil, m.view, r.Canon())
 	m.cur = r
+	server.resizeViewTo(nil, m.view, r.Canon())
 	server.setCursor(edgeCursors[m.edges])
 }
 
@@ -227,4 +231,72 @@ func (m *inputModeSelectView) CursorButtonPressed(server *Server, dev wlr.InputD
 		return
 	}
 	server.startNormal()
+}
+
+type inputModeResize struct {
+	view     *View
+	sx, sy   float64
+	resizing bool
+}
+
+func (server *Server) startResize(view *View) {
+	server.setCursor("top_left_corner")
+	server.inputMode = &inputModeResize{
+		view: view,
+	}
+}
+
+func (m *inputModeResize) CursorMoved(server *Server, t time.Time) {
+	if !m.resizing {
+		return
+	}
+
+	x, y := server.cursor.X(), server.cursor.Y()
+	if math.Abs(x-m.sx) < MinWidth {
+		return
+	}
+	if math.Abs(y-m.sy) < MinHeight {
+		return
+	}
+
+	r := image.Rect(
+		int(m.sx),
+		int(m.sy),
+		int(x),
+		int(y),
+	)
+	server.startBorderResizeFrom(m.view, wlr.EdgeNone, r)
+}
+
+func (m *inputModeResize) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+	if b != wlr.BtnRight {
+		server.startNormal()
+		return
+	}
+
+	m.sx, m.sy = server.cursor.X(), server.cursor.Y()
+	m.resizing = true
+}
+
+func (m *inputModeResize) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+	if !m.resizing {
+		return
+	}
+
+	server.startNormal()
+}
+
+func (m *inputModeResize) Frame(server *Server, out *Output, t time.Time) {
+	if !m.resizing {
+		return
+	}
+
+	x, y := server.cursor.X(), server.cursor.Y()
+	r := image.Rect(
+		int(m.sx),
+		int(m.sy),
+		int(x),
+		int(y),
+	).Canon()
+	server.renderer.RenderRect(r, ColorSelectionBox, out.Output.TransformMatrix())
 }
