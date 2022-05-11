@@ -42,19 +42,24 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 
 func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	view, edges, surface, _, _ := server.viewAt(nil, server.cursor.X(), server.cursor.Y())
-	if view != nil {
-		server.focusView(view, surface)
+	if view == nil {
+		if b == wlr.BtnRight {
+			server.startMenu()
+		}
+		return
+	}
 
-		switch edges {
-		case wlr.EdgeNone:
-			server.seat.PointerNotifyButton(t, b, wlr.ButtonPressed)
-		default:
-			switch b {
-			case wlr.BtnLeft:
-				server.startBorderResize(view, edges)
-			case wlr.BtnRight:
-				server.startMove(view)
-			}
+	server.focusView(view, surface)
+
+	switch edges {
+	case wlr.EdgeNone:
+		server.seat.PointerNotifyButton(t, b, wlr.ButtonPressed)
+	default:
+		switch b {
+		case wlr.BtnLeft:
+			server.startBorderResize(view, edges)
+		case wlr.BtnRight:
+			server.startMove(view)
 		}
 	}
 }
@@ -175,4 +180,34 @@ func (m *inputModeBorderResize) CursorButtonReleased(server *Server, dev wlr.Inp
 
 func (m *inputModeBorderResize) TargetView() *View {
 	return m.view
+}
+
+type inputModeMenu struct {
+	x, y float64
+}
+
+func (server *Server) startMenu() {
+	server.inputMode = &inputModeMenu{
+		x: server.cursor.X(),
+		y: server.cursor.Y(),
+	}
+}
+
+func (m *inputModeMenu) CursorMoved(server *Server, t time.Time) {
+	// TODO
+}
+
+func (m *inputModeMenu) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+	panic("If you see this, there's a bug.")
+}
+
+func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+	// TODO: Activate mode based on menu selection.
+	server.startNormal()
+}
+
+func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {
+	r := box(int(m.x), int(m.y), 100, 24*5)
+	server.renderer.RenderRect(r.Inset(-WindowBorder), ColorMenuBorder, out.Output.TransformMatrix())
+	server.renderer.RenderRect(r, ColorMenuUnselected, out.Output.TransformMatrix())
 }

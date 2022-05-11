@@ -7,8 +7,12 @@ import (
 	"deedles.dev/wlr"
 )
 
+type Framer interface {
+	Frame(*Server, *Output, time.Time)
+}
+
 func (server *Server) onFrame(out *Output) {
-	now := time.Now()
+	t := time.Now()
 
 	_, err := out.Output.AttachRender()
 	if err != nil {
@@ -22,13 +26,13 @@ func (server *Server) onFrame(out *Output) {
 
 	server.renderer.Clear(ColorBackground)
 
-	server.renderLayer(out, wlr.LayerShellV1LayerBackground, now)
-	server.renderLayer(out, wlr.LayerShellV1LayerBottom, now)
-	server.renderViews(out, now)
-	server.renderLayer(out, wlr.LayerShellV1LayerTop, now)
-	server.renderMenu(out, now)
-	server.renderLayer(out, wlr.LayerShellV1LayerOverlay, now)
-	server.renderCursor(out, now)
+	server.renderLayer(out, wlr.LayerShellV1LayerBackground, t)
+	server.renderLayer(out, wlr.LayerShellV1LayerBottom, t)
+	server.renderViews(out, t)
+	server.renderLayer(out, wlr.LayerShellV1LayerTop, t)
+	server.renderMode(out, t)
+	server.renderLayer(out, wlr.LayerShellV1LayerOverlay, t)
+	server.renderCursor(out, t)
 }
 
 func (server *Server) renderLayer(out *Output, layer wlr.LayerShellV1Layer, t time.Time) {
@@ -87,8 +91,13 @@ func (server *Server) renderSurface(out *Output, s wlr.Surface, x, y int, t time
 	s.SendFrameDone(t)
 }
 
-func (server *Server) renderMenu(out *Output, t time.Time) {
-	// TODO
+func (server *Server) renderMode(out *Output, t time.Time) {
+	m, ok := server.inputMode.(Framer)
+	if !ok {
+		return
+	}
+
+	m.Frame(server, out, t)
 }
 
 func (server *Server) renderCursor(out *Output, t time.Time) {

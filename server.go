@@ -51,11 +51,8 @@ type Server struct {
 	newLayerSurface wlr.Listener
 
 	menu struct {
-		X, Y             int
-		Width, Height    int
 		ActiveTextures   [5]wlr.Texture
 		InactiveTextures [5]wlr.Texture
-		Selected         int
 	}
 
 	inputMode InputMode

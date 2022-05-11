@@ -198,7 +198,6 @@ func (server *Server) run() error {
 	server.layerShell = wlr.CreateLayerShellV1(server.display)
 	server.newLayerSurface = server.layerShell.OnNewSurface(server.onNewLayerSurface)
 
-	server.menu.X, server.menu.Y = -1, -1
 	server.genMenuTextures()
 
 	socket, err := server.display.AddSocketAuto()
