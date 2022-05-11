@@ -16,7 +16,13 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-var monoFont *sfnt.Font
+var (
+	monoFont    *sfnt.Font
+	fontOptions = opentype.FaceOptions{
+		Size: 14,
+		DPI:  72,
+	}
+)
 
 func init() {
 	gomonoFont, err := opentype.Parse(gomono.TTF)
@@ -38,10 +44,7 @@ type Menu struct {
 func (server *Server) createMenu(text ...string) *Menu {
 	ren := server.renderer
 
-	gomono, err := opentype.NewFace(monoFont, &opentype.FaceOptions{
-		Size: 24,
-		DPI:  72,
-	})
+	gomono, err := opentype.NewFace(monoFont, &fontOptions)
 	if err != nil {
 		panic(fmt.Errorf("create font face: %w", err))
 	}
@@ -69,19 +72,19 @@ func (m *Menu) Len() int {
 func (m *Menu) Bounds() image.Rectangle {
 	var w int
 	for _, t := range m.active {
-		if tw := t.Width(); tw > w {
+		if tw := t.Width() + WindowBorder*2; tw > w {
 			w = tw
 		}
 	}
 
-	return box(0, 0, w, len(m.active)*24)
+	return box(0, 0, w, len(m.active)*int(fontOptions.Size+WindowBorder*2))
 }
 
 func (m *Menu) StartOffset() image.Point {
 	b := m.Bounds()
 	return image.Pt(
 		-b.Dx()/2,
-		-24*m.prev-12,
+		-int(fontOptions.Size+WindowBorder*2)*m.prev-int(fontOptions.Size+WindowBorder*2)/2,
 	)
 }
 
@@ -95,10 +98,7 @@ func (m *Menu) Select(n int) {
 }
 
 func (m *Menu) Add(server *Server, item string) {
-	gomono, err := opentype.NewFace(monoFont, &opentype.FaceOptions{
-		Size: 24,
-		DPI:  72,
-	})
+	gomono, err := opentype.NewFace(monoFont, &fontOptions)
 	if err != nil {
 		panic(fmt.Errorf("create font face: %w", err))
 	}
@@ -127,7 +127,7 @@ func createTextTexture(ren wlr.Renderer, dst draw.Image, src image.Image, face f
 		Dst:  dst,
 		Src:  src,
 		Face: face,
-		Dot:  fixed.P(0, 24),
+		Dot:  fixed.P(0, int(fontOptions.Size)),
 	}
 
 	extents, _ := fdraw.BoundString(item)
@@ -137,7 +137,7 @@ func createTextTexture(ren wlr.Renderer, dst draw.Image, src image.Image, face f
 		0,
 		0,
 		(extents.Max.X - extents.Min.X).Floor(),
-		24,
+		int(fontOptions.Size),
 	))
 	draw.Copy(buf, image.ZP, dst, buf.Bounds(), draw.Src, nil)
 

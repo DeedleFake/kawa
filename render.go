@@ -123,20 +123,28 @@ func (server *Server) renderMenu(out *Output, m *Menu, x, y float64) int {
 	server.renderer.RenderRect(r, ColorMenuUnselected, out.Output.TransformMatrix())
 
 	sel := -1
-	r.Max.Y = r.Min.Y
 	for i := range m.inactive {
+		ar := box(
+			r.Min.X,
+			r.Min.Y+i*int(fontOptions.Size+WindowBorder*2),
+			r.Dx(),
+			int(fontOptions.Size+WindowBorder*2),
+		)
+
 		t := m.inactive[i]
-
-		r.Min.Y += r.Dy()
-		r.Max.Y = r.Min.Y + t.Height()
-
-		if p.In(r) {
+		if p.In(ar) {
 			t = m.active[i]
-			server.renderer.RenderRect(r, ColorMenuSelected, out.Output.TransformMatrix())
 			sel = i
+			server.renderer.RenderRect(ar, ColorMenuSelected, out.Output.TransformMatrix())
 		}
 
-		matrix := wlr.ProjectBoxMatrix(r, wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
+		tr := box(
+			ar.Min.X+(ar.Dx()/2)-(t.Width()/2),
+			ar.Min.Y+(ar.Dy()/2)-(t.Height()/2),
+			t.Width(),
+			t.Height(),
+		)
+		matrix := wlr.ProjectBoxMatrix(tr, wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
 		server.renderer.RenderTextureWithMatrix(t, matrix, 1)
 	}
 
