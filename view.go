@@ -1,146 +1,304 @@
 package main
 
 import (
+	"fmt"
 	"image"
 
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 )
 
+type View struct {
+	X, Y        int
+	XDGSurface  wlr.XDGSurface
+	Map         wlr.Listener
+	Destroy     wlr.Listener
+	RequestMove wlr.Listener
+}
+
+func (view *View) Release() {
+	view.Destroy.Destroy()
+	view.Map.Destroy()
+}
+
+func (server *Server) viewBounds(out *Output, view *View) image.Rectangle {
+	var r image.Rectangle
+	view.XDGSurface.ForEachSurface(func(s wlr.Surface, sx, sy int) {
+		r = r.Union(server.surfaceBounds(out, s, view.X+sx, view.Y+sy))
+	})
+	return r
+}
+
+func (server *Server) surfaceBounds(out *Output, surface wlr.Surface, x, y int) image.Rectangle {
+	var ox, oy float64
+	scale := float32(1)
+	if out != nil {
+		ox, oy = server.outputLayout.OutputCoords(out.Output)
+		scale = out.Output.Scale()
+	}
+
+	current := surface.Current()
+	return box(
+		int((ox+float64(x))*float64(scale)),
+		int((oy+float64(y))*float64(scale)),
+		int(float64(current.Width())*float64(scale)),
+		int(float64(current.Height())*float64(scale)),
+	)
+}
+
+func (server *Server) targetView() *View {
+	m, ok := server.inputMode.(interface{ TargetView() *View })
+	if !ok {
+		return nil
+	}
+
+	return m.TargetView()
+}
+
+func (server *Server) viewAt(out *Output, x, y float64) (*View, ViewArea, wlr.Surface, float64, float64) {
+	if out == nil {
+		out = server.outputAt(x, y)
+	}
+
+	p := image.Pt(int(x), int(y))
+	for _, view := range server.views {
+		surface, sx, sy, ok := view.XDGSurface.SurfaceAt(x-float64(view.X), y-float64(view.Y))
+		if ok {
+			return view, ViewAreaSurface, surface, sx, sy
+		}
+
+		r := server.viewBounds(nil, view)
+		if !p.In(r.Inset(-WindowBorder)) {
+			continue
+		}
+
+		left := image.Rect(r.Min.X-WindowBorder, r.Min.Y, r.Max.X, r.Max.Y)
+		if p.In(left) {
+			return view, ViewAreaBorderLeft, wlr.Surface{}, 0, 0
+		}
+
+		top := image.Rect(r.Min.X, r.Min.Y-WindowBorder, r.Max.X, r.Max.Y)
+		if p.In(top) {
+			return view, ViewAreaBorderTop, wlr.Surface{}, 0, 0
+		}
+
+		right := image.Rect(r.Min.X, r.Min.Y, r.Max.X+WindowBorder, r.Max.Y)
+		if p.In(right) {
+			return view, ViewAreaBorderRight, wlr.Surface{}, 0, 0
+		}
+
+		bottom := image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y+WindowBorder)
+		if p.In(bottom) {
+			return view, ViewAreaBorderBottom, wlr.Surface{}, 0, 0
+		}
+
+		if (p.X < r.Min.X) && (p.Y < r.Min.Y) {
+			return view, ViewAreaBorderTopLeft, wlr.Surface{}, 0, 0
+		}
+		if (p.X > r.Max.X) && (p.Y < r.Min.Y) {
+			return view, ViewAreaBorderTopRight, wlr.Surface{}, 0, 0
+		}
+		if (p.X < r.Min.X) && (p.Y > r.Min.Y) {
+			return view, ViewAreaBorderBottomLeft, wlr.Surface{}, 0, 0
+		}
+		if (p.X > r.Max.X) && (p.Y > r.Min.Y) {
+			return view, ViewAreaBorderBottomRight, wlr.Surface{}, 0, 0
+		}
+
+		// Where else could it possibly be if it gets to here?
+		panic(fmt.Errorf("If you see this, there's a bug.\np = %+v\nr = %+v", p, r))
+	}
+
+	return nil, ViewAreaNone, wlr.Surface{}, 0, 0
+}
+
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
 	if surface.Role() != wlr.XDGSurfaceRoleTopLevel {
+		server.addXDGPopup(surface)
 		return
 	}
 
+	server.addXDGTopLevel(surface)
+}
+
+func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
+	// TODO
+}
+
+func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 	view := View{
 		X:          -1,
 		Y:          -1,
 		XDGSurface: surface,
-		Server:     server,
 	}
-	view.Destroy = surface.OnDestroy(view.onDestroy)
-	view.Map = surface.OnMap(view.onMap)
+	view.Destroy = surface.OnDestroy(func(s wlr.XDGSurface) {
+		server.onDestroyView(&view)
+	})
+	view.Map = surface.OnMap(func(s wlr.XDGSurface) {
+		server.onMapView(&view)
+	})
+	view.RequestMove = surface.TopLevel().OnRequestMove(func(client wlr.SeatClient, serial uint32) {
+		server.startMove(&view)
+	})
 
-	surface.TopLevelSetTiled(wlr.EdgeLeft | wlr.EdgeRight | wlr.EdgeTop | wlr.EdgeBottom)
-
-	client := surface.Resource().GetClient()
-	pid, _, _ := client.GetCredentials()
-
-	for i, newView := range server.newViews {
-		if newView.PID != pid {
-			continue
-		}
-
-		view.X = newView.Box.Min.X
-		view.Y = newView.Box.Min.Y
-		surface.TopLevelSetSize(
-			uint32(newView.Box.Dx()),
-			uint32(newView.Box.Dy()),
-		)
-
-		slices.Delete(server.newViews, i, i)
-		break
-	}
-
-	server.views = append(server.views, &view)
+	server.addView(&view)
 }
 
-func (view *View) onDestroy(surface wlr.XDGSurface) {
+func (server *Server) onDestroyView(view *View) {
 	view.Release()
 
-	server := view.Server
 	i := slices.IndexFunc(server.views, func(v *View) bool {
-		return v.XDGSurface == surface
+		return v.XDGSurface == view.XDGSurface
 	})
-	server.views = slices.Delete(server.views, i, i)
+	server.views = slices.Delete(server.views, i, i+1)
 }
 
-func (view *View) onMap(surface wlr.XDGSurface) {
-	server := view.Server
-	view.focus(surface.Surface())
+func (server *Server) onMapView(view *View) {
+	out := server.outputAt(server.cursor.X(), server.cursor.Y())
+	if out == nil {
+		if len(server.outputs) == 0 {
+			return
+		}
+		out = server.outputs[0]
+	}
 
-	output := server.outputLayout.OutputAt(server.cursor.X(), server.cursor.Y())
-	layout := server.outputLayout.Get(output)
-	if (view.X != -1) || (view.Y != -1) {
-		view.move(view.X, view.Y)
+	if (view.X == -1) || (view.Y == -1) {
+		server.centerViewOnOutput(out, view)
 		return
 	}
 
+	server.moveViewTo(out, view, view.X, view.Y)
+}
+
+func (server *Server) addView(view *View) {
+	client := view.XDGSurface.Resource().GetClient()
+	pid, _, _ := client.GetCredentials()
+
+	nv, ok := server.newViews[pid]
+	if ok {
+		delete(server.newViews, pid)
+
+		view.X = nv.Min.X
+		view.Y = nv.Min.Y
+		view.XDGSurface.TopLevelSetSize(
+			uint32(nv.Dx()),
+			uint32(nv.Dy()),
+		)
+	}
+
+	server.views = append(server.views, view)
+}
+
+func (server *Server) centerViewOnOutput(out *Output, view *View) {
+	layout := server.outputLayout.Get(out.Output)
 	current := view.XDGSurface.Surface().Current()
-	ow, oh := output.EffectiveResolution()
-	view.move(
+	ow, oh := out.Output.EffectiveResolution()
+
+	server.moveViewTo(
+		out,
+		view,
 		layout.X()+(ow/2-current.Width()/2),
 		layout.Y()+(oh/2-current.Height()/2),
 	)
 }
 
-func (view *View) focus(surface wlr.Surface) {
-	server := view.Server
-	prevSurface := server.seat.KeyboardState().FocusedSurface()
-	if prevSurface == surface {
-		return
-	}
-	if prevSurface.Valid() {
-		prev := wlr.XDGSurfaceFromWLRSurface(prevSurface)
-		prev.TopLevelSetActivated(false)
-	}
-
-	keyboard := server.seat.GetKeyboard()
-	view.XDGSurface.TopLevelSetActivated(true)
-	server.seat.KeyboardNotifyEnter(view.XDGSurface.Surface(), keyboard.Keycodes(), keyboard.Modifiers())
-
-	i := slices.Index(server.views, view)
-	server.views = slices.Delete(server.views, i, i)
-	server.views = append(server.views, view)
-}
-
-func (view *View) move(x, y int) {
+func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
 	view.X = x
 	view.Y = y
 
-	// TODO: Do this properly. The view isn't entering every single
-	// output.
-	for _, out := range view.Server.outputs {
-		view.XDGSurface.Surface().SendEnter(out.Output)
+	if out == nil {
+		out = server.outputAt(float64(x), float64(y))
 	}
+	view.XDGSurface.Surface().SendEnter(out.Output)
 }
 
-func (server *Server) viewAt(lx, ly float64) (view *View, surface wlr.Surface, sx, sy float64, ok bool) {
-	for _, view := range server.views {
-		surface, sx, sy, ok := view.XDGSurface.SurfaceAt(lx-float64(view.X), ly-float64(view.Y))
-		if ok {
-			view.Area = ViewAreaSurface
-			return view, surface, sx, sy, true
-		}
+func (server *Server) resizeViewTo(out *Output, view *View, r image.Rectangle) {
+	view.X = r.Min.X
+	view.Y = r.Min.Y
+	view.XDGSurface.TopLevelSetSize(uint32(r.Dx()), uint32(r.Dy()))
 
-		current := view.XDGSurface.Surface().Current()
-		border := box(
-			view.X-WindowBorder,
-			view.Y-WindowBorder,
-			current.Width()+WindowBorder*2,
-			current.Width()+WindowBorder*2,
-		)
-		if image.Pt(int(lx), int(ly)).In(border) {
-			view.Area = whichCorner(border, lx, ly)
-			return view, wlr.Surface{}, lx - float64(view.X), ly - float64(view.Y), true
-		}
+	if out == nil {
+		out = server.outputAt(float64(view.X), float64(view.Y))
 	}
-	return nil, wlr.Surface{}, 0, 0, false
+	view.XDGSurface.Surface().SendEnter(out.Output)
 }
 
-func whichCorner(r image.Rectangle, lx, ly float64) ViewArea {
-	portion := func(x, lo, width int) ViewArea {
-		x -= lo
-		if x < 20 {
-			return 0
-		}
-		if x > width-20 {
-			return 2
-		}
-		return 1
+func (server *Server) focusView(view *View, s wlr.Surface) {
+	if !s.Valid() {
+		s = view.XDGSurface.Surface()
 	}
 
-	i := portion(int(lx), r.Min.X, r.Dx())
-	j := portion(int(ly), r.Min.Y, r.Dy())
-	return 3*j + i
+	prev := server.seat.KeyboardState().FocusedSurface()
+	if prev == s {
+		return
+	}
+	if prev.Valid() && (prev.Type() == wlr.SurfaceTypeXDG) {
+		xdg := wlr.XDGSurfaceFromWLRSurface(prev)
+		xdg.TopLevelSetActivated(false)
+	}
+
+	k := server.seat.GetKeyboard()
+	server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
+
+	view.XDGSurface.TopLevelSetActivated(true)
+	server.bringViewToFront(view)
+}
+
+func (server *Server) bringViewToFront(view *View) {
+	i := slices.Index(server.views, view)
+	server.views = slices.Delete(server.views, i, i+1)
+	server.views = append(server.views, view)
+}
+
+var areaCursors = [...]string{
+	"left_ptr",
+	"",
+	"top_left_corner",
+	"top_side",
+	"top_right_corner",
+	"left_side",
+	"right_side",
+	"bottom_left_corner",
+	"bottom_side",
+	"bottom_right_corner",
+}
+
+type ViewArea int
+
+const (
+	ViewAreaNone ViewArea = iota
+	ViewAreaSurface
+	ViewAreaBorderTopLeft
+	ViewAreaBorderTop
+	ViewAreaBorderTopRight
+	ViewAreaBorderLeft
+	ViewAreaBorderRight
+	ViewAreaBorderBottomLeft
+	ViewAreaBorderBottom
+	ViewAreaBorderBottomRight
+)
+
+func (area ViewArea) Cursor() string {
+	if (area < 0) || (int(area) >= len(areaCursors)) {
+		return ""
+	}
+	return areaCursors[area]
+}
+
+func (area ViewArea) Edges() (e wlr.Edges) {
+	switch area {
+	case ViewAreaBorderTopLeft, ViewAreaBorderTop, ViewAreaBorderTopRight:
+		e |= wlr.EdgeTop
+	case ViewAreaBorderBottomLeft, ViewAreaBorderBottom, ViewAreaBorderBottomRight:
+		e |= wlr.EdgeBottom
+	}
+
+	switch area {
+	case ViewAreaBorderTopLeft, ViewAreaBorderLeft, ViewAreaBorderBottomLeft:
+		e |= wlr.EdgeLeft
+	case ViewAreaBorderTopRight, ViewAreaBorderRight, ViewAreaBorderBottomRight:
+		e |= wlr.EdgeRight
+	}
+
+	return e
 }

@@ -129,7 +129,8 @@ func parseOutputConfigs(outputConfigs string) (configs []OutputConfig, err error
 			c.Height, _ = strconv.Atoi(parts[4])
 		}
 		if len(parts) >= 6 {
-			c.Scale, _ = strconv.Atoi(parts[5])
+			scale, _ := strconv.ParseFloat(parts[5], 32)
+			c.Scale = float32(scale)
 		}
 		if len(parts) >= 7 {
 			c.Transform, _ = parseTransform(parts[6])
@@ -159,6 +160,9 @@ func main() {
 		Cage:          strings.Fields(*cage),
 		Term:          strings.Fields(*term),
 		OutputConfigs: outputConfigsParsed,
+
+		newViews:  make(map[int]image.Rectangle),
+		inputMode: &inputModeNormal{},
 	}
 
 	server.display = wlr.CreateDisplay()
@@ -210,7 +214,6 @@ func main() {
 
 	server.menu.X, server.menu.Y = -1, -1
 	server.genMenuTextures()
-	server.inputState = InputStateNone
 
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {
