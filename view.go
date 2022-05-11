@@ -289,6 +289,23 @@ func (server *Server) bringViewToFront(view *View) {
 	server.views = append(server.views, view)
 }
 
+func (server *Server) hideView(view *View) {
+	i := slices.Index(server.views, view)
+	server.views = slices.Delete(server.views, i, i+1)
+
+	server.hidden = append(server.hidden, view)
+	server.mainMenu.Add(server, view.XDGSurface.TopLevel().Title())
+}
+
+func (server *Server) unhideView(view *View) {
+	i := slices.Index(server.hidden, view)
+	server.hidden = slices.Delete(server.hidden, i, i+1)
+	server.mainMenu.Remove(5 + i)
+
+	server.views = append(server.views, view)
+	server.focusView(view, view.XDGSurface.Surface())
+}
+
 func (server *Server) closeView(view *View) {
 	view.XDGSurface.SendClose()
 }

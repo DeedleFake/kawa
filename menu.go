@@ -7,6 +7,7 @@ import (
 	"deedles.dev/kawa/internal/drm"
 	"deedles.dev/kawa/internal/fimg"
 	"deedles.dev/wlr"
+	"golang.org/x/exp/slices"
 	"golang.org/x/image/draw"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gomono"
@@ -45,13 +46,11 @@ func (server *Server) createMenu(text ...string) *Menu {
 		panic(fmt.Errorf("create font face: %w", err))
 	}
 
-	buf := image.NewNRGBA(image.Rect(0, 0, 128, 128))
-
+	buf := fimg.NewNABGR(image.Rect(0, 0, 128, 128))
 	inactive := make([]wlr.Texture, 0, len(text))
 	for _, item := range text {
 		inactive = append(inactive, createTextTexture(ren, buf, image.Black, gomono, item))
 	}
-
 	active := make([]wlr.Texture, 0, len(text))
 	for _, item := range text {
 		active = append(active, createTextTexture(ren, buf, image.White, gomono, item))
@@ -95,7 +94,33 @@ func (m *Menu) Select(n int) {
 	}
 }
 
-func createTextTexture(ren wlr.Renderer, dst *image.NRGBA, src image.Image, face font.Face, item string) wlr.Texture {
+func (m *Menu) Add(server *Server, item string) {
+	gomono, err := opentype.NewFace(monoFont, &opentype.FaceOptions{
+		Size: 24,
+		DPI:  72,
+	})
+	if err != nil {
+		panic(fmt.Errorf("create font face: %w", err))
+	}
+
+	buf := fimg.NewNABGR(image.Rect(0, 0, 128, 128))
+	m.inactive = append(m.inactive, createTextTexture(server.renderer, buf, image.Black, gomono, item))
+	m.active = append(m.active, createTextTexture(server.renderer, buf, image.Black, gomono, item))
+}
+
+func (m *Menu) Remove(i int) {
+	m.inactive[i].Destroy()
+	m.active[i].Destroy()
+
+	m.inactive = slices.Delete(m.inactive, i, i+1)
+	m.active = slices.Delete(m.active, i, i+1)
+
+	if m.prev >= m.Len() {
+		m.prev = m.Len() - 1
+	}
+}
+
+func createTextTexture(ren wlr.Renderer, dst draw.Image, src image.Image, face font.Face, item string) wlr.Texture {
 	draw.Copy(dst, image.ZP, image.Transparent, image.Transparent.Bounds(), draw.Src, nil)
 
 	fdraw := font.Drawer{

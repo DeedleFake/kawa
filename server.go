@@ -37,6 +37,7 @@ type Server struct {
 	keyboards []*Keyboard
 	views     []*View
 	newViews  map[int]NewView
+	hidden    []*View
 
 	mainMenu *Menu
 
@@ -60,23 +61,6 @@ type NewView struct {
 	OnStarted func(*View)
 }
 
-func (server *Server) selectMainMenu(n int) {
-	switch n {
-	case 0: // New
-		server.startNew()
-	case 1: // Resize
-		server.startSelectView(wlr.BtnRight, server.startResize)
-	case 2: // Move
-		server.startSelectView(wlr.BtnRight, server.startMove)
-	case 3: // Delete
-		server.startSelectView(wlr.BtnRight, func(view *View) {
-			server.closeView(view)
-			server.startNormal()
-		})
-	case 4: // Hide
-	}
-}
-
 func (server *Server) exec(to *image.Rectangle) {
 	cmd := exec.Command(server.Term[0], server.Term[1:]...) // TODO: Context support?
 	err := cmd.Start()
@@ -90,5 +74,32 @@ func (server *Server) exec(to *image.Rectangle) {
 		OnStarted: func(view *View) {
 			server.startBorderResizeFrom(view, wlr.EdgeNone, *to)
 		},
+	}
+}
+
+func (server *Server) selectMainMenu(n int) {
+	if n < 0 {
+		return
+	}
+
+	switch n {
+	case 0: // New
+		server.startNew()
+	case 1: // Resize
+		server.startSelectView(wlr.BtnRight, server.startResize)
+	case 2: // Move
+		server.startSelectView(wlr.BtnRight, server.startMove)
+	case 3: // Delete
+		server.startSelectView(wlr.BtnRight, func(view *View) {
+			server.closeView(view)
+			server.startNormal()
+		})
+	case 4: // Hide
+		server.startSelectView(wlr.BtnRight, func(view *View) {
+			server.hideView(view)
+			server.startNormal()
+		})
+	default:
+		server.unhideView(server.hidden[n-5])
 	}
 }
