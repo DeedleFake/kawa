@@ -139,7 +139,7 @@ func createTextTexture(ren wlr.Renderer, dst draw.Image, src image.Image, face f
 		(extents.Max.X - extents.Min.X).Floor(),
 		24,
 	))
-	draw.Copy(buf, image.ZP, dst, image.ZR, draw.Src, nil)
+	draw.Copy(buf, image.ZP, dst, buf.Bounds(), draw.Src, nil)
 
 	return wlr.TextureFromPixels(
 		ren,
