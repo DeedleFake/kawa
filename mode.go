@@ -213,9 +213,7 @@ func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice
 		return
 	}
 
-	if m.sel < 0 {
-		server.startNormal()
-	}
+	server.startNormal()
 	m.m.Select(m.sel)
 }
 
