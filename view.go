@@ -147,6 +147,8 @@ func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 		server.startBorderResize(&view, edges)
 	})
 
+	surface.TopLevelSetTiled(wlr.EdgeLeft | wlr.EdgeRight | wlr.EdgeTop | wlr.EdgeBottom)
+
 	server.addView(&view)
 }
 
