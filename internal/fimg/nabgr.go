@@ -37,15 +37,25 @@ func (p *NABGR) At(x, y int) color.Color {
 }
 
 func (p *NABGR) Set(x, y int, c color.Color) {
-	r, g, b, a := c.RGBA()
+	switch c := c.(type) {
+	case color.NRGBA:
+		i := p.PixOffset(x, y)
+		p.Pix[i] = c.A
+		p.Pix[i+1] = c.B
+		p.Pix[i+2] = c.G
+		p.Pix[i+3] = c.R
 
-	i := p.PixOffset(x, y)
-	p.Pix[i] = uint8(a * 255 / 0xFFFF)
+	default:
+		r, g, b, a := c.RGBA()
 
-	if a == 0 {
-		a = 1
+		i := p.PixOffset(x, y)
+		p.Pix[i] = uint8(a * 255 / 0xFFFF)
+
+		if a == 0 {
+			a = 1
+		}
+		p.Pix[i+1] = uint8(b * 255 / a)
+		p.Pix[i+2] = uint8(g * 255 / a)
+		p.Pix[i+3] = uint8(r * 255 / a)
 	}
-	p.Pix[i+1] = uint8(b * 255 / a)
-	p.Pix[i+2] = uint8(g * 255 / a)
-	p.Pix[i+3] = uint8(r * 255 / a)
 }
