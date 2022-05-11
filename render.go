@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"image/color"
 	"time"
 
 	"deedles.dev/wlr"
@@ -64,10 +65,19 @@ func (server *Server) renderViewBorder(out *Output, view *View, t time.Time) {
 	}
 
 	r := server.viewBounds(out, view).Inset(-WindowBorder)
+	server.renderRectBorder(out, r, color, t)
+}
+
+func (server *Server) renderRectBorder(out *Output, r image.Rectangle, color color.Color, t time.Time) {
 	server.renderer.RenderRect(box(r.Min.X, r.Min.Y, WindowBorder, r.Dy()), color, out.Output.TransformMatrix())
 	server.renderer.RenderRect(box(r.Max.X-WindowBorder, r.Min.Y, WindowBorder, r.Dy()), color, out.Output.TransformMatrix())
 	server.renderer.RenderRect(box(r.Min.X, r.Min.Y, r.Dx(), WindowBorder), color, out.Output.TransformMatrix())
 	server.renderer.RenderRect(box(r.Min.X, r.Max.Y-WindowBorder, r.Dx(), WindowBorder), color, out.Output.TransformMatrix())
+}
+
+func (server *Server) renderSelectionBox(out *Output, r image.Rectangle, t time.Time) {
+	server.renderRectBorder(out, r, ColorSelectionBox, t)
+	server.renderer.RenderRect(r.Inset(WindowBorder), ColorSelectionBackground, out.Output.TransformMatrix())
 }
 
 func (server *Server) renderViewSurfaces(out *Output, view *View, t time.Time) {

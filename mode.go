@@ -300,7 +300,7 @@ func (m *inputModeResize) Frame(server *Server, out *Output, t time.Time) {
 		int(x),
 		int(y),
 	).Canon()
-	server.renderer.RenderRect(r, ColorSelectionBox, out.Output.TransformMatrix())
+	server.renderSelectionBox(out, r, t)
 }
 
 type inputModeNew struct {
@@ -366,5 +366,5 @@ func (m *inputModeNew) Frame(server *Server, out *Output, t time.Time) {
 		int(x),
 		int(y),
 	)
-	server.renderer.RenderRect(r, ColorSelectionBox, out.Output.TransformMatrix())
+	server.renderSelectionBox(out, r, t)
 }

@@ -173,9 +173,7 @@ func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 func (server *Server) onDestroyView(view *View) {
 	view.Release()
 
-	i := slices.IndexFunc(server.views, func(v *View) bool {
-		return v.XDGSurface == view.XDGSurface
-	})
+	i := slices.Index(server.views, view)
 	server.views = slices.Delete(server.views, i, i+1)
 
 	// TODO: Figure out why this causes a wlroots assertion failure.
