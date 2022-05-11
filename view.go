@@ -114,9 +114,18 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, ViewArea, wlr.Su
 
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
 	if surface.Role() != wlr.XDGSurfaceRoleTopLevel {
+		server.addXDGPopup(surface)
 		return
 	}
 
+	server.addXDGTopLevel(surface)
+}
+
+func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
+	// TODO
+}
+
+func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 	view := View{
 		X:          -1,
 		Y:          -1,
