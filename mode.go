@@ -220,3 +220,29 @@ func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice
 func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {
 	m.sel = server.renderMenu(out, m.m, m.x, m.y)
 }
+
+type inputModeMoveSelect struct{}
+
+func (server *Server) startMoveSelect() {
+	server.setCursor("hand1")
+	server.inputMode = &inputModeMoveSelect{}
+}
+
+func (m *inputModeMoveSelect) CursorMoved(server *Server, t time.Time) {
+	// Purposefully do nothing.
+}
+
+func (m *inputModeMoveSelect) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+	if b != wlr.BtnRight {
+		server.startNormal()
+		return
+	}
+
+	x, y := server.cursor.X(), server.cursor.Y()
+	view, _, _, _, _ := server.viewAt(nil, x, y)
+	server.startMove(view)
+}
+
+func (m *inputModeMoveSelect) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+	// Purposefully do nothing.
+}
