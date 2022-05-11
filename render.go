@@ -56,6 +56,9 @@ func (server *Server) renderViewBorder(out *Output, view *View, t time.Time) {
 	if view.XDGSurface.TopLevel().Current().Activated() {
 		color = ColorActiveBorder
 	}
+	if server.targetView() == view {
+		color = ColorSelectionBox
+	}
 
 	r := server.viewBounds(out, view).Inset(-WindowBorder)
 	server.renderer.RenderRect(r, color, out.Output.TransformMatrix())

@@ -46,6 +46,15 @@ func (server *Server) surfaceBounds(out *Output, surface wlr.Surface, x, y int) 
 	)
 }
 
+func (server *Server) targetView() *View {
+	m, ok := server.inputMode.(interface{ TargetView() *View })
+	if !ok {
+		return nil
+	}
+
+	return m.TargetView()
+}
+
 func (server *Server) viewAt(out *Output, x, y float64) (*View, ViewArea, wlr.Surface, float64, float64) {
 	if out == nil {
 		out = server.outputAt(x, y)

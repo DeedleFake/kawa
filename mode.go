@@ -96,6 +96,10 @@ func (m *inputModeMove) CursorButtonReleased(server *Server, dev wlr.InputDevice
 	server.startNormal()
 }
 
+func (m *inputModeMove) TargetView() *View {
+	return m.view
+}
+
 type inputModeBorderResize struct {
 	view  *View
 	edges wlr.Edges
@@ -136,4 +140,8 @@ func (m *inputModeBorderResize) CursorButtonPressed(server *Server, dev wlr.Inpu
 
 func (m *inputModeBorderResize) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	server.startNormal()
+}
+
+func (m *inputModeBorderResize) TargetView() *View {
+	return m.view
 }
