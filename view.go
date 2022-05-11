@@ -203,6 +203,8 @@ func (server *Server) onMapView(view *View) {
 }
 
 func (server *Server) addView(view *View) {
+	server.views = append(server.views, view)
+
 	client := view.XDGSurface.Resource().GetClient()
 	pid, _, _ := client.GetCredentials()
 
@@ -218,8 +220,6 @@ func (server *Server) addView(view *View) {
 		)
 		nv.OnStarted(view)
 	}
-
-	server.views = append(server.views, view)
 }
 
 func (server *Server) centerViewOnOutput(out *Output, view *View) {

@@ -110,6 +110,7 @@ func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
 }
 
 func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from image.Rectangle) {
+	server.focusView(view, view.XDGSurface.Surface())
 	server.inputMode = &inputModeBorderResize{
 		view:  view,
 		edges: edges,
