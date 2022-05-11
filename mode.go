@@ -110,7 +110,7 @@ func (server *Server) startBorderResize(view *View, area ViewArea) {
 	server.inputMode = &inputModeBorderResize{
 		view:  view,
 		edges: area.Edges(),
-		start: server.surfaceBounds(nil, view.XDGSurface.Surface(), 0, 0),
+		start: server.surfaceBounds(nil, view.XDGSurface.Surface(), view.X, view.Y),
 	}
 }
 
