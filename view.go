@@ -244,6 +244,11 @@ func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
 }
 
 func (server *Server) resizeViewTo(out *Output, view *View, r image.Rectangle) {
+	vb := server.viewBounds(out, view)
+	sb := server.surfaceBounds(out, view.XDGSurface.Surface(), view.X, view.Y)
+	off := sb.Min.Sub(vb.Min)
+	r = r.Add(off)
+
 	view.X = r.Min.X
 	view.Y = r.Min.Y
 	view.XDGSurface.TopLevelSetSize(uint32(r.Dx()), uint32(r.Dy()))

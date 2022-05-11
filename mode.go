@@ -108,27 +108,24 @@ func (m *inputModeMove) TargetView() *View {
 type inputModeBorderResize struct {
 	view  *View
 	edges wlr.Edges
-	start image.Rectangle
-	off   image.Point
+	cur   image.Rectangle
 }
 
 func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
 	vb := server.viewBounds(nil, view)
-	sb := server.surfaceBounds(nil, view.XDGSurface.Surface(), view.X, view.Y)
 
 	server.inputMode = &inputModeBorderResize{
 		view:  view,
 		edges: edges,
-		start: vb,
-		off:   sb.Min.Sub(vb.Min),
+		cur:   vb,
 	}
 }
 
 func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 	x, y := server.cursor.X(), server.cursor.Y()
-	ox, oy := int(x)+m.off.X, int(y)+m.off.Y
+	ox, oy := int(x), int(y)
 
-	r := m.start.Add(m.off)
+	r := m.cur
 	if m.edges&wlr.EdgeTop != 0 {
 		r.Min.Y = oy
 		if r.Dy() < MinHeight {
@@ -154,24 +151,25 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 		}
 	}
 
-	switch m.edges {
-	case wlr.EdgeTop, wlr.EdgeBottom:
-		if ox < r.Min.X {
-			m.edges |= wlr.EdgeLeft
-		}
-		if ox > r.Max.X {
-			m.edges |= wlr.EdgeRight
-		}
-	case wlr.EdgeLeft, wlr.EdgeRight:
-		if oy < r.Min.Y {
-			m.edges |= wlr.EdgeTop
-		}
-		if oy > r.Max.Y {
-			m.edges |= wlr.EdgeBottom
-		}
+	if ox < r.Min.X {
+		m.edges |= wlr.EdgeLeft
+		m.edges &^= wlr.EdgeRight
+	}
+	if ox > r.Max.X {
+		m.edges |= wlr.EdgeRight
+		m.edges &^= wlr.EdgeLeft
+	}
+	if oy < r.Min.Y {
+		m.edges |= wlr.EdgeTop
+		m.edges &^= wlr.EdgeBottom
+	}
+	if oy > r.Max.Y {
+		m.edges |= wlr.EdgeBottom
+		m.edges &^= wlr.EdgeTop
 	}
 
 	server.resizeViewTo(nil, m.view, r.Canon())
+	m.cur = r
 	server.setCursor(edgeCursors[m.edges])
 }
 
