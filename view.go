@@ -98,13 +98,13 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, ViewArea, wlr.Su
 		if (p.X < r.Min.X) && (p.Y < r.Min.Y) {
 			return view, ViewAreaBorderTopLeft, wlr.Surface{}, 0, 0
 		}
-		if (p.X > r.Max.X) && (p.Y < r.Min.Y) {
+		if (p.X >= r.Max.X) && (p.Y < r.Min.Y) {
 			return view, ViewAreaBorderTopRight, wlr.Surface{}, 0, 0
 		}
-		if (p.X < r.Min.X) && (p.Y > r.Min.Y) {
+		if (p.X < r.Min.X) && (p.Y >= r.Max.Y) {
 			return view, ViewAreaBorderBottomLeft, wlr.Surface{}, 0, 0
 		}
-		if (p.X > r.Max.X) && (p.Y > r.Min.Y) {
+		if (p.X >= r.Max.X) && (p.Y >= r.Max.Y) {
 			return view, ViewAreaBorderBottomRight, wlr.Surface{}, 0, 0
 		}
 
