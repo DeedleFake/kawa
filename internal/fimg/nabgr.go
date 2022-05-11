@@ -41,6 +41,10 @@ func (p *NABGR) Set(x, y int, c color.Color) {
 
 	i := p.PixOffset(x, y)
 	p.Pix[i] = uint8(a * 255 / 0xFFFF)
+
+	if a == 0 {
+		a = 1
+	}
 	p.Pix[i+1] = uint8(b * 255 / a)
 	p.Pix[i+2] = uint8(g * 255 / a)
 	p.Pix[i+3] = uint8(r * 255 / a)
