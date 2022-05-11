@@ -27,6 +27,8 @@ func init() {
 }
 
 type Menu struct {
+	Prev int
+
 	active   []wlr.Texture
 	inactive []wlr.Texture
 }

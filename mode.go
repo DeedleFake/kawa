@@ -192,10 +192,11 @@ type inputModeMenu struct {
 }
 
 func (server *Server) startMenu(m *Menu) {
+	b := m.Bounds()
 	server.inputMode = &inputModeMenu{
 		m: m,
-		x: server.cursor.X(),
-		y: server.cursor.Y(),
+		x: server.cursor.X() - float64(b.Dx())/2,
+		y: server.cursor.Y() - float64(24*m.Prev) - 12,
 	}
 }
 
@@ -213,6 +214,9 @@ func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice
 	}
 
 	// TODO: Activate mode based on menu selection.
+	if m.sel >= 0 {
+		m.m.Prev = m.sel
+	}
 	server.startNormal()
 }
 
