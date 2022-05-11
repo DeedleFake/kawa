@@ -194,6 +194,17 @@ func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
 	view.XDGSurface.Surface().SendEnter(out.Output)
 }
 
+func (server *Server) resizeViewTo(out *Output, view *View, r image.Rectangle) {
+	view.X = r.Min.X
+	view.Y = r.Min.Y
+	view.XDGSurface.TopLevelSetSize(uint32(r.Dx()), uint32(r.Dy()))
+
+	if out == nil {
+		out = server.outputAt(float64(view.X), float64(view.Y))
+	}
+	view.XDGSurface.Surface().SendEnter(out.Output)
+}
+
 func (server *Server) focusView(view *View, s wlr.Surface) {
 	if !s.Valid() {
 		s = view.XDGSurface.Surface()
@@ -254,4 +265,22 @@ func (area ViewArea) Cursor() string {
 		return ""
 	}
 	return areaCursors[area]
+}
+
+func (area ViewArea) Edges() (e wlr.Edges) {
+	switch area {
+	case ViewAreaBorderTopLeft, ViewAreaBorderTop, ViewAreaBorderTopRight:
+		e |= wlr.EdgeTop
+	case ViewAreaBorderBottomLeft, ViewAreaBorderBottom, ViewAreaBorderBottomRight:
+		e |= wlr.EdgeBottom
+	}
+
+	switch area {
+	case ViewAreaBorderTopLeft, ViewAreaBorderLeft, ViewAreaBorderBottomLeft:
+		e |= wlr.EdgeLeft
+	case ViewAreaBorderTopRight, ViewAreaBorderRight, ViewAreaBorderBottomRight:
+		e |= wlr.EdgeRight
+	}
+
+	return e
 }
