@@ -108,7 +108,7 @@ func (server *Server) renderMenu(out *Output, m *Menu, x, y float64) int {
 	cx, cy := server.cursor.X(), server.cursor.Y()
 	p := image.Pt(int(cx), int(cy))
 
-	r := box(int(x), int(y), 100, 24*5)
+	r := m.Bounds().Add(image.Pt(int(x), int(y)))
 	server.renderer.RenderRect(r.Inset(-WindowBorder), ColorMenuBorder, out.Output.TransformMatrix())
 	server.renderer.RenderRect(r, ColorMenuUnselected, out.Output.TransformMatrix())
 
