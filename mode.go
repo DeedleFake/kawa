@@ -105,20 +105,25 @@ type inputModeBorderResize struct {
 	view  *View
 	edges wlr.Edges
 	start image.Rectangle
+	off   image.Point
 }
 
 func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
+	vb := server.viewBounds(nil, view)
+	sb := server.surfaceBounds(nil, view.XDGSurface.Surface(), view.X, view.Y)
+
 	server.inputMode = &inputModeBorderResize{
 		view:  view,
 		edges: edges,
-		start: server.viewBounds(nil, view),
+		start: vb,
+		off:   sb.Min.Sub(vb.Min),
 	}
 }
 
 func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 	x, y := server.cursor.X(), server.cursor.Y()
 
-	r := m.start
+	r := m.start.Add(m.off)
 	if m.edges&wlr.EdgeTop != 0 {
 		r.Min.Y = int(y)
 	}
