@@ -236,6 +236,9 @@ func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
 
 	if out == nil {
 		out = server.outputAt(float64(x), float64(y))
+		if out == nil {
+			return
+		}
 	}
 	view.XDGSurface.Surface().SendEnter(out.Output)
 }
