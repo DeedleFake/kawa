@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	MinWidth  = 100
-	MinHeight = 100
+	MinWidth  = 128
+	MinHeight = 24
 
 	WindowBorder = 5
 )
