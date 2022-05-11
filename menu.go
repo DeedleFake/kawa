@@ -5,6 +5,7 @@ import (
 	"image"
 
 	"deedles.dev/kawa/internal/drm"
+	"deedles.dev/kawa/internal/fimg"
 	"deedles.dev/wlr"
 	"golang.org/x/image/draw"
 	"golang.org/x/image/font"
@@ -84,7 +85,7 @@ func createTextTexture(ren wlr.Renderer, dst *image.NRGBA, src image.Image, face
 	extents, _ := fdraw.BoundString(item)
 	fdraw.DrawString(item)
 
-	buf := image.NewNRGBA(image.Rect(
+	buf := fimg.NewNABGR(image.Rect(
 		0,
 		0,
 		int(extents.Max.X-extents.Min.X),
