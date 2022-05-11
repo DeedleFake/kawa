@@ -194,6 +194,18 @@ func (server *Server) startMenu(m *Menu) {
 	}
 }
 
+func (m *inputModeMenu) CursorMoved(server *Server, t time.Time) {
+	cx, cy := server.cursor.X(), server.cursor.Y()
+
+	p := image.Pt(int(cx), int(cy))
+	r := m.m.Bounds().Add(image.Pt(int(m.x), int(m.y)))
+
+	m.sel = -1
+	if p.In(r) {
+		m.sel = (p.Y - r.Min.Y) / int(fontOptions.Size+WindowBorder*2)
+	}
+}
+
 func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	if b != wlr.BtnRight {
 		return
@@ -204,7 +216,7 @@ func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice
 }
 
 func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {
-	m.sel = server.renderMenu(out, m.m, m.x, m.y)
+	server.renderMenu(out, m.m, m.x, m.y, m.sel)
 }
 
 type inputModeSelectView struct {
