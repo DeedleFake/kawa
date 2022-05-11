@@ -142,31 +142,17 @@ func parseOutputConfigs(outputConfigs string) (configs []OutputConfig, err error
 	return configs, nil
 }
 
-func main() {
-	wlr.InitLog(wlr.Debug, nil)
-
-	cage := flag.String("cage", "cage -d", "wrapper to use for caging windows")
-	term := flag.String("term", "alacritty", "terminal to use when creating a new window")
-	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
-	flag.Parse()
-
-	outputConfigsParsed, err := parseOutputConfigs(*outputConfigs)
-	if err != nil {
-		wlr.Log(wlr.Error, "parse output configs: %v", err)
-		os.Exit(1)
-	}
-
-	server := Server{
-		Cage:          strings.Fields(*cage),
-		Term:          strings.Fields(*term),
-		OutputConfigs: outputConfigsParsed,
-
-		newViews:  make(map[int]image.Rectangle),
-		inputMode: &inputModeNormal{},
-	}
+func (server *Server) run() error {
+	server.newViews = make(map[int]image.Rectangle)
+	server.inputMode = &inputModeNormal{}
 
 	server.display = wlr.CreateDisplay()
+	defer server.display.Destroy()
+	defer server.display.DestroyClients()
+
 	server.backend = wlr.AutocreateBackend(server.display)
+	defer server.backend.Destroy()
+
 	server.renderer = wlr.AutocreateRenderer(server.backend)
 	server.allocator = wlr.AutocreateAllocator(server.backend, server.renderer)
 	server.renderer.InitWLDisplay(server.display)
@@ -217,21 +203,44 @@ func main() {
 
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {
-		server.backend.Destroy()
-		os.Exit(1)
+		return err
 	}
 
 	err = server.backend.Start()
 	if err != nil {
-		server.backend.Destroy()
-		server.display.Destroy()
-		os.Exit(1)
+		return err
 	}
 
 	os.Setenv("WAYLAND_DISPLAY", socket)
 	wlr.Log(wlr.Info, "Running Wayland compositor on WAYLAND_DISPLAY=%v", socket)
 	server.display.Run()
 
-	server.display.DestroyClients()
-	server.display.Destroy()
+	return nil
+}
+
+func main() {
+	wlr.InitLog(wlr.Debug, nil)
+
+	cage := flag.String("cage", "cage -d", "wrapper to use for caging windows")
+	term := flag.String("term", "alacritty", "terminal to use when creating a new window")
+	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
+	flag.Parse()
+
+	outputConfigsParsed, err := parseOutputConfigs(*outputConfigs)
+	if err != nil {
+		wlr.Log(wlr.Error, "parse output configs: %v", err)
+		os.Exit(1)
+	}
+
+	server := Server{
+		Cage:          strings.Fields(*cage),
+		Term:          strings.Fields(*term),
+		OutputConfigs: outputConfigsParsed,
+	}
+
+	err = server.run()
+	if err != nil {
+		wlr.Log(wlr.Error, "run server: %v", err)
+		os.Exit(1)
+	}
 }
