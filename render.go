@@ -61,7 +61,10 @@ func (server *Server) renderViewBorder(out *Output, view *View, t time.Time) {
 	}
 
 	r := server.viewBounds(out, view).Inset(-WindowBorder)
-	server.renderer.RenderRect(r, color, out.Output.TransformMatrix())
+	server.renderer.RenderRect(box(r.Min.X, r.Min.Y, WindowBorder, r.Dy()), color, out.Output.TransformMatrix())
+	server.renderer.RenderRect(box(r.Max.X-WindowBorder, r.Min.Y, WindowBorder, r.Dy()), color, out.Output.TransformMatrix())
+	server.renderer.RenderRect(box(r.Min.X, r.Min.Y, r.Dx(), WindowBorder), color, out.Output.TransformMatrix())
+	server.renderer.RenderRect(box(r.Min.X, r.Max.Y-WindowBorder, r.Dx(), WindowBorder), color, out.Output.TransformMatrix())
 }
 
 func (server *Server) renderViewSurfaces(out *Output, view *View, t time.Time) {
