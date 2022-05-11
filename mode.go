@@ -126,34 +126,35 @@ func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
 
 func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 	x, y := server.cursor.X(), server.cursor.Y()
+	ox, oy := int(x)+m.off.X, int(y)+m.off.Y
 
 	r := m.start.Add(m.off)
 	if m.edges&wlr.EdgeTop != 0 {
-		r.Min.Y = int(y) + m.off.Y
+		r.Min.Y = oy
 	}
 	if m.edges&wlr.EdgeBottom != 0 {
-		r.Max.Y = int(y) + m.off.Y
+		r.Max.Y = oy
 	}
 	if m.edges&wlr.EdgeLeft != 0 {
-		r.Min.X = int(x) + m.off.X
+		r.Min.X = ox
 	}
 	if m.edges&wlr.EdgeRight != 0 {
-		r.Max.X = int(x) + m.off.X
+		r.Max.X = ox
 	}
 
 	switch m.edges {
 	case wlr.EdgeTop, wlr.EdgeBottom:
-		if int(x) < r.Min.X {
+		if ox < r.Min.X {
 			m.edges |= wlr.EdgeLeft
 		}
-		if int(x) > r.Max.X {
+		if ox > r.Max.X {
 			m.edges |= wlr.EdgeRight
 		}
 	case wlr.EdgeLeft, wlr.EdgeRight:
-		if int(y) < r.Min.Y {
+		if oy < r.Min.Y {
 			m.edges |= wlr.EdgeTop
 		}
-		if int(y) > r.Max.Y {
+		if oy > r.Max.Y {
 			m.edges |= wlr.EdgeBottom
 		}
 	}
