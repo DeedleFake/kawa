@@ -75,9 +75,10 @@ type inputModeMove struct {
 }
 
 func (server *Server) startMove(view *View) {
-	x, y := server.cursor.X(), server.cursor.Y()
-
 	server.setCursor("grabbing")
+	server.focusView(view, view.XDGSurface.Surface())
+
+	x, y := server.cursor.X(), server.cursor.Y()
 	server.inputMode = &inputModeMove{
 		view: view,
 		ox:   x - float64(view.X),
