@@ -188,6 +188,7 @@ func (m *inputModeBorderResize) TargetView() *View {
 type inputModeMenu struct {
 	m    *Menu
 	x, y float64
+	sel  int
 }
 
 func (server *Server) startMenu(m *Menu) {
@@ -216,5 +217,5 @@ func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice
 }
 
 func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {
-	server.renderMenu(out, m.m, m.x, m.y)
+	m.sel = server.renderMenu(out, m.m, m.x, m.y)
 }

@@ -104,7 +104,7 @@ func (server *Server) renderCursor(out *Output, t time.Time) {
 	out.Output.RenderSoftwareCursors(image.ZR)
 }
 
-func (server *Server) renderMenu(out *Output, m *Menu, x, y float64) {
+func (server *Server) renderMenu(out *Output, m *Menu, x, y float64) int {
 	cx, cy := server.cursor.X(), server.cursor.Y()
 	p := image.Pt(int(cx), int(cy))
 
@@ -112,6 +112,7 @@ func (server *Server) renderMenu(out *Output, m *Menu, x, y float64) {
 	server.renderer.RenderRect(r.Inset(-WindowBorder), ColorMenuBorder, out.Output.TransformMatrix())
 	server.renderer.RenderRect(r, ColorMenuUnselected, out.Output.TransformMatrix())
 
+	sel := -1
 	r.Max.Y = r.Min.Y
 	for i := range m.inactive {
 		t := m.inactive[i]
@@ -121,9 +122,12 @@ func (server *Server) renderMenu(out *Output, m *Menu, x, y float64) {
 
 		if p.In(r) {
 			server.renderer.RenderRect(r, ColorMenuSelected, out.Output.TransformMatrix())
+			sel = i
 		}
 
 		matrix := wlr.ProjectBoxMatrix(r, wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
 		server.renderer.RenderTextureWithMatrix(t, matrix, 1)
 	}
+
+	return sel
 }
