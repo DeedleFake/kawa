@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 
-	"deedles.dev/kawa/internal/drm"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 	"golang.org/x/image/font"
@@ -124,12 +123,5 @@ func (server *Server) createTextTexture(src image.Image, face font.Face, item st
 	fdraw.Dst = buf
 	fdraw.DrawString(item)
 
-	return wlr.TextureFromPixels(
-		server.renderer,
-		drm.FormatABGR8888,
-		uint32(buf.Stride),
-		uint32(buf.Bounds().Dx()),
-		uint32(buf.Bounds().Dy()),
-		buf.Pix,
-	)
+	return wlr.TextureFromImage(server.renderer, buf)
 }
