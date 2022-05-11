@@ -76,7 +76,9 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, wlr.Edges, wlr.S
 	}
 
 	p := image.Pt(int(x), int(y))
-	for _, view := range server.views {
+	for i := len(server.views) - 1; i >= 0; i-- {
+		view := server.views[i]
+
 		surface, sx, sy, ok := view.XDGSurface.SurfaceAt(x-float64(view.X), y-float64(view.Y))
 		if ok {
 			return view, wlr.EdgeNone, surface, sx, sy
@@ -171,6 +173,12 @@ func (server *Server) onDestroyView(view *View) {
 		return v.XDGSurface == view.XDGSurface
 	})
 	server.views = slices.Delete(server.views, i, i+1)
+
+	// TODO: Figure out why this causes a wlroots assertion failure.
+	//if len(server.views) != 0 {
+	//	n := server.views[len(server.views)-1]
+	//	server.focusView(n, n.XDGSurface.Surface())
+	//}
 }
 
 func (server *Server) onMapView(view *View) {
