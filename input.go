@@ -8,6 +8,22 @@ import (
 	"deedles.dev/wlr/xkb"
 )
 
+type CursorMover interface {
+	CursorMoved(*Server, time.Time)
+}
+
+type CursorButtonPresser interface {
+	CursorButtonPressed(*Server, wlr.InputDevice, wlr.CursorButton, time.Time)
+}
+
+type CursorButtonReleaser interface {
+	CursorButtonReleased(*Server, wlr.InputDevice, wlr.CursorButton, time.Time)
+}
+
+type CursorRequester interface {
+	RequestCursor(*Server, wlr.Surface, int, int)
+}
+
 type Keyboard struct {
 	Device    wlr.InputDevice
 	Modifiers wlr.Listener
@@ -53,20 +69,34 @@ func (server *Server) onKeyboardKeyReleased(kb *Keyboard, code uint32, update bo
 
 func (server *Server) onCursorMotion(dev wlr.InputDevice, t time.Time, dx, dy float64) {
 	server.cursor.Move(dev, dx, dy)
-	server.inputMode.CursorMoved(server, t)
+
+	m, ok := server.inputMode.(CursorMover)
+	if ok {
+		m.CursorMoved(server, t)
+	}
 }
 
 func (server *Server) onCursorMotionAbsolute(dev wlr.InputDevice, t time.Time, x, y float64) {
 	server.cursor.WarpAbsolute(dev, x, y)
-	server.inputMode.CursorMoved(server, t)
+
+	m, ok := server.inputMode.(CursorMover)
+	if ok {
+		m.CursorMoved(server, t)
+	}
 }
 
 func (server *Server) onCursorButton(dev wlr.InputDevice, t time.Time, b wlr.CursorButton, state wlr.ButtonState) {
 	switch state {
 	case wlr.ButtonPressed:
-		server.inputMode.CursorButtonPressed(server, dev, b, t)
+		m, ok := server.inputMode.(CursorButtonPresser)
+		if ok {
+			m.CursorButtonPressed(server, dev, b, t)
+		}
 	case wlr.ButtonReleased:
-		server.inputMode.CursorButtonReleased(server, dev, b, t)
+		m, ok := server.inputMode.(CursorButtonReleaser)
+		if ok {
+			m.CursorButtonReleased(server, dev, b, t)
+		}
 	}
 }
 
@@ -79,9 +109,7 @@ func (server *Server) onCursorFrame() {
 }
 
 func (server *Server) onRequestCursor(client wlr.SeatClient, surface wlr.Surface, serial uint32, hotspotX, hotspotY int32) {
-	m, ok := server.inputMode.(interface {
-		RequestCursor(*Server, wlr.Surface, int, int)
-	})
+	m, ok := server.inputMode.(CursorRequester)
 	if !ok {
 		return
 	}

@@ -8,6 +8,10 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+type ViewTargeter interface {
+	TargetView() *View
+}
+
 var edgeCursors = [...]string{
 	wlr.EdgeNone:                   "",
 	wlr.EdgeTop:                    "top_side",
@@ -62,7 +66,7 @@ func (server *Server) surfaceBounds(out *Output, surface wlr.Surface, x, y int) 
 }
 
 func (server *Server) targetView() *View {
-	m, ok := server.inputMode.(interface{ TargetView() *View })
+	m, ok := server.inputMode.(ViewTargeter)
 	if !ok {
 		return nil
 	}

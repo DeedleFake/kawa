@@ -7,11 +7,7 @@ import (
 	"deedles.dev/wlr"
 )
 
-type InputMode interface {
-	CursorMoved(*Server, time.Time)
-	CursorButtonPressed(*Server, wlr.InputDevice, wlr.CursorButton, time.Time)
-	CursorButtonReleased(*Server, wlr.InputDevice, wlr.CursorButton, time.Time)
-}
+type InputMode interface{}
 
 type inputModeNormal struct{}
 
@@ -93,10 +89,6 @@ func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 	server.moveViewTo(nil, m.view, int(x-m.ox), int(y-m.oy))
 }
 
-func (m *inputModeMove) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	// Purposefully do nothing.
-}
-
 func (m *inputModeMove) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	server.startNormal()
 }
@@ -173,10 +165,6 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 	server.setCursor(edgeCursors[m.edges])
 }
 
-func (m *inputModeBorderResize) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	// Purposefully do nothing.
-}
-
 func (m *inputModeBorderResize) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	server.startNormal()
 }
@@ -200,14 +188,6 @@ func (server *Server) startMenu(m *Menu) {
 	}
 }
 
-func (m *inputModeMenu) CursorMoved(server *Server, t time.Time) {
-	// Purposefully do nothing.
-}
-
-func (m *inputModeMenu) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	// Purposefully do nothing.
-}
-
 func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	if b != wlr.BtnRight {
 		return
@@ -228,10 +208,6 @@ func (server *Server) startMoveSelect() {
 	server.inputMode = &inputModeMoveSelect{}
 }
 
-func (m *inputModeMoveSelect) CursorMoved(server *Server, t time.Time) {
-	// Purposefully do nothing.
-}
-
 func (m *inputModeMoveSelect) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	if b != wlr.BtnRight {
 		server.startNormal()
@@ -240,9 +216,9 @@ func (m *inputModeMoveSelect) CursorButtonPressed(server *Server, dev wlr.InputD
 
 	x, y := server.cursor.X(), server.cursor.Y()
 	view, _, _, _, _ := server.viewAt(nil, x, y)
-	server.startMove(view)
-}
-
-func (m *inputModeMoveSelect) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	// Purposefully do nothing.
+	if view != nil {
+		server.startMove(view)
+		return
+	}
+	server.startNormal()
 }
