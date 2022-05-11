@@ -124,6 +124,7 @@ func (server *Server) run() error {
 	server.newLayerSurface = server.layerShell.OnNewSurface(server.onNewLayerSurface)
 
 	server.mainMenu = server.createMenu("New", "Resize", "Move", "Delete", "Hide")
+	server.mainMenu.OnSelect = server.selectMainMenu
 
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {

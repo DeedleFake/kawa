@@ -8,6 +8,12 @@ import (
 	"deedles.dev/wlr/xkb"
 )
 
+type Keyboard struct {
+	Device    wlr.InputDevice
+	Modifiers wlr.Listener
+	Key       wlr.Listener
+}
+
 func (server *Server) onNewInput(device wlr.InputDevice) {
 	switch device.Type() {
 	case wlr.InputDeviceTypeKeyboard:

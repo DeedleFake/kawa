@@ -2,6 +2,20 @@ package main
 
 import "deedles.dev/wlr"
 
+type Output struct {
+	Output wlr.Output
+	Layers [4][]LayerSurface
+	Frame  wlr.Listener
+}
+
+type OutputConfig struct {
+	Name          string
+	X, Y          int
+	Width, Height int
+	Scale         float32
+	Transform     wlr.OutputTransform
+}
+
 func (server *Server) outputAt(x, y float64) *Output {
 	wout := server.outputLayout.OutputAt(x, y)
 	for _, out := range server.outputs {

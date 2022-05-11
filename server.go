@@ -54,33 +54,6 @@ type Server struct {
 	inputMode InputMode
 }
 
-type Output struct {
-	Output wlr.Output
-	Layers [4][]LayerSurface
-	Frame  wlr.Listener
-}
-
-type OutputConfig struct {
-	Name          string
-	X, Y          int
-	Width, Height int
-	Scale         float32
-	Transform     wlr.OutputTransform
-}
-
-type Keyboard struct {
-	Device    wlr.InputDevice
-	Modifiers wlr.Listener
-	Key       wlr.Listener
-}
-
-type LayerSurface struct {
-	LayerSurface wlr.LayerSurfaceV1
-
-	Destroy       wlr.Listener
-	Map           wlr.Listener
-	SurfaceCommit wlr.Listener
-	OutputDestroy wlr.Listener
-
-	Geo image.Rectangle
+func (server *Server) selectMainMenu(n int) {
+	server.startNormal()
 }

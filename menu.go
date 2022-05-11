@@ -27,8 +27,9 @@ func init() {
 }
 
 type Menu struct {
-	Prev int
+	OnSelect func(int)
 
+	prev     int
 	active   []wlr.Texture
 	inactive []wlr.Texture
 }
@@ -62,6 +63,10 @@ func (server *Server) createMenu(text ...string) *Menu {
 	}
 }
 
+func (m *Menu) Len() int {
+	return len(m.active)
+}
+
 func (m *Menu) Bounds() image.Rectangle {
 	var w int
 	for _, t := range m.active {
@@ -71,6 +76,23 @@ func (m *Menu) Bounds() image.Rectangle {
 	}
 
 	return box(0, 0, w, len(m.active)*24)
+}
+
+func (m *Menu) StartOffset() image.Point {
+	b := m.Bounds()
+	return image.Pt(
+		-b.Dx()/2,
+		-24*m.prev-12,
+	)
+}
+
+func (m *Menu) Select(n int) {
+	if (n >= 0) && (n < m.Len()) {
+		m.prev = n
+	}
+	if m.OnSelect != nil {
+		m.OnSelect(n)
+	}
 }
 
 func createTextTexture(ren wlr.Renderer, dst *image.NRGBA, src image.Image, face font.Face, item string) wlr.Texture {
