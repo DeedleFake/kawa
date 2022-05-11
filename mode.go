@@ -111,7 +111,7 @@ func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
 	server.inputMode = &inputModeBorderResize{
 		view:  view,
 		edges: edges,
-		start: server.surfaceBounds(nil, view.XDGSurface.Surface(), view.X, view.Y),
+		start: server.viewBounds(nil, view),
 	}
 }
 
@@ -132,7 +132,25 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 		r.Max.X = int(x)
 	}
 
+	switch m.edges {
+	case wlr.EdgeTop, wlr.EdgeBottom:
+		if int(x) < r.Min.X {
+			m.edges |= wlr.EdgeLeft
+		}
+		if int(x) > r.Max.X {
+			m.edges |= wlr.EdgeRight
+		}
+	case wlr.EdgeLeft, wlr.EdgeRight:
+		if int(y) < r.Min.Y {
+			m.edges |= wlr.EdgeTop
+		}
+		if int(y) > r.Max.Y {
+			m.edges |= wlr.EdgeBottom
+		}
+	}
+
 	server.resizeViewTo(nil, m.view, r.Canon())
+	server.setCursor(edgeCursors[m.edges])
 }
 
 func (m *inputModeBorderResize) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
