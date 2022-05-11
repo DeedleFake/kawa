@@ -18,7 +18,8 @@ func (server *Server) onNewInput(device wlr.InputDevice) {
 }
 
 func (server *Server) onKeyboardModifiers(kb *Keyboard) {
-	// TODO
+	server.seat.SetKeyboard(kb.Device)
+	server.seat.KeyboardNotifyModifiers(kb.Device.Keyboard().Modifiers())
 }
 
 func (server *Server) onKeyboardKey(kb *Keyboard, code uint32, update bool, state wlr.KeyState, t time.Time) {
