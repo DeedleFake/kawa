@@ -5,7 +5,6 @@ import (
 	"image"
 
 	"deedles.dev/kawa/internal/drm"
-	"deedles.dev/kawa/internal/fimg"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 	"golang.org/x/image/draw"
@@ -49,7 +48,7 @@ func (server *Server) createMenu(text ...string) *Menu {
 		panic(fmt.Errorf("create font face: %w", err))
 	}
 
-	buf := fimg.NewNABGR(image.Rect(0, 0, 128, 128))
+	buf := image.NewNRGBA(image.Rect(0, 0, 128, 128))
 	inactive := make([]wlr.Texture, 0, len(text))
 	for _, item := range text {
 		inactive = append(inactive, createTextTexture(ren, buf, image.Black, gomono, item))
@@ -103,7 +102,7 @@ func (m *Menu) Add(server *Server, item string) {
 		panic(fmt.Errorf("create font face: %w", err))
 	}
 
-	buf := fimg.NewNABGR(image.Rect(0, 0, 128, 128))
+	buf := image.NewNRGBA(image.Rect(0, 0, 128, 128))
 	m.inactive = append(m.inactive, createTextTexture(server.renderer, buf, image.Black, gomono, item))
 	m.active = append(m.active, createTextTexture(server.renderer, buf, image.Black, gomono, item))
 }
@@ -133,7 +132,7 @@ func createTextTexture(ren wlr.Renderer, dst draw.Image, src image.Image, face f
 	extents, _ := fdraw.BoundString(item)
 	fdraw.DrawString(item)
 
-	buf := fimg.NewNABGR(image.Rect(
+	buf := image.NewNRGBA(image.Rect(
 		0,
 		0,
 		(extents.Max.X - extents.Min.X).Floor(),
