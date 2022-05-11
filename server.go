@@ -62,6 +62,10 @@ func (server *Server) selectMainMenu(n int) {
 	case 2: // Move
 		server.startSelectView(wlr.BtnRight, server.startMove)
 	case 3: // Delete
+		server.startSelectView(wlr.BtnRight, func(view *View) {
+			server.closeView(view)
+			server.startNormal()
+		})
 	case 4: // Hide
 	}
 }

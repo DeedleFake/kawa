@@ -289,3 +289,7 @@ func (server *Server) bringViewToFront(view *View) {
 	server.views = slices.Delete(server.views, i, i+1)
 	server.views = append(server.views, view)
 }
+
+func (server *Server) closeView(view *View) {
+	view.XDGSurface.SendClose()
+}
