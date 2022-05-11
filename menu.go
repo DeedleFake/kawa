@@ -7,7 +7,6 @@ import (
 	"deedles.dev/kawa/internal/drm"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
-	"golang.org/x/image/draw"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gomono"
 	"golang.org/x/image/font/opentype"
@@ -48,14 +47,13 @@ func (server *Server) createMenu(text ...string) *Menu {
 		panic(fmt.Errorf("create font face: %w", err))
 	}
 
-	buf := image.NewNRGBA(image.Rect(0, 0, 128, 128))
 	inactive := make([]wlr.Texture, 0, len(text))
 	for _, item := range text {
-		inactive = append(inactive, createTextTexture(ren, buf, image.Black, gomono, item))
+		inactive = append(inactive, createTextTexture(ren, image.Black, gomono, item))
 	}
 	active := make([]wlr.Texture, 0, len(text))
 	for _, item := range text {
-		active = append(active, createTextTexture(ren, buf, image.White, gomono, item))
+		active = append(active, createTextTexture(ren, image.White, gomono, item))
 	}
 
 	return &Menu{
@@ -102,9 +100,8 @@ func (m *Menu) Add(server *Server, item string) {
 		panic(fmt.Errorf("create font face: %w", err))
 	}
 
-	buf := image.NewNRGBA(image.Rect(0, 0, 128, 128))
-	m.inactive = append(m.inactive, createTextTexture(server.renderer, buf, image.Black, gomono, item))
-	m.active = append(m.active, createTextTexture(server.renderer, buf, image.Black, gomono, item))
+	m.inactive = append(m.inactive, createTextTexture(server.renderer, image.Black, gomono, item))
+	m.active = append(m.active, createTextTexture(server.renderer, image.Black, gomono, item))
 }
 
 func (m *Menu) Remove(i int) {
@@ -119,26 +116,22 @@ func (m *Menu) Remove(i int) {
 	}
 }
 
-func createTextTexture(ren wlr.Renderer, dst draw.Image, src image.Image, face font.Face, item string) wlr.Texture {
-	draw.Copy(dst, image.ZP, image.Transparent, image.Transparent.Bounds(), draw.Src, nil)
-
+func createTextTexture(ren wlr.Renderer, src image.Image, face font.Face, item string) wlr.Texture {
 	fdraw := font.Drawer{
-		Dst:  dst,
 		Src:  src,
 		Face: face,
 		Dot:  fixed.P(0, int(fontOptions.Size)),
 	}
 
 	extents, _ := fdraw.BoundString(item)
-	fdraw.DrawString(item)
-
 	buf := image.NewNRGBA(image.Rect(
 		0,
 		0,
 		(extents.Max.X - extents.Min.X).Floor(),
 		int(fontOptions.Size),
 	))
-	draw.Copy(buf, image.ZP, dst, buf.Bounds(), draw.Src, nil)
+	fdraw.Dst = buf
+	fdraw.DrawString(item)
 
 	return wlr.TextureFromPixels(
 		ren,
