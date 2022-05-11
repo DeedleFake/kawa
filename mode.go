@@ -131,15 +131,27 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 	r := m.start.Add(m.off)
 	if m.edges&wlr.EdgeTop != 0 {
 		r.Min.Y = oy
+		if r.Dy() < MinHeight {
+			r.Min.Y = r.Max.Y - MinHeight
+		}
 	}
 	if m.edges&wlr.EdgeBottom != 0 {
 		r.Max.Y = oy
+		if r.Dy() < MinHeight {
+			r.Max.Y = r.Min.Y + MinHeight
+		}
 	}
 	if m.edges&wlr.EdgeLeft != 0 {
 		r.Min.X = ox
+		if r.Dx() < MinWidth {
+			r.Min.X = r.Max.X - MinWidth
+		}
 	}
 	if m.edges&wlr.EdgeRight != 0 {
 		r.Max.X = ox
+		if r.Dx() < MinWidth {
+			r.Max.X = r.Min.X + MinWidth
+		}
 	}
 
 	switch m.edges {
@@ -157,13 +169,6 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 		if oy > r.Max.Y {
 			m.edges |= wlr.EdgeBottom
 		}
-	}
-
-	if r.Dx() < MinWidth {
-		r.Max.X = r.Min.X + MinWidth
-	}
-	if r.Dy() < MinHeight {
-		r.Max.Y = r.Min.Y + MinHeight
 	}
 
 	server.resizeViewTo(nil, m.view, r.Canon())
