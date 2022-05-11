@@ -91,8 +91,8 @@ func (m *Menu) Select(n int) {
 }
 
 func (m *Menu) Add(server *Server, item string) {
-	m.inactive = append(m.inactive, createTextTexture(server.renderer, image.Black, gomonoFace, item))
-	m.active = append(m.active, createTextTexture(server.renderer, image.White, gomonoFace, item))
+	m.inactive = append(m.inactive, server.createTextTexture(image.Black, gomonoFace, item))
+	m.active = append(m.active, server.createTextTexture(image.White, gomonoFace, item))
 }
 
 func (m *Menu) Remove(i int) {
@@ -107,7 +107,7 @@ func (m *Menu) Remove(i int) {
 	}
 }
 
-func createTextTexture(ren wlr.Renderer, src image.Image, face font.Face, item string) wlr.Texture {
+func (server *Server) createTextTexture(src image.Image, face font.Face, item string) wlr.Texture {
 	fdraw := font.Drawer{
 		Src:  src,
 		Face: face,
@@ -125,7 +125,7 @@ func createTextTexture(ren wlr.Renderer, src image.Image, face font.Face, item s
 	fdraw.DrawString(item)
 
 	return wlr.TextureFromPixels(
-		ren,
+		server.renderer,
 		drm.FormatABGR8888,
 		uint32(buf.Stride),
 		uint32(buf.Bounds().Dx()),
