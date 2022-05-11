@@ -68,7 +68,7 @@ func parseOutputConfigs(outputConfigs string) (configs []OutputConfig, err error
 }
 
 func (server *Server) run() error {
-	server.newViews = make(map[int]*image.Rectangle)
+	server.newViews = make(map[int]NewView)
 	server.inputMode = &inputModeNormal{}
 
 	server.display = wlr.CreateDisplay()

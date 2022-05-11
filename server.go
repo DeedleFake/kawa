@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"os/exec"
 
 	"deedles.dev/wlr"
 )
@@ -35,7 +36,7 @@ type Server struct {
 	pointers  []wlr.InputDevice
 	keyboards []*Keyboard
 	views     []*View
-	newViews  map[int]*image.Rectangle
+	newViews  map[int]NewView
 
 	mainMenu *Menu
 
@@ -52,6 +53,11 @@ type Server struct {
 	newLayerSurface wlr.Listener
 
 	inputMode InputMode
+}
+
+type NewView struct {
+	To        *image.Rectangle
+	OnStarted func(*View)
 }
 
 func (server *Server) selectMainMenu(n int) {
@@ -72,4 +78,17 @@ func (server *Server) selectMainMenu(n int) {
 }
 
 func (server *Server) exec(to *image.Rectangle) {
+	cmd := exec.Command(server.Term[0], server.Term[1:]...) // TODO: Context support?
+	err := cmd.Start()
+	if err != nil {
+		wlr.Log(wlr.Error, "start new: %v", err)
+		return
+	}
+
+	server.newViews[cmd.Process.Pid] = NewView{
+		To: to,
+		OnStarted: func(view *View) {
+			server.startBorderResizeFrom(view, wlr.EdgeNone, *to)
+		},
+	}
 }

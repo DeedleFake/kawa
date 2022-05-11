@@ -210,12 +210,13 @@ func (server *Server) addView(view *View) {
 	if ok {
 		delete(server.newViews, pid)
 
-		view.X = nv.Min.X
-		view.Y = nv.Min.Y
+		view.X = nv.To.Min.X
+		view.Y = nv.To.Min.Y
 		view.XDGSurface.TopLevelSetSize(
-			uint32(nv.Dx()),
-			uint32(nv.Dy()),
+			uint32(nv.To.Dx()),
+			uint32(nv.To.Dy()),
 		)
+		nv.OnStarted(view)
 	}
 
 	server.views = append(server.views, view)
