@@ -25,7 +25,6 @@ func (server *Server) onFrame(out *Output) {
 	server.renderLayer(out, wlr.LayerShellV1LayerBackground, now)
 	server.renderLayer(out, wlr.LayerShellV1LayerBottom, now)
 	server.renderViews(out, now)
-	server.renderManipBox(out, now)
 	server.renderLayer(out, wlr.LayerShellV1LayerTop, now)
 	server.renderMenu(out, now)
 	server.renderLayer(out, wlr.LayerShellV1LayerOverlay, now)
@@ -86,10 +85,6 @@ func (server *Server) renderSurface(out *Output, s wlr.Surface, x, y int, t time
 
 	server.renderer.RenderTextureWithMatrix(texture, m, 1)
 	s.SendFrameDone(t)
-}
-
-func (server *Server) renderManipBox(out *Output, t time.Time) {
-	// TODO
 }
 
 func (server *Server) renderMenu(out *Output, t time.Time) {
