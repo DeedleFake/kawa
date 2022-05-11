@@ -94,8 +94,7 @@ func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 }
 
 func (m *inputModeMove) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	// This can't happen. Move mode is only active while the button is held down.
-	panic("If you see this, there's a bug.")
+	// Purposefully do nothing.
 }
 
 func (m *inputModeMove) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
@@ -171,7 +170,7 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 }
 
 func (m *inputModeBorderResize) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	panic("If you see this, there's a bug.")
+	// Purposefully do nothing.
 }
 
 func (m *inputModeBorderResize) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
@@ -200,10 +199,14 @@ func (m *inputModeMenu) CursorMoved(server *Server, t time.Time) {
 }
 
 func (m *inputModeMenu) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	panic("If you see this, there's a bug.")
+	// Purposefully do nothing.
 }
 
 func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+	if b != wlr.BtnRight {
+		return
+	}
+
 	// TODO: Activate mode based on menu selection.
 	server.startNormal()
 }
