@@ -15,20 +15,27 @@ import (
 )
 
 var (
-	monoFont    *sfnt.Font
 	fontOptions = opentype.FaceOptions{
 		Size: 14,
 		DPI:  72,
 	}
+
+	gomonoFont *sfnt.Font
+	gomonoFace font.Face
 )
 
 func init() {
-	gomonoFont, err := opentype.Parse(gomono.TTF)
+	var err error
+	gomonoFont, err = opentype.Parse(gomono.TTF)
 	if err != nil {
 		panic(fmt.Errorf("parse font: %w", err))
 	}
 
-	monoFont = gomonoFont
+	gomonoFace, err = opentype.NewFace(gomonoFont, &fontOptions)
+	if err != nil {
+		panic(fmt.Errorf("create font face: %w", err))
+	}
+
 }
 
 type Menu struct {
@@ -40,26 +47,15 @@ type Menu struct {
 }
 
 func (server *Server) createMenu(text ...string) *Menu {
-	ren := server.renderer
-
-	gomono, err := opentype.NewFace(monoFont, &fontOptions)
-	if err != nil {
-		panic(fmt.Errorf("create font face: %w", err))
+	m := Menu{
+		inactive: make([]wlr.Texture, 0, len(text)),
+		active:   make([]wlr.Texture, 0, len(text)),
 	}
-
-	inactive := make([]wlr.Texture, 0, len(text))
 	for _, item := range text {
-		inactive = append(inactive, createTextTexture(ren, image.Black, gomono, item))
-	}
-	active := make([]wlr.Texture, 0, len(text))
-	for _, item := range text {
-		active = append(active, createTextTexture(ren, image.White, gomono, item))
+		m.Add(server, item)
 	}
 
-	return &Menu{
-		inactive: inactive,
-		active:   active,
-	}
+	return &m
 }
 
 func (m *Menu) Len() int {
@@ -95,13 +91,8 @@ func (m *Menu) Select(n int) {
 }
 
 func (m *Menu) Add(server *Server, item string) {
-	gomono, err := opentype.NewFace(monoFont, &fontOptions)
-	if err != nil {
-		panic(fmt.Errorf("create font face: %w", err))
-	}
-
-	m.inactive = append(m.inactive, createTextTexture(server.renderer, image.Black, gomono, item))
-	m.active = append(m.active, createTextTexture(server.renderer, image.Black, gomono, item))
+	m.inactive = append(m.inactive, createTextTexture(server.renderer, image.Black, gomonoFace, item))
+	m.active = append(m.active, createTextTexture(server.renderer, image.White, gomonoFace, item))
 }
 
 func (m *Menu) Remove(i int) {
