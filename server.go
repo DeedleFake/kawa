@@ -15,7 +15,6 @@ const (
 )
 
 type Server struct {
-	Cage          []string
 	Term          []string
 	OutputConfigs []OutputConfig
 

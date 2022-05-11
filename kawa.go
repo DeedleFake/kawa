@@ -146,7 +146,6 @@ func (server *Server) run() error {
 func main() {
 	wlr.InitLog(wlr.Debug, nil)
 
-	cage := flag.String("cage", "cage -d", "wrapper to use for caging windows")
 	term := flag.String("term", "alacritty", "terminal to use when creating a new window")
 	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
 	flag.Parse()
@@ -158,7 +157,6 @@ func main() {
 	}
 
 	server := Server{
-		Cage:          strings.Fields(*cage),
 		Term:          strings.Fields(*term),
 		OutputConfigs: outputConfigsParsed,
 	}
