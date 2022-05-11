@@ -36,7 +36,8 @@ type Server struct {
 	keyboards []*Keyboard
 	views     []*View
 	newViews  map[int]image.Rectangle
-	corner    string
+
+	mainMenu *Menu
 
 	newOutput            wlr.Listener
 	newInput             wlr.Listener
@@ -49,11 +50,6 @@ type Server struct {
 
 	newXDGSurface   wlr.Listener
 	newLayerSurface wlr.Listener
-
-	menu struct {
-		ActiveTextures   [5]wlr.Texture
-		InactiveTextures [5]wlr.Texture
-	}
 
 	inputMode InputMode
 }

@@ -8,83 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"deedles.dev/kawa/internal/drm"
 	"deedles.dev/wlr"
-	"golang.org/x/image/draw"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/gomono"
-	"golang.org/x/image/font/opentype"
-	"golang.org/x/image/font/sfnt"
-	"golang.org/x/image/math/fixed"
 )
-
-var monoFont *sfnt.Font
-
-func init() {
-	gomonoFont, err := opentype.Parse(gomono.TTF)
-	if err != nil {
-		panic(fmt.Errorf("parse font: %w", err))
-	}
-
-	monoFont = gomonoFont
-}
-
-func (server *Server) genMenuTextures() {
-	ren := server.renderer
-
-	gomono, err := opentype.NewFace(monoFont, &opentype.FaceOptions{
-		Size: 24,
-	})
-	if err != nil {
-		panic(fmt.Errorf("create font face: %w", err))
-	}
-
-	surf := image.NewNRGBA(image.Rect(0, 0, 128, 128))
-
-	fdraw := font.Drawer{
-		Dst:  surf,
-		Src:  image.Black,
-		Face: gomono,
-	}
-
-	text := []string{"New", "Resize", "Move", "Delete", "Hide"}
-
-	for i, item := range text {
-		draw.Copy(surf, image.ZP, image.Transparent, image.Transparent.Bounds(), draw.Src, nil)
-
-		fdraw.Dot = fixed.P(0, 0)
-		fdraw.DrawString(item)
-
-		extents, _ := fdraw.BoundString(item)
-		server.menu.InactiveTextures[i] = wlr.TextureFromPixels(
-			ren,
-			drm.FormatRGBA8888,
-			uint32(surf.Stride),
-			uint32((extents.Max.X-extents.Min.X)+2),
-			uint32((extents.Max.Y-extents.Min.Y)+2),
-			surf.Pix,
-		)
-	}
-
-	fdraw.Src = image.White
-
-	for i, item := range text {
-		draw.Copy(surf, image.ZP, image.Transparent, image.Transparent.Bounds(), draw.Src, nil)
-
-		fdraw.Dot = fixed.P(0, 0)
-		fdraw.DrawString(item)
-
-		extents, _ := fdraw.BoundString(item)
-		server.menu.ActiveTextures[i] = wlr.TextureFromPixels(
-			ren,
-			drm.FormatRGBA8888,
-			uint32(surf.Stride),
-			uint32((extents.Max.X-extents.Min.X)+2),
-			uint32((extents.Max.Y-extents.Min.Y)+2),
-			surf.Pix,
-		)
-	}
-}
 
 func box(x, y, w, h int) image.Rectangle {
 	return image.Rect(x, y, x+w, y+h)
@@ -198,7 +123,7 @@ func (server *Server) run() error {
 	server.layerShell = wlr.CreateLayerShellV1(server.display)
 	server.newLayerSurface = server.layerShell.OnNewSurface(server.onNewLayerSurface)
 
-	server.genMenuTextures()
+	server.mainMenu = server.createMenu("New", "Resize", "Move", "Delete", "Hide")
 
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {
