@@ -180,25 +180,37 @@ func (m *inputModeBorderResize) TargetView() *View {
 }
 
 type inputModeMenu struct {
-	m    *Menu
-	x, y float64
-	sel  int
+	m   *Menu
+	p   image.Point
+	sel int
 }
 
 func (server *Server) startMenu(m *Menu) {
-	off := m.StartOffset()
-	server.inputMode = &inputModeMenu{
-		m: m,
-		x: server.cursor.X() + float64(off.X),
-		y: server.cursor.Y() + float64(off.Y),
+	x, y := server.cursor.X(), server.cursor.Y()
+	out := server.outputAt(x, y)
+	ob := box(0, 0, out.Output.Width(), out.Output.Height())
+
+	mb := m.Bounds().Add(m.StartOffset()).Add(image.Pt(int(x), int(y)))
+
+	if i := mb.Intersect(ob); mb != i {
+		before := mb
+		mb = mb.Sub(before.Min.Sub(i.Min))
+		mb = mb.Sub(before.Max.Sub(i.Max))
 	}
+
+	mode := inputModeMenu{
+		m: m,
+		p: mb.Min,
+	}
+	mode.CursorMoved(server, time.Now())
+	server.inputMode = &mode
 }
 
 func (m *inputModeMenu) CursorMoved(server *Server, t time.Time) {
 	cx, cy := server.cursor.X(), server.cursor.Y()
 
 	p := image.Pt(int(cx), int(cy))
-	r := m.m.Bounds().Add(image.Pt(int(m.x), int(m.y)))
+	r := m.m.Bounds().Add(m.p)
 
 	m.sel = -1
 	if p.In(r) {
@@ -216,7 +228,7 @@ func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice
 }
 
 func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {
-	server.renderMenu(out, m.m, m.x, m.y, m.sel)
+	server.renderMenu(out, m.m, float64(m.p.X), float64(m.p.Y), m.sel)
 }
 
 type inputModeSelectView struct {
