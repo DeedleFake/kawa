@@ -61,15 +61,14 @@ func (server *Server) createMenu(text ...string) *Menu {
 }
 
 func (m *Menu) Bounds() image.Rectangle {
-	var w, h int
+	var w int
 	for _, t := range m.active {
 		if tw := t.Width(); tw > w {
 			w = tw
 		}
-		h += t.Height()
 	}
 
-	return box(0, 0, w, h)
+	return box(0, 0, w, len(m.active)*24)
 }
 
 func createTextTexture(ren wlr.Renderer, dst *image.NRGBA, src image.Image, face font.Face, item string) wlr.Texture {
@@ -88,15 +87,10 @@ func createTextTexture(ren wlr.Renderer, dst *image.NRGBA, src image.Image, face
 	buf := fimg.NewNABGR(image.Rect(
 		0,
 		0,
-		int(extents.Max.X-extents.Min.X),
-		int(extents.Max.Y-extents.Min.Y),
+		(extents.Max.X - extents.Min.X).Floor(),
+		24,
 	))
-	draw.Copy(buf, image.ZP, dst, image.Rect(
-		int(extents.Min.X),
-		int(extents.Min.Y),
-		int(extents.Max.X),
-		int(extents.Max.Y),
-	), draw.Src, nil)
+	draw.Copy(buf, image.ZP, dst, image.ZR, draw.Src, nil)
 
 	return wlr.TextureFromPixels(
 		ren,

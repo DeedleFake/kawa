@@ -196,7 +196,7 @@ func (server *Server) startMenu(m *Menu) {
 }
 
 func (m *inputModeMenu) CursorMoved(server *Server, t time.Time) {
-	// TODO
+	// Purposefully do nothing.
 }
 
 func (m *inputModeMenu) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
@@ -209,6 +209,9 @@ func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice
 }
 
 func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {
+	x, y := server.cursor.X(), server.cursor.Y()
+	p := image.Pt(int(x), int(y))
+
 	r := box(int(m.x), int(m.y), 100, 24*5)
 	server.renderer.RenderRect(r.Inset(-WindowBorder), ColorMenuBorder, out.Output.TransformMatrix())
 	server.renderer.RenderRect(r, ColorMenuUnselected, out.Output.TransformMatrix())
@@ -219,6 +222,10 @@ func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {
 
 		r.Min.Y += r.Dy()
 		r.Max.Y = r.Min.Y + t.Height()
+
+		if p.In(r) {
+			server.renderer.RenderRect(r, ColorMenuSelected, out.Output.TransformMatrix())
+		}
 
 		matrix := wlr.ProjectBoxMatrix(r, wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
 		server.renderer.RenderTextureWithMatrix(t, matrix, 1)
