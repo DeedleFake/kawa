@@ -303,6 +303,10 @@ func (m *inputModeResize) Frame(server *Server, out *Output, t time.Time) {
 	server.renderSelectionBox(out, r, t)
 }
 
+func (m *inputModeResize) TargetView() *View {
+	return m.view
+}
+
 type inputModeNew struct {
 	n        image.Rectangle
 	starting bool
