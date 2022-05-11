@@ -9,16 +9,19 @@ import (
 )
 
 type View struct {
-	X, Y        int
-	XDGSurface  wlr.XDGSurface
-	Map         wlr.Listener
-	Destroy     wlr.Listener
-	RequestMove wlr.Listener
+	X, Y          int
+	XDGSurface    wlr.XDGSurface
+	Map           wlr.Listener
+	Destroy       wlr.Listener
+	RequestMove   wlr.Listener
+	RequestResize wlr.Listener
 }
 
 func (view *View) Release() {
 	view.Destroy.Destroy()
 	view.Map.Destroy()
+	view.RequestMove.Destroy()
+	view.RequestResize.Destroy()
 }
 
 func (server *Server) viewBounds(out *Output, view *View) image.Rectangle {
@@ -139,6 +142,9 @@ func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 	})
 	view.RequestMove = surface.TopLevel().OnRequestMove(func(client wlr.SeatClient, serial uint32) {
 		server.startMove(&view)
+	})
+	view.RequestResize = surface.TopLevel().OnRequestResize(func(client wlr.SeatClient, serial uint32, edges wlr.Edges) {
+		server.startBorderResize(&view, edges)
 	})
 
 	server.addView(&view)

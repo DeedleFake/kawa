@@ -50,7 +50,7 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevic
 		default:
 			switch b {
 			case wlr.BtnLeft:
-				server.startBorderResize(view, area)
+				server.startBorderResize(view, area.Edges())
 			case wlr.BtnRight:
 				server.startMove(view)
 			}
@@ -106,10 +106,10 @@ type inputModeBorderResize struct {
 	start image.Rectangle
 }
 
-func (server *Server) startBorderResize(view *View, area ViewArea) {
+func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
 	server.inputMode = &inputModeBorderResize{
 		view:  view,
-		edges: area.Edges(),
+		edges: edges,
 		start: server.surfaceBounds(nil, view.XDGSurface.Surface(), view.X, view.Y),
 	}
 }
