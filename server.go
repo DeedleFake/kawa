@@ -35,7 +35,7 @@ type Server struct {
 	pointers  []wlr.InputDevice
 	keyboards []*Keyboard
 	views     []*View
-	newViews  map[int]image.Rectangle
+	newViews  map[int]*image.Rectangle
 
 	mainMenu *Menu
 
@@ -57,6 +57,7 @@ type Server struct {
 func (server *Server) selectMainMenu(n int) {
 	switch n {
 	case 0: // New
+		server.startNew()
 	case 1: // Resize
 		server.startSelectView(wlr.BtnRight, server.startResize)
 	case 2: // Move
@@ -68,4 +69,7 @@ func (server *Server) selectMainMenu(n int) {
 		})
 	case 4: // Hide
 	}
+}
+
+func (server *Server) exec(to *image.Rectangle) {
 }

@@ -300,3 +300,69 @@ func (m *inputModeResize) Frame(server *Server, out *Output, t time.Time) {
 	).Canon()
 	server.renderer.RenderRect(r, ColorSelectionBox, out.Output.TransformMatrix())
 }
+
+type inputModeNew struct {
+	n        image.Rectangle
+	starting bool
+	started  bool
+}
+
+func (server *Server) startNew() {
+	server.setCursor("top_left_corner")
+	server.inputMode = &inputModeNew{}
+}
+
+func (m *inputModeNew) CursorMoved(server *Server, t time.Time) {
+	if !m.starting {
+		return
+	}
+
+	x, y := server.cursor.X(), server.cursor.Y()
+	if math.Abs(x-float64(m.n.Min.X)) < MinWidth {
+		return
+	}
+	if math.Abs(y-float64(m.n.Min.Y)) < MinHeight {
+		return
+	}
+
+	m.n.Max.X = int(x)
+	m.n.Max.Y = int(y)
+
+	if !m.started {
+		server.exec(&m.n)
+		m.started = true
+	}
+}
+
+func (m *inputModeNew) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+	if b != wlr.BtnRight {
+		server.startNormal()
+		return
+	}
+
+	m.n.Min.X, m.n.Min.Y = int(server.cursor.X()), int(server.cursor.Y())
+	m.starting = true
+}
+
+func (m *inputModeNew) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+	if !m.starting {
+		return
+	}
+
+	server.startNormal()
+}
+
+func (m *inputModeNew) Frame(server *Server, out *Output, t time.Time) {
+	if !m.starting {
+		return
+	}
+
+	x, y := server.cursor.X(), server.cursor.Y()
+	r := image.Rect(
+		int(m.n.Min.X),
+		int(m.n.Min.Y),
+		int(x),
+		int(y),
+	)
+	server.renderer.RenderRect(r, ColorSelectionBox, out.Output.TransformMatrix())
+}
