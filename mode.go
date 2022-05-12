@@ -76,7 +76,7 @@ type inputModeMove struct {
 
 func (server *Server) startMove(view *View) {
 	server.setCursor("grabbing")
-	server.focusView(view, view.XDGSurface.Surface())
+	server.focusView(view, view.Surface())
 
 	x, y := server.cursor.X(), server.cursor.Y()
 	server.inputMode = &inputModeMove{
@@ -111,7 +111,7 @@ func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
 }
 
 func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from image.Rectangle) {
-	server.focusView(view, view.XDGSurface.Surface())
+	server.focusView(view, view.Surface())
 	server.inputMode = &inputModeBorderResize{
 		view:  view,
 		edges: edges,

@@ -82,7 +82,7 @@ func (server *Server) run() error {
 	server.allocator = wlr.AutocreateAllocator(server.backend, server.renderer)
 	server.renderer.InitWLDisplay(server.display)
 
-	wlr.CreateCompositor(server.display, server.renderer)
+	server.compositor = wlr.CreateCompositor(server.display, server.renderer)
 	wlr.CreateDataDeviceManager(server.display)
 
 	wlr.CreateExportDMABufV1(server.display)
@@ -123,6 +123,9 @@ func (server *Server) run() error {
 	server.layerShell = wlr.CreateLayerShellV1(server.display)
 	server.newLayerSurface = server.layerShell.OnNewSurface(server.onNewLayerSurface)
 
+	server.xwayland = wlr.CreateXWayland(server.display, server.compositor, true)
+	server.xwayland.OnNewSurface(server.onNewXWaylandSurface)
+
 	server.mainMenu = server.createMenu("New", "Resize", "Move", "Delete", "Hide")
 	server.mainMenu.OnSelect = server.selectMainMenu
 
@@ -137,6 +140,7 @@ func (server *Server) run() error {
 	}
 
 	os.Setenv("WAYLAND_DISPLAY", socket)
+	os.Setenv("DISPLAY", server.xwayland.Server().DisplayName())
 	wlr.Log(wlr.Info, "Running Wayland compositor on WAYLAND_DISPLAY=%v", socket)
 	server.display.Run()
 

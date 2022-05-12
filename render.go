@@ -42,7 +42,7 @@ func (server *Server) renderLayer(out *Output, layer wlr.LayerShellV1Layer, t ti
 
 func (server *Server) renderViews(out *Output, t time.Time) {
 	for _, view := range server.views {
-		if !view.XDGSurface.Mapped() {
+		if !view.Mapped() {
 			continue
 		}
 
@@ -57,7 +57,7 @@ func (server *Server) renderView(out *Output, view *View, t time.Time) {
 
 func (server *Server) renderViewBorder(out *Output, view *View, t time.Time) {
 	color := ColorInactiveBorder
-	if view.XDGSurface.TopLevel().Current().Activated() {
+	if view.Activated() {
 		color = ColorActiveBorder
 	}
 	if server.targetView() == view {
@@ -81,7 +81,7 @@ func (server *Server) renderSelectionBox(out *Output, r image.Rectangle, t time.
 }
 
 func (server *Server) renderViewSurfaces(out *Output, view *View, t time.Time) {
-	view.XDGSurface.ForEachSurface(func(s wlr.Surface, x, y int) {
+	view.ForEachSurface(func(s wlr.Surface, x, y int) {
 		server.renderSurface(out, s, view.X+x, view.Y+y, t)
 	})
 }

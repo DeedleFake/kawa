@@ -26,11 +26,15 @@ var edgeCursors = [...]string{
 
 type View struct {
 	X, Y          int
-	XDGSurface    wlr.XDGSurface
 	Map           wlr.Listener
 	Destroy       wlr.Listener
 	RequestMove   wlr.Listener
 	RequestResize wlr.Listener
+
+	xdg      wlr.XDGSurface
+	xwayland wlr.XWaylandSurface
+
+	activated bool
 }
 
 func (view *View) Release() {
@@ -40,9 +44,134 @@ func (view *View) Release() {
 	view.RequestResize.Destroy()
 }
 
+func (view *View) PID() int {
+	if view.xdg.Valid() {
+		client := view.xdg.Resource().GetClient()
+		pid, _, _ := client.GetCredentials()
+		return pid
+	}
+	if view.xwayland.Valid() {
+		return -1 // Doesn't seem to be possible to find out.
+	}
+
+	panic("Unsupported surface type.")
+}
+
+func (view *View) Close() {
+	if view.xdg.Valid() {
+		view.xdg.SendClose()
+		return
+	}
+	if view.xwayland.Valid() {
+		view.xwayland.Close()
+		return
+	}
+
+	panic("Unsupported surface type.")
+}
+
+func (view *View) Title() string {
+	if view.xdg.Valid() {
+		return view.xdg.TopLevel().Title()
+	}
+	if view.xwayland.Valid() {
+		return view.xwayland.Title()
+	}
+
+	panic("Unsupported surface type.")
+}
+
+func (view *View) Resize(w, h uint32) {
+	if view.xdg.Valid() {
+		view.xdg.TopLevelSetSize(w, h)
+		return
+	}
+	if view.xwayland.Valid() {
+		view.xwayland.Configure(0, 0, uint16(w), uint16(h))
+		return
+	}
+
+	panic("Unsupported surface type.")
+}
+
+func (view *View) Surface() wlr.Surface {
+	if view.xdg.Valid() {
+		return view.xdg.Surface()
+	}
+	if view.xwayland.Valid() {
+		return view.xwayland.Surface()
+	}
+
+	panic("Unsupported surface type.")
+}
+
+func (view *View) Mapped() bool {
+	if view.xdg.Valid() {
+		return view.xdg.Mapped()
+	}
+	if view.xwayland.Valid() {
+		return view.xwayland.Mapped()
+	}
+
+	panic("Unsupported surface type.")
+}
+
+func (view *View) Activate(a bool) {
+	if view.xdg.Valid() {
+		view.xdg.TopLevelSetActivated(a)
+		return
+	}
+	if view.xwayland.Valid() {
+		view.xwayland.Activate(a)
+		view.activated = a
+		return
+	}
+
+	panic("Unsupported surface type.")
+}
+
+func (view *View) Activated() bool {
+	if view.xdg.Valid() {
+		return view.xdg.TopLevel().Current().Activated()
+	}
+	if view.xwayland.Valid() {
+		return view.activated
+	}
+
+	panic("Unsupported surface type.")
+}
+
+func (view *View) ForEachSurface(cb func(wlr.Surface, int, int)) {
+	if view.xdg.Valid() {
+		view.xdg.ForEachSurface(cb)
+		return
+	}
+	if view.xwayland.Valid() {
+		cb(view.xwayland.Surface(), 0, 0)
+		return
+	}
+
+	panic("Unsupported surface type.")
+}
+
+func (view *View) SurfaceAt(x, y float64) (s wlr.Surface, sx, sy float64, ok bool) {
+	if view.xdg.Valid() {
+		return view.xdg.SurfaceAt(x, y)
+	}
+	if view.xwayland.Valid() {
+		b := box(0, 0, view.xwayland.Width(), view.xwayland.Height())
+		if image.Pt(int(x), int(y)).In(b) {
+			return view.xwayland.Surface(), 0, 0, true
+		}
+		return wlr.Surface{}, 0, 0, false
+	}
+
+	panic("Unsupported surface type.")
+}
+
 func (server *Server) viewBounds(out *Output, view *View) image.Rectangle {
 	var r image.Rectangle
-	view.XDGSurface.ForEachSurface(func(s wlr.Surface, sx, sy int) {
+	view.ForEachSurface(func(s wlr.Surface, sx, sy int) {
 		r = r.Union(server.surfaceBounds(out, s, view.X+sx, view.Y+sy))
 	})
 	return r
@@ -83,7 +212,7 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, wlr.Edges, wlr.S
 	for i := len(server.views) - 1; i >= 0; i-- {
 		view := server.views[i]
 
-		surface, sx, sy, ok := view.XDGSurface.SurfaceAt(x-float64(view.X), y-float64(view.Y))
+		surface, sx, sy, ok := view.SurfaceAt(x-float64(view.X), y-float64(view.Y))
 		if ok {
 			return view, wlr.EdgeNone, surface, sx, sy
 		}
@@ -133,6 +262,28 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, wlr.Edges, wlr.S
 	return nil, wlr.EdgeNone, wlr.Surface{}, 0, 0
 }
 
+func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
+	view := View{
+		X:        -1,
+		Y:        -1,
+		xwayland: surface,
+	}
+	view.Destroy = surface.OnDestroy(func(s wlr.XWaylandSurface) {
+		server.onDestroyView(&view)
+	})
+	view.Map = surface.OnMap(func(s wlr.XWaylandSurface) {
+		server.onMapView(&view)
+	})
+	view.RequestMove = surface.OnRequestMove(func(s wlr.XWaylandSurface) {
+		server.startMove(&view)
+	})
+	view.RequestResize = surface.OnRequestResize(func(s wlr.XWaylandSurface, edges wlr.Edges) {
+		server.startBorderResize(&view, edges)
+	})
+
+	server.addView(&view)
+}
+
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
 	if surface.Role() != wlr.XDGSurfaceRoleTopLevel {
 		server.addXDGPopup(surface)
@@ -148,9 +299,9 @@ func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
 
 func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 	view := View{
-		X:          -1,
-		Y:          -1,
-		XDGSurface: surface,
+		X:   -1,
+		Y:   -1,
+		xdg: surface,
 	}
 	view.Destroy = surface.OnDestroy(func(s wlr.XDGSurface) {
 		server.onDestroyView(&view)
@@ -179,7 +330,7 @@ func (server *Server) onDestroyView(view *View) {
 	// TODO: Figure out why this causes a wlroots assertion failure.
 	//if len(server.views) != 0 {
 	//	n := server.views[len(server.views)-1]
-	//	server.focusView(n, n.XDGSurface.Surface())
+	//	server.focusView(n, n.Surface())
 	//}
 }
 
@@ -203,8 +354,7 @@ func (server *Server) onMapView(view *View) {
 func (server *Server) addView(view *View) {
 	server.views = append(server.views, view)
 
-	client := view.XDGSurface.Resource().GetClient()
-	pid, _, _ := client.GetCredentials()
+	pid := view.PID()
 
 	nv, ok := server.newViews[pid]
 	if ok {
@@ -212,7 +362,7 @@ func (server *Server) addView(view *View) {
 
 		view.X = nv.To.Min.X
 		view.Y = nv.To.Min.Y
-		view.XDGSurface.TopLevelSetSize(
+		view.Resize(
 			uint32(nv.To.Dx()),
 			uint32(nv.To.Dy()),
 		)
@@ -222,7 +372,7 @@ func (server *Server) addView(view *View) {
 
 func (server *Server) centerViewOnOutput(out *Output, view *View) {
 	layout := server.outputLayout.Get(out.Output)
-	current := view.XDGSurface.Surface().Current()
+	current := view.Surface().Current()
 	ow, oh := out.Output.EffectiveResolution()
 
 	server.moveViewTo(
@@ -243,28 +393,28 @@ func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
 			return
 		}
 	}
-	view.XDGSurface.Surface().SendEnter(out.Output)
+	view.Surface().SendEnter(out.Output)
 }
 
 func (server *Server) resizeViewTo(out *Output, view *View, r image.Rectangle) {
 	vb := server.viewBounds(out, view)
-	sb := server.surfaceBounds(out, view.XDGSurface.Surface(), view.X, view.Y)
+	sb := server.surfaceBounds(out, view.Surface(), view.X, view.Y)
 	off := sb.Min.Sub(vb.Min)
 	r = r.Add(off)
 
 	view.X = r.Min.X
 	view.Y = r.Min.Y
-	view.XDGSurface.TopLevelSetSize(uint32(r.Dx()), uint32(r.Dy()))
+	view.Resize(uint32(r.Dx()), uint32(r.Dy()))
 
 	if out == nil {
 		out = server.outputAt(float64(view.X), float64(view.Y))
 	}
-	view.XDGSurface.Surface().SendEnter(out.Output)
+	view.Surface().SendEnter(out.Output)
 }
 
 func (server *Server) focusView(view *View, s wlr.Surface) {
 	if !s.Valid() {
-		s = view.XDGSurface.Surface()
+		s = view.Surface()
 	}
 
 	prev := server.seat.KeyboardState().FocusedSurface()
@@ -279,7 +429,7 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 	k := server.seat.GetKeyboard()
 	server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
 
-	view.XDGSurface.TopLevelSetActivated(true)
+	view.Activate(true)
 	server.bringViewToFront(view)
 }
 
@@ -294,7 +444,7 @@ func (server *Server) hideView(view *View) {
 	server.views = slices.Delete(server.views, i, i+1)
 
 	server.hidden = append(server.hidden, view)
-	server.mainMenu.Add(server, view.XDGSurface.TopLevel().Title())
+	server.mainMenu.Add(server, view.Title())
 }
 
 func (server *Server) unhideView(view *View) {
@@ -303,9 +453,9 @@ func (server *Server) unhideView(view *View) {
 	server.mainMenu.Remove(5 + i)
 
 	server.views = append(server.views, view)
-	server.focusView(view, view.XDGSurface.Surface())
+	server.focusView(view, view.Surface())
 }
 
 func (server *Server) closeView(view *View) {
-	view.XDGSurface.SendClose()
+	view.Close()
 }

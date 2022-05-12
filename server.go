@@ -22,6 +22,7 @@ type Server struct {
 
 	allocator    wlr.Allocator
 	backend      wlr.Backend
+	compositor   wlr.Compositor
 	cursor       wlr.Cursor
 	outputLayout wlr.OutputLayout
 	renderer     wlr.Renderer
@@ -29,6 +30,7 @@ type Server struct {
 	cursorMgr    wlr.XCursorManager
 	xdgShell     wlr.XDGShell
 	layerShell   wlr.LayerShellV1
+	xwayland     wlr.XWayland
 
 	outputs   []*Output
 	inputs    []wlr.InputDevice
