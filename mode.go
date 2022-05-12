@@ -322,7 +322,9 @@ func (m *inputModeResize) CursorButtonReleased(server *Server, dev wlr.InputDevi
 
 	x, y := server.cursor.X(), server.cursor.Y()
 	r := image.Rect(int(m.sx), int(m.sy), int(x), int(y))
-	server.resizeViewTo(nil, m.view, r)
+	if (r.Dx() >= MinWidth) && (r.Dy() >= MinHeight) {
+		server.resizeViewTo(nil, m.view, r)
+	}
 	server.startNormal()
 }
 
