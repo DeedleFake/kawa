@@ -57,6 +57,15 @@ func (view *View) PID() int {
 	panic("Unsupported surface type.")
 }
 
+func (view *View) HasSurface(surface wlr.Surface) (has bool) {
+	view.ForEachSurface(func(s wlr.Surface, x, y int) {
+		if s == surface {
+			has = true
+		}
+	})
+	return has
+}
+
 func (view *View) Close() {
 	if view.xdg.Valid() {
 		view.xdg.SendClose()
@@ -421,9 +430,9 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 	if prev == s {
 		return
 	}
-	if prev.Valid() && (prev.Type() == wlr.SurfaceTypeXDG) {
-		xdg := wlr.XDGSurfaceFromWLRSurface(prev)
-		xdg.TopLevelSetActivated(false)
+	pv := server.viewForSurface(prev)
+	if pv != nil {
+		pv.Activate(false)
 	}
 
 	k := server.seat.GetKeyboard()
@@ -431,6 +440,21 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 
 	view.Activate(true)
 	server.bringViewToFront(view)
+}
+
+func (server *Server) viewForSurface(s wlr.Surface) *View {
+	for _, view := range server.views {
+		if view.HasSurface(s) {
+			return view
+		}
+	}
+	for _, view := range server.hidden {
+		if view.HasSurface(s) {
+			return view
+		}
+	}
+
+	return nil
 }
 
 func (server *Server) bringViewToFront(view *View) {
