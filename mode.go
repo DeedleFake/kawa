@@ -37,11 +37,8 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 		return
 	}
 
-	focus := server.seat.PointerState().FocusedSurface() != surface
 	server.seat.PointerNotifyEnter(surface, sx, sy)
-	if !focus {
-		server.seat.PointerNotifyMotion(t, sx, sy)
-	}
+	server.seat.PointerNotifyMotion(t, sx, sy)
 }
 
 func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
