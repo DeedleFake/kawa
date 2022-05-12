@@ -239,7 +239,9 @@ func (server *Server) addView(view *View) {
 		view.Y = nv.To.Min.Y
 		view.Resize(nv.To.Dx(), nv.To.Dy())
 
-		nv.OnStarted(view)
+		if nv.OnStarted != nil {
+			nv.OnStarted(view)
+		}
 	}
 }
 

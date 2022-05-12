@@ -31,6 +31,7 @@ func (server *Server) onFrame(out *Output) {
 	server.renderLayer(out, wlr.LayerShellV1LayerBackground, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerBottom, t)
 	server.renderViews(out, t)
+	server.renderNewViews(out, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerTop, t)
 	server.renderMode(out, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerOverlay, t)
@@ -114,6 +115,12 @@ func (server *Server) renderSurface(out *Output, s wlr.Surface, x, y int, t time
 
 	server.renderer.RenderTextureWithMatrix(texture, m, 1)
 	s.SendFrameDone(t)
+}
+
+func (server *Server) renderNewViews(out *Output, t time.Time) {
+	for _, nv := range server.newViews {
+		server.renderSelectionBox(out, *nv.To, t)
+	}
 }
 
 func (server *Server) renderMode(out *Output, t time.Time) {

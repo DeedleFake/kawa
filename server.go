@@ -96,7 +96,8 @@ func (server *Server) exec(to *image.Rectangle) {
 	server.newViews[cmd.Process.Pid] = NewView{
 		To: to,
 		OnStarted: func(view *View) {
-			server.startBorderResizeFrom(view, wlr.EdgeNone, *to)
+			//server.startBorderResizeFrom(view, wlr.EdgeNone, *to)
+			server.focusView(view, view.Surface())
 		},
 	}
 }
