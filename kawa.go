@@ -162,6 +162,8 @@ func (server *Server) run() error {
 }
 
 func profileCPU(path string) {
+	defer wlr.Log(wlr.Debug, "CPU profile written to: %q", path)
+
 	f, err := os.Create(path)
 	if err != nil {
 		panic(err)
@@ -192,7 +194,7 @@ func main() {
 	flag.Parse()
 
 	if *cprof != "" {
-		wlr.Log(wlr.Debug, "CPU profiling enabled. Send SIGINT to write profile to %q.", *cprof)
+		wlr.Log(wlr.Debug, "CPU profiling enabled. Send SIGINT to write profile to: %q", *cprof)
 		go profileCPU(*cprof)
 	}
 
