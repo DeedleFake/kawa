@@ -57,6 +57,14 @@ func (server *Server) renderLayer(out *Output, layer wlr.LayerShellV1Layer, t ti
 }
 
 func (server *Server) renderViews(out *Output, t time.Time) {
+	for _, view := range server.tiled {
+		if !view.Mapped() {
+			continue
+		}
+
+		server.renderView(out, view, t)
+	}
+
 	for _, view := range server.views {
 		if !view.Mapped() {
 			continue

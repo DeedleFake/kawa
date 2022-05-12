@@ -23,7 +23,7 @@ func (server *Server) startNormal() {
 func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 	x, y := server.cursor.X(), server.cursor.Y()
 
-	view, edges, surface, sx, sy := server.viewAt(nil, x, y)
+	view, _, edges, surface, sx, sy := server.viewAt(nil, x, y)
 	if edges != m.prevEdges {
 		server.setCursor(edgeCursors[edges])
 		m.prevEdges = edges
@@ -42,7 +42,7 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 }
 
 func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	view, edges, surface, _, _ := server.viewAt(nil, server.cursor.X(), server.cursor.Y())
+	view, tiled, edges, surface, _, _ := server.viewAt(nil, server.cursor.X(), server.cursor.Y())
 	if view == nil {
 		if b == wlr.BtnRight {
 			server.startMenu(server.mainMenu)
@@ -56,11 +56,13 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevic
 	case wlr.EdgeNone:
 		server.seat.PointerNotifyButton(t, b, wlr.ButtonPressed)
 	default:
-		switch b {
-		case wlr.BtnLeft:
-			server.startBorderResize(view, edges)
-		case wlr.BtnRight:
-			server.startMove(view)
+		if !tiled {
+			switch b {
+			case wlr.BtnLeft:
+				server.startBorderResize(view, edges)
+			case wlr.BtnRight:
+				server.startMove(view)
+			}
 		}
 	}
 }
@@ -242,10 +244,10 @@ func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {
 
 type inputModeSelectView struct {
 	startBtn wlr.CursorButton
-	then     func(*View)
+	then     func(*View, bool)
 }
 
-func (server *Server) startSelectView(b wlr.CursorButton, then func(*View)) {
+func (server *Server) startSelectView(b wlr.CursorButton, then func(*View, bool)) {
 	server.setCursor("hand1")
 	server.inputMode = &inputModeSelectView{
 		startBtn: b,
@@ -260,9 +262,9 @@ func (m *inputModeSelectView) CursorButtonPressed(server *Server, dev wlr.InputD
 	}
 
 	x, y := server.cursor.X(), server.cursor.Y()
-	view, _, _, _, _ := server.viewAt(nil, x, y)
+	view, tiled, _, _, _, _ := server.viewAt(nil, x, y)
 	if view != nil {
-		m.then(view)
+		m.then(view, tiled)
 		return
 	}
 	server.startNormal()

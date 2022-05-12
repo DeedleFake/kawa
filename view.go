@@ -89,66 +89,85 @@ func (server *Server) targetView() *View {
 	return m.TargetView()
 }
 
-func (server *Server) viewAt(out *Output, x, y float64) (*View, wlr.Edges, wlr.Surface, float64, float64) {
+func (server *Server) viewAt(out *Output, x, y float64) (*View, bool, wlr.Edges, wlr.Surface, float64, float64) {
 	if out == nil {
 		out = server.outputAt(x, y)
 	}
 
-	p := image.Pt(int(x), int(y))
 	for i := len(server.views) - 1; i >= 0; i-- {
 		view := server.views[i]
 		if !view.Mapped() {
 			continue
 		}
 
-		surface, sx, sy, ok := view.SurfaceAt(x-float64(view.X), y-float64(view.Y))
+		edges, surface, sx, sy, ok := server.isViewAt(out, view, x, y)
 		if ok {
-			return view, wlr.EdgeNone, surface, sx, sy
+			return view, false, edges, surface, sx, sy
 		}
+	}
 
-		r := server.viewBounds(nil, view)
-		if !p.In(r.Inset(-WindowBorder)) {
+	for i := len(server.tiled) - 1; i >= 0; i-- {
+		view := server.tiled[i]
+		if !view.Mapped() {
 			continue
 		}
 
-		left := image.Rect(r.Min.X-WindowBorder, r.Min.Y, r.Max.X, r.Max.Y)
-		if p.In(left) {
-			return view, wlr.EdgeLeft, wlr.Surface{}, 0, 0
+		edges, surface, sx, sy, ok := server.isViewAt(out, view, x, y)
+		if ok {
+			return view, true, edges, surface, sx, sy
 		}
-
-		top := image.Rect(r.Min.X, r.Min.Y-WindowBorder, r.Max.X, r.Max.Y)
-		if p.In(top) {
-			return view, wlr.EdgeTop, wlr.Surface{}, 0, 0
-		}
-
-		right := image.Rect(r.Min.X, r.Min.Y, r.Max.X+WindowBorder, r.Max.Y)
-		if p.In(right) {
-			return view, wlr.EdgeRight, wlr.Surface{}, 0, 0
-		}
-
-		bottom := image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y+WindowBorder)
-		if p.In(bottom) {
-			return view, wlr.EdgeBottom, wlr.Surface{}, 0, 0
-		}
-
-		if (p.X < r.Min.X) && (p.Y < r.Min.Y) {
-			return view, wlr.EdgeTop | wlr.EdgeLeft, wlr.Surface{}, 0, 0
-		}
-		if (p.X >= r.Max.X) && (p.Y < r.Min.Y) {
-			return view, wlr.EdgeTop | wlr.EdgeRight, wlr.Surface{}, 0, 0
-		}
-		if (p.X < r.Min.X) && (p.Y >= r.Max.Y) {
-			return view, wlr.EdgeBottom | wlr.EdgeLeft, wlr.Surface{}, 0, 0
-		}
-		if (p.X >= r.Max.X) && (p.Y >= r.Max.Y) {
-			return view, wlr.EdgeBottom | wlr.EdgeRight, wlr.Surface{}, 0, 0
-		}
-
-		// Where else could it possibly be if it gets to here?
-		panic(fmt.Errorf("If you see this, there's a bug.\np = %+v\nr = %+v", p, r))
 	}
 
-	return nil, wlr.EdgeNone, wlr.Surface{}, 0, 0
+	return nil, false, wlr.EdgeNone, wlr.Surface{}, 0, 0
+}
+
+func (server *Server) isViewAt(out *Output, view *View, x, y float64) (wlr.Edges, wlr.Surface, float64, float64, bool) {
+	surface, sx, sy, ok := view.SurfaceAt(x-float64(view.X), y-float64(view.Y))
+	if ok {
+		return wlr.EdgeNone, surface, sx, sy, true
+	}
+
+	p := image.Pt(int(x), int(y))
+	r := server.viewBounds(nil, view)
+	if !p.In(r.Inset(-WindowBorder)) {
+		return 0, wlr.Surface{}, 0, 0, false
+	}
+
+	left := image.Rect(r.Min.X-WindowBorder, r.Min.Y, r.Max.X, r.Max.Y)
+	if p.In(left) {
+		return wlr.EdgeLeft, wlr.Surface{}, 0, 0, true
+	}
+
+	top := image.Rect(r.Min.X, r.Min.Y-WindowBorder, r.Max.X, r.Max.Y)
+	if p.In(top) {
+		return wlr.EdgeTop, wlr.Surface{}, 0, 0, true
+	}
+
+	right := image.Rect(r.Min.X, r.Min.Y, r.Max.X+WindowBorder, r.Max.Y)
+	if p.In(right) {
+		return wlr.EdgeRight, wlr.Surface{}, 0, 0, true
+	}
+
+	bottom := image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y+WindowBorder)
+	if p.In(bottom) {
+		return wlr.EdgeBottom, wlr.Surface{}, 0, 0, true
+	}
+
+	if (p.X < r.Min.X) && (p.Y < r.Min.Y) {
+		return wlr.EdgeTop | wlr.EdgeLeft, wlr.Surface{}, 0, 0, true
+	}
+	if (p.X >= r.Max.X) && (p.Y < r.Min.Y) {
+		return wlr.EdgeTop | wlr.EdgeRight, wlr.Surface{}, 0, 0, true
+	}
+	if (p.X < r.Min.X) && (p.Y >= r.Max.Y) {
+		return wlr.EdgeBottom | wlr.EdgeLeft, wlr.Surface{}, 0, 0, true
+	}
+	if (p.X >= r.Max.X) && (p.Y >= r.Max.Y) {
+		return wlr.EdgeBottom | wlr.EdgeRight, wlr.Surface{}, 0, 0, true
+	}
+
+	// Where else could it possibly be if it gets to here?
+	panic(fmt.Errorf("If you see this, there's a bug.\np = %+v\nr = %+v", p, r))
 }
 
 func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
@@ -247,7 +266,13 @@ func (server *Server) onDestroyView(view *View) {
 	view.Release()
 
 	i := slices.Index(server.views, view)
-	server.views = slices.Delete(server.views, i, i+1)
+	if i >= 0 {
+		server.views = slices.Delete(server.views, i, i+1)
+	}
+	i = slices.Index(server.tiled, view)
+	if i >= 0 {
+		server.tiled = slices.Delete(server.tiled, i, i+1)
+	}
 
 	// TODO: Figure out why this causes a wlroots assertion failure.
 	//if len(server.views) != 0 {
@@ -397,6 +422,18 @@ func (server *Server) unhideView(view *View) {
 
 	server.views = append(server.views, view)
 	server.focusView(view, view.Surface())
+}
+
+func (server *Server) tileView(view *View) {
+	i := slices.Index(server.views, view)
+	server.views = slices.Delete(server.views, i, i+1)
+	server.tiled = append(server.tiled, view)
+}
+
+func (server *Server) untileView(view *View) {
+	i := slices.Index(server.tiled, view)
+	server.tiled = slices.Delete(server.tiled, i, i+1)
+	server.views = append(server.views, view)
 }
 
 func (server *Server) closeView(view *View) {

@@ -40,6 +40,7 @@ type Server struct {
 	views     []*View
 	popups    []*Popup
 	newViews  map[int]NewView
+	tiled     []*View
 	hidden    []*View
 	bg        wlr.Texture
 
@@ -111,20 +112,39 @@ func (server *Server) selectMainMenu(n int) {
 	case 0: // New
 		server.startNew()
 	case 1: // Resize
-		server.startSelectView(wlr.BtnRight, server.startResize)
-	case 2: // Move
-		server.startSelectView(wlr.BtnRight, server.startMove)
-	case 3: // Delete
-		server.startSelectView(wlr.BtnRight, func(view *View) {
+		server.startSelectView(wlr.BtnRight, func(view *View, tiled bool) {
+			if !tiled {
+				server.startResize(view)
+			}
+		})
+	case 2: // Tile
+		server.startSelectView(wlr.BtnRight, func(view *View, tiled bool) {
+			defer server.startNormal()
+			if tiled {
+				server.untileView(view)
+				return
+			}
+			server.tileView(view)
+		})
+	case 3: // Move
+		server.startSelectView(wlr.BtnRight, func(view *View, tiled bool) {
+			if !tiled {
+				server.startMove(view)
+			}
+		})
+	case 4: // Delete
+		server.startSelectView(wlr.BtnRight, func(view *View, tiled bool) {
 			server.closeView(view)
 			server.startNormal()
 		})
-	case 4: // Hide
-		server.startSelectView(wlr.BtnRight, func(view *View) {
-			server.hideView(view)
-			server.startNormal()
+	case 5: // Hide
+		server.startSelectView(wlr.BtnRight, func(view *View, tiled bool) {
+			if !tiled {
+				server.hideView(view)
+				server.startNormal()
+			}
 		})
 	default:
-		server.unhideView(server.hidden[n-5])
+		server.unhideView(server.hidden[n-6])
 	}
 }

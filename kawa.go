@@ -131,7 +131,7 @@ func (server *Server) init() error {
 	server.xwayland = wlr.CreateXWayland(server.display, server.compositor, false)
 	server.onNewXWaylandSurfaceListener = server.xwayland.OnNewSurface(server.onNewXWaylandSurface)
 
-	server.mainMenu = server.createMenu("New", "Resize", "Move", "Delete", "Hide")
+	server.mainMenu = server.createMenu("New", "Resize", "Tile", "Move", "Delete", "Hide")
 	server.mainMenu.OnSelect = server.selectMainMenu
 
 	server.startNormal()
