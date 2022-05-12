@@ -27,6 +27,7 @@ func (server *Server) onFrame(out *Output) {
 
 	server.renderer.Clear(ColorBackground)
 
+	server.renderBG(out, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerBackground, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerBottom, t)
 	server.renderViews(out, t)
@@ -34,6 +35,16 @@ func (server *Server) onFrame(out *Output) {
 	server.renderMode(out, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerOverlay, t)
 	server.renderCursor(out, t)
+}
+
+func (server *Server) renderBG(out *Output, t time.Time) {
+	m := wlr.ProjectBoxMatrix(
+		box(0, 0, out.Output.Width(), out.Output.Height()),
+		wlr.OutputTransformNormal,
+		0,
+		out.Output.TransformMatrix(),
+	)
+	server.renderer.RenderTextureWithMatrix(server.bg, m, 1)
 }
 
 func (server *Server) renderLayer(out *Output, layer wlr.LayerShellV1Layer, t time.Time) {

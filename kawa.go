@@ -8,6 +8,10 @@ import (
 	"strconv"
 	"strings"
 
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
+
 	"deedles.dev/wlr"
 )
 
@@ -67,7 +71,7 @@ func parseOutputConfigs(outputConfigs string) (configs []OutputConfig, err error
 	return configs, nil
 }
 
-func (server *Server) run() error {
+func (server *Server) init() error {
 	server.newViews = make(map[int]NewView)
 	server.inputMode = &inputModeNormal{}
 
@@ -129,6 +133,10 @@ func (server *Server) run() error {
 	server.mainMenu = server.createMenu("New", "Resize", "Move", "Delete", "Hide")
 	server.mainMenu.OnSelect = server.selectMainMenu
 
+	return nil
+}
+
+func (server *Server) run() error {
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {
 		return err
@@ -140,8 +148,11 @@ func (server *Server) run() error {
 	}
 
 	os.Setenv("WAYLAND_DISPLAY", socket)
-	os.Setenv("DISPLAY", server.xwayland.Server().DisplayName())
 	wlr.Log(wlr.Info, "Running Wayland compositor on WAYLAND_DISPLAY=%v", socket)
+
+	os.Setenv("DISPLAY", server.xwayland.Server().DisplayName())
+	wlr.Log(wlr.Info, "Running XWayland on DISPLAY=%v", server.xwayland.Server().DisplayName())
+
 	server.display.Run()
 
 	return nil
@@ -151,6 +162,7 @@ func main() {
 	wlr.InitLog(wlr.Debug, nil)
 
 	term := flag.String("term", "alacritty", "terminal to use when creating a new window")
+	bg := flag.String("bg", "", "background image")
 	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
 	flag.Parse()
 
@@ -163,6 +175,16 @@ func main() {
 	server := Server{
 		Term:          strings.Fields(*term),
 		OutputConfigs: outputConfigsParsed,
+	}
+
+	err = server.init()
+	if err != nil {
+		wlr.Log(wlr.Error, "init server: %v", err)
+		os.Exit(1)
+	}
+
+	if *bg != "" {
+		server.loadBG(*bg)
 	}
 
 	err = server.run()

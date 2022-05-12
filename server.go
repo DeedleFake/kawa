@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"os"
 	"os/exec"
 
 	"deedles.dev/wlr"
@@ -39,6 +40,7 @@ type Server struct {
 	views     []*View
 	newViews  map[int]NewView
 	hidden    []*View
+	bg        wlr.Texture
 
 	mainMenu *Menu
 
@@ -60,6 +62,27 @@ type Server struct {
 type NewView struct {
 	To        *image.Rectangle
 	OnStarted func(*View)
+}
+
+func (server *Server) loadBG(path string) {
+	file, err := os.Open(path)
+	if err != nil {
+		wlr.Log(wlr.Error, "load %q as background: %v", path, err)
+		return
+	}
+	defer file.Close()
+
+	img, _, err := image.Decode(file)
+	if err != nil {
+		wlr.Log(wlr.Error, "decode %q as background: %v", path, err)
+		return
+	}
+
+	if server.bg.Valid() {
+		server.bg.Destroy()
+	}
+	server.bg = wlr.TextureFromImage(server.renderer, img)
+	wlr.Log(wlr.Info, "loaded %q as background", path)
 }
 
 func (server *Server) exec(to *image.Rectangle) {

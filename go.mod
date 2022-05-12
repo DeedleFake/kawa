@@ -3,7 +3,7 @@ module deedles.dev/kawa
 go 1.18
 
 require (
-	deedles.dev/wlr v0.0.0-20220512003236-6dc29f33892d
+	deedles.dev/wlr v0.0.0-20220512032513-96cbaeeff4d1
 	golang.org/x/exp v0.0.0-20220428152302-39d4317da171
 	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9
 )
