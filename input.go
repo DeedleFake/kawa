@@ -159,6 +159,7 @@ func (server *Server) addKeyboard(dev wlr.InputDevice) {
 func (server *Server) addPointer(dev wlr.InputDevice) {
 	server.cursor.AttachInputDevice(dev)
 	server.seat.SetCapabilities(server.seat.Capabilities() | wlr.SeatCapabilityPointer)
+	server.setCursor("left_ptr")
 
 	server.pointers = append(server.pointers, dev)
 }

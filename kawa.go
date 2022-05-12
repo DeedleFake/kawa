@@ -75,7 +75,6 @@ func parseOutputConfigs(outputConfigs string) (configs []OutputConfig, err error
 
 func (server *Server) init() error {
 	server.newViews = make(map[int]NewView)
-	server.inputMode = &inputModeNormal{}
 
 	server.display = wlr.CreateDisplay()
 	//defer server.display.Destroy()
@@ -134,6 +133,8 @@ func (server *Server) init() error {
 
 	server.mainMenu = server.createMenu("New", "Resize", "Move", "Delete", "Hide")
 	server.mainMenu.OnSelect = server.selectMainMenu
+
+	server.startNormal()
 
 	return nil
 }

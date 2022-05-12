@@ -9,7 +9,10 @@ import (
 
 type InputMode interface{}
 
-type inputModeNormal struct{}
+type inputModeNormal struct {
+	inView    bool
+	prevEdges wlr.Edges
+}
 
 func (server *Server) startNormal() {
 	server.setCursor("left_ptr")
@@ -20,10 +23,14 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 	x, y := server.cursor.X(), server.cursor.Y()
 
 	view, edges, surface, sx, sy := server.viewAt(nil, x, y)
-	server.setCursor(edgeCursors[edges])
-	if view == nil {
+	if edges != m.prevEdges {
+		server.setCursor(edgeCursors[edges])
+		m.prevEdges = edges
+	}
+	if (view == nil) && m.inView {
 		server.setCursor("left_ptr")
 	}
+	m.inView = view != nil
 	if !surface.Valid() {
 		server.seat.PointerNotifyClearFocus()
 		return
@@ -151,23 +158,26 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 	if ox < r.Min.X {
 		m.edges |= wlr.EdgeLeft
 		m.edges &^= wlr.EdgeRight
+		server.setCursor(edgeCursors[m.edges])
 	}
 	if ox > r.Max.X {
 		m.edges |= wlr.EdgeRight
 		m.edges &^= wlr.EdgeLeft
+		server.setCursor(edgeCursors[m.edges])
 	}
 	if oy < r.Min.Y {
 		m.edges |= wlr.EdgeTop
 		m.edges &^= wlr.EdgeBottom
+		server.setCursor(edgeCursors[m.edges])
 	}
 	if oy > r.Max.Y {
 		m.edges |= wlr.EdgeBottom
 		m.edges &^= wlr.EdgeTop
+		server.setCursor(edgeCursors[m.edges])
 	}
 
 	m.cur = r
 	server.resizeViewTo(nil, m.view, r.Canon())
-	server.setCursor(edgeCursors[m.edges])
 }
 
 func (m *inputModeBorderResize) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
