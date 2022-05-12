@@ -83,6 +83,9 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, wlr.Edges, wlr.S
 	p := image.Pt(int(x), int(y))
 	for i := len(server.views) - 1; i >= 0; i-- {
 		view := server.views[i]
+		if !view.Mapped() {
+			continue
+		}
 
 		surface, sx, sy, ok := view.SurfaceAt(x-float64(view.X), y-float64(view.Y))
 		if ok {
