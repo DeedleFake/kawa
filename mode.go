@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"math"
 	"time"
 
 	"deedles.dev/wlr"
@@ -281,28 +282,27 @@ func (server *Server) startResize(view *View) {
 	}
 }
 
-// TODO: Re-enable this when damage-based updates are working.
-//func (m *inputModeResize) CursorMoved(server *Server, t time.Time) {
-//	if !m.resizing {
-//		return
-//	}
-//
-//	x, y := server.cursor.X(), server.cursor.Y()
-//	if math.Abs(x-m.sx) < MinWidth {
-//		return
-//	}
-//	if math.Abs(y-m.sy) < MinHeight {
-//		return
-//	}
-//
-//	r := image.Rect(
-//		int(m.sx),
-//		int(m.sy),
-//		int(x),
-//		int(y),
-//	)
-//	server.startBorderResizeFrom(m.view, wlr.EdgeNone, r)
-//}
+func (m *inputModeResize) CursorMoved(server *Server, t time.Time) {
+	if !m.resizing {
+		return
+	}
+
+	x, y := server.cursor.X(), server.cursor.Y()
+	if math.Abs(x-m.sx) < MinWidth {
+		return
+	}
+	if math.Abs(y-m.sy) < MinHeight {
+		return
+	}
+
+	r := image.Rect(
+		int(m.sx),
+		int(m.sy),
+		int(x),
+		int(y),
+	)
+	server.startBorderResizeFrom(m.view, wlr.EdgeNone, r)
+}
 
 func (m *inputModeResize) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	if b != wlr.BtnRight {
@@ -347,6 +347,7 @@ func (m *inputModeResize) TargetView() *View {
 type inputModeNew struct {
 	n        image.Rectangle
 	dragging bool
+	started  bool
 }
 
 func (server *Server) startNew() {
@@ -355,27 +356,25 @@ func (server *Server) startNew() {
 }
 
 func (m *inputModeNew) CursorMoved(server *Server, t time.Time) {
-	m.n.Max.X, m.n.Max.Y = int(server.cursor.X()), int(server.cursor.Y())
+	if !m.dragging {
+		return
+	}
 
-	// TODO: Re-enable once damage-based updates are implemented.
-	//if !m.starting {
-	//	return
-	//}
+	x, y := server.cursor.X(), server.cursor.Y()
+	if math.Abs(x-float64(m.n.Min.X)) < MinWidth {
+		return
+	}
+	if math.Abs(y-float64(m.n.Min.Y)) < MinHeight {
+		return
+	}
 
-	//if math.Abs(x-float64(m.n.Min.X)) < MinWidth {
-	//	return
-	//}
-	//if math.Abs(y-float64(m.n.Min.Y)) < MinHeight {
-	//	return
-	//}
+	m.n.Max.X = int(x)
+	m.n.Max.Y = int(y)
 
-	//m.n.Max.X = int(x)
-	//m.n.Max.Y = int(y)
-
-	//if !m.started {
-	//	server.exec(&m.n)
-	//	m.started = true
-	//}
+	if !m.started {
+		server.exec(&m.n)
+		m.started = true
+	}
 }
 
 func (m *inputModeNew) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
@@ -393,12 +392,11 @@ func (m *inputModeNew) CursorButtonReleased(server *Server, dev wlr.InputDevice,
 		return
 	}
 
-	server.exec(&m.n)
 	server.startNormal()
 }
 
 func (m *inputModeNew) Frame(server *Server, out *Output, t time.Time) {
-	if !m.dragging {
+	if !m.dragging || m.started {
 		return
 	}
 
