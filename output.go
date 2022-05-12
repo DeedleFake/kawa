@@ -5,7 +5,8 @@ import "deedles.dev/wlr"
 type Output struct {
 	Output wlr.Output
 	Layers [4][]LayerSurface
-	Frame  wlr.Listener
+
+	onFrameListener wlr.Listener
 }
 
 type OutputConfig struct {
@@ -32,7 +33,7 @@ func (server *Server) onNewOutput(wout wlr.Output) {
 	out := Output{
 		Output: wout,
 	}
-	out.Frame = wout.OnFrame(func(wout wlr.Output) {
+	out.onFrameListener = wout.OnFrame(func(wout wlr.Output) {
 		server.onFrame(&out)
 	})
 	server.addOutput(&out)

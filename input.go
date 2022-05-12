@@ -25,9 +25,10 @@ type CursorRequester interface {
 }
 
 type Keyboard struct {
-	Device    wlr.InputDevice
-	Modifiers wlr.Listener
-	Key       wlr.Listener
+	Device wlr.InputDevice
+
+	onModifiersListener wlr.Listener
+	onKeyListener       wlr.Listener
 }
 
 func (server *Server) onNewInput(device wlr.InputDevice) {
@@ -143,10 +144,10 @@ func (server *Server) addKeyboard(dev wlr.InputDevice) {
 	wkb.SetKeymap(keymap)
 	wkb.SetRepeatInfo(25, 600)
 
-	kb.Modifiers = wkb.OnModifiers(func(k wlr.Keyboard) {
+	kb.onModifiersListener = wkb.OnModifiers(func(k wlr.Keyboard) {
 		server.onKeyboardModifiers(&kb)
 	})
-	kb.Key = wkb.OnKey(func(k wlr.Keyboard, t time.Time, code uint32, update bool, state wlr.KeyState) {
+	kb.onKeyListener = wkb.OnKey(func(k wlr.Keyboard, t time.Time, code uint32, update bool, state wlr.KeyState) {
 		server.onKeyboardKey(&kb, code, update, state, t)
 	})
 

@@ -28,28 +28,28 @@ type View struct {
 	ViewSurface
 	X, Y int
 
-	Map             wlr.Listener
-	Destroy         wlr.Listener
-	RequestMove     wlr.Listener
-	RequestResize   wlr.Listener
-	RequestMinimize wlr.Listener
+	onMapListener             wlr.Listener
+	onDestroyListener         wlr.Listener
+	onRequestMoveListener     wlr.Listener
+	onRequestResizeListener   wlr.Listener
+	onRequestMinimizeListener wlr.Listener
 }
 
 func (view *View) Release() {
-	view.Destroy.Destroy()
-	view.Map.Destroy()
-	view.RequestMove.Destroy()
-	view.RequestResize.Destroy()
+	view.onDestroyListener.Destroy()
+	view.onMapListener.Destroy()
+	view.onRequestMoveListener.Destroy()
+	view.onRequestResizeListener.Destroy()
 }
 
 type Popup struct {
 	Surface wlr.XDGSurface
 
-	Destroy wlr.Listener
+	onDestroyListener wlr.Listener
 }
 
 func (p *Popup) Release() {
-	p.Destroy.Destroy()
+	p.onDestroyListener.Destroy()
 }
 
 func (server *Server) viewBounds(out *Output, view *View) image.Rectangle {
@@ -157,19 +157,19 @@ func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
 		X:           -1,
 		Y:           -1,
 	}
-	view.Destroy = surface.OnDestroy(func(s wlr.XWaylandSurface) {
+	view.onDestroyListener = surface.OnDestroy(func(s wlr.XWaylandSurface) {
 		server.onDestroyView(&view)
 	})
-	view.Map = surface.OnMap(func(s wlr.XWaylandSurface) {
+	view.onMapListener = surface.OnMap(func(s wlr.XWaylandSurface) {
 		server.onMapView(&view)
 	})
-	view.RequestMove = surface.OnRequestMove(func(s wlr.XWaylandSurface) {
+	view.onRequestMoveListener = surface.OnRequestMove(func(s wlr.XWaylandSurface) {
 		server.startMove(&view)
 	})
-	view.RequestResize = surface.OnRequestResize(func(s wlr.XWaylandSurface, edges wlr.Edges) {
+	view.onRequestResizeListener = surface.OnRequestResize(func(s wlr.XWaylandSurface, edges wlr.Edges) {
 		server.startBorderResize(&view, edges)
 	})
-	view.RequestMinimize = surface.OnRequestMinimize(func(s wlr.XWaylandSurface) {
+	view.onRequestMinimizeListener = surface.OnRequestMinimize(func(s wlr.XWaylandSurface) {
 		server.hideView(&view)
 	})
 
@@ -191,7 +191,7 @@ func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
 	p := Popup{
 		Surface: surface,
 	}
-	p.Destroy = surface.OnDestroy(func(s wlr.XDGSurface) {
+	p.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
 		server.onDestroyPopup(&p)
 	})
 
@@ -222,19 +222,19 @@ func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 		X:           -1,
 		Y:           -1,
 	}
-	view.Destroy = surface.OnDestroy(func(s wlr.XDGSurface) {
+	view.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
 		server.onDestroyView(&view)
 	})
-	view.Map = surface.OnMap(func(s wlr.XDGSurface) {
+	view.onMapListener = surface.OnMap(func(s wlr.XDGSurface) {
 		server.onMapView(&view)
 	})
-	view.RequestMove = surface.TopLevel().OnRequestMove(func(t wlr.XDGTopLevel, client wlr.SeatClient, serial uint32) {
+	view.onRequestMoveListener = surface.TopLevel().OnRequestMove(func(t wlr.XDGTopLevel, client wlr.SeatClient, serial uint32) {
 		server.startMove(&view)
 	})
-	view.RequestResize = surface.TopLevel().OnRequestResize(func(t wlr.XDGTopLevel, client wlr.SeatClient, serial uint32, edges wlr.Edges) {
+	view.onRequestResizeListener = surface.TopLevel().OnRequestResize(func(t wlr.XDGTopLevel, client wlr.SeatClient, serial uint32, edges wlr.Edges) {
 		server.startBorderResize(&view, edges)
 	})
-	view.RequestMinimize = surface.TopLevel().OnRequestMinimize(func(t wlr.XDGTopLevel) {
+	view.onRequestMinimizeListener = surface.TopLevel().OnRequestMinimize(func(t wlr.XDGTopLevel) {
 		server.hideView(&view)
 	})
 

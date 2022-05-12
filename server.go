@@ -45,17 +45,17 @@ type Server struct {
 
 	mainMenu *Menu
 
-	newOutput            wlr.Listener
-	newInput             wlr.Listener
-	cursorMotion         wlr.Listener
-	cursorMotionAbsolute wlr.Listener
-	cursorButton         wlr.Listener
-	cursorAxis           wlr.Listener
-	cursorFrame          wlr.Listener
-	requestCursor        wlr.Listener
-
-	newXDGSurface   wlr.Listener
-	newLayerSurface wlr.Listener
+	onNewOutputListener            wlr.Listener
+	onNewInputListener             wlr.Listener
+	onCursorMotionListener         wlr.Listener
+	onCursorMotionAbsoluteListener wlr.Listener
+	onCursorButtonListener         wlr.Listener
+	onCursorAxisListener           wlr.Listener
+	onCursorFrameListener          wlr.Listener
+	onRequestCursorListener        wlr.Listener
+	onNewXDGSurfaceListener        wlr.Listener
+	onNewXWaylandSurfaceListener   wlr.Listener
+	onNewLayerSurfaceListener      wlr.Listener
 
 	inputMode InputMode
 }

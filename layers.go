@@ -8,13 +8,12 @@ import (
 
 type LayerSurface struct {
 	LayerSurface wlr.LayerSurfaceV1
+	Geo          image.Rectangle
 
-	Destroy       wlr.Listener
-	Map           wlr.Listener
-	SurfaceCommit wlr.Listener
-	OutputDestroy wlr.Listener
-
-	Geo image.Rectangle
+	onDestroyListener       wlr.Listener
+	onMapListener           wlr.Listener
+	onSurfaceCommitListener wlr.Listener
+	onOutputDestroyListener wlr.Listener
 }
 
 func (server *Server) onNewLayerSurface(surface wlr.LayerSurfaceV1) {

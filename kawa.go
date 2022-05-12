@@ -97,7 +97,7 @@ func (server *Server) init() error {
 
 	wlr.CreateGammaControlManagerV1(server.display)
 
-	server.newOutput = server.backend.OnNewOutput(server.onNewOutput)
+	server.onNewOutputListener = server.backend.OnNewOutput(server.onNewOutput)
 
 	server.outputLayout = wlr.CreateOutputLayout()
 	wlr.CreateXDGOutputManagerV1(server.display, server.outputLayout)
@@ -111,25 +111,25 @@ func (server *Server) init() error {
 		server.cursorMgr.Load(float64(c.Scale))
 	}
 
-	server.cursorMotion = server.cursor.OnMotion(server.onCursorMotion)
-	server.cursorMotionAbsolute = server.cursor.OnMotionAbsolute(server.onCursorMotionAbsolute)
-	server.cursorButton = server.cursor.OnButton(server.onCursorButton)
-	server.cursorAxis = server.cursor.OnAxis(server.onCursorAxis)
-	server.cursorFrame = server.cursor.OnFrame(server.onCursorFrame)
+	server.onCursorMotionListener = server.cursor.OnMotion(server.onCursorMotion)
+	server.onCursorMotionAbsoluteListener = server.cursor.OnMotionAbsolute(server.onCursorMotionAbsolute)
+	server.onCursorButtonListener = server.cursor.OnButton(server.onCursorButton)
+	server.onCursorAxisListener = server.cursor.OnAxis(server.onCursorAxis)
+	server.onCursorFrameListener = server.cursor.OnFrame(server.onCursorFrame)
 
-	server.newInput = server.backend.OnNewInput(server.onNewInput)
+	server.onNewInputListener = server.backend.OnNewInput(server.onNewInput)
 
 	server.seat = wlr.CreateSeat(server.display, "seat0")
-	server.requestCursor = server.seat.OnRequestSetCursor(server.onRequestCursor)
+	server.onRequestCursorListener = server.seat.OnRequestSetCursor(server.onRequestCursor)
 
 	server.xdgShell = wlr.CreateXDGShell(server.display)
-	server.newXDGSurface = server.xdgShell.OnNewSurface(server.onNewXDGSurface)
+	server.onNewXDGSurfaceListener = server.xdgShell.OnNewSurface(server.onNewXDGSurface)
 
 	server.layerShell = wlr.CreateLayerShellV1(server.display)
-	server.newLayerSurface = server.layerShell.OnNewSurface(server.onNewLayerSurface)
+	server.onNewLayerSurfaceListener = server.layerShell.OnNewSurface(server.onNewLayerSurface)
 
 	server.xwayland = wlr.CreateXWayland(server.display, server.compositor, false)
-	server.xwayland.OnNewSurface(server.onNewXWaylandSurface)
+	server.onNewXWaylandSurfaceListener = server.xwayland.OnNewSurface(server.onNewXWaylandSurface)
 
 	server.mainMenu = server.createMenu("New", "Resize", "Move", "Delete", "Hide")
 	server.mainMenu.OnSelect = server.selectMainMenu
