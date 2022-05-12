@@ -127,7 +127,7 @@ func (server *Server) init() error {
 	server.layerShell = wlr.CreateLayerShellV1(server.display)
 	server.newLayerSurface = server.layerShell.OnNewSurface(server.onNewLayerSurface)
 
-	server.xwayland = wlr.CreateXWayland(server.display, server.compositor, true)
+	server.xwayland = wlr.CreateXWayland(server.display, server.compositor, false)
 	server.xwayland.OnNewSurface(server.onNewXWaylandSurface)
 
 	server.mainMenu = server.createMenu("New", "Resize", "Move", "Delete", "Hide")
