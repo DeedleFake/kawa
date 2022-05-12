@@ -241,8 +241,6 @@ func (server *Server) addView(view *View) {
 
 		nv.OnStarted(view)
 	}
-
-	server.focusView(view, view.Surface())
 }
 
 func (server *Server) centerViewOnOutput(out *Output, view *View) {
