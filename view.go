@@ -41,9 +41,22 @@ func (view *View) Release() {
 	view.RequestResize.Destroy()
 }
 
+type Popup struct {
+	Surface wlr.XDGSurface
+
+	Destroy wlr.Listener
+}
+
+func (p *Popup) Release() {
+	p.Destroy.Destroy()
+}
+
 func (server *Server) viewBounds(out *Output, view *View) image.Rectangle {
 	var r image.Rectangle
 	view.ForEachSurface(func(s wlr.Surface, sx, sy int) {
+		if server.isPopupSurface(s) {
+			return
+		}
 		r = r.Union(server.surfaceBounds(out, s, view.X+sx, view.Y+sy))
 	})
 	return r
@@ -171,7 +184,32 @@ func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
 }
 
 func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
-	// TODO
+	p := Popup{
+		Surface: surface,
+	}
+	p.Destroy = surface.OnDestroy(func(s wlr.XDGSurface) {
+		server.onDestroyPopup(&p)
+	})
+
+	server.popups = append(server.popups, &p)
+}
+
+func (server *Server) isPopupSurface(surface wlr.Surface) (ok bool) {
+	for _, p := range server.popups {
+		p.Surface.ForEachSurface(func(s wlr.Surface, sx, sy int) {
+			if s == surface {
+				ok = true
+			}
+		})
+	}
+	return ok
+}
+
+func (server *Server) onDestroyPopup(p *Popup) {
+	i := slices.Index(server.popups, p)
+	server.popups = slices.Delete(server.popups, i, i+1)
+
+	p.Release()
 }
 
 func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {

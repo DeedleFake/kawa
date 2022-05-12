@@ -38,6 +38,7 @@ type Server struct {
 	pointers  []wlr.InputDevice
 	keyboards []*Keyboard
 	views     []*View
+	popups    []*Popup
 	newViews  map[int]NewView
 	hidden    []*View
 	bg        wlr.Texture
