@@ -346,16 +346,16 @@ func (server *Server) centerViewOnOutput(out *Output, view *View) {
 }
 
 func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
+	if out == nil {
+		out = server.outputAt(float64(x), float64(y))
+	}
+
 	view.X = x
 	view.Y = y
 
-	if out == nil {
-		out = server.outputAt(float64(x), float64(y))
-		if out == nil {
-			return
-		}
+	if out != nil {
+		view.Surface().SendEnter(out.Output)
 	}
-	view.Surface().SendEnter(out.Output)
 }
 
 func (server *Server) resizeViewTo(out *Output, view *View, r image.Rectangle) {
@@ -372,7 +372,9 @@ func (server *Server) resizeViewTo(out *Output, view *View, r image.Rectangle) {
 	view.Y = r.Min.Y
 	view.Resize(r.Dx(), r.Dy())
 
-	view.Surface().SendEnter(out.Output)
+	if out != nil {
+		view.Surface().SendEnter(out.Output)
+	}
 }
 
 func (server *Server) focusView(view *View, s wlr.Surface) {
