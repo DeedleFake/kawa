@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 
+	"deedles.dev/kawa/tile"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 )
@@ -89,7 +90,7 @@ func (server *Server) targetView() *View {
 	return m.TargetView()
 }
 
-func (server *Server) viewAt(out *Output, x, y float64) (*View, bool, wlr.Edges, wlr.Surface, float64, float64) {
+func (server *Server) viewAt(out *Output, x, y float64) (*View, wlr.Edges, wlr.Surface, float64, float64) {
 	if out == nil {
 		out = server.outputAt(x, y)
 	}
@@ -102,7 +103,7 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, bool, wlr.Edges,
 
 		edges, surface, sx, sy, ok := server.isViewAt(out, view, x, y)
 		if ok {
-			return view, false, edges, surface, sx, sy
+			return view, edges, surface, sx, sy
 		}
 	}
 
@@ -114,11 +115,11 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, bool, wlr.Edges,
 
 		edges, surface, sx, sy, ok := server.isViewAt(out, view, x, y)
 		if ok {
-			return view, true, edges, surface, sx, sy
+			return view, edges, surface, sx, sy
 		}
 	}
 
-	return nil, false, wlr.EdgeNone, wlr.Surface{}, 0, 0
+	return nil, wlr.EdgeNone, wlr.Surface{}, 0, 0
 }
 
 func (server *Server) isViewAt(out *Output, view *View, x, y float64) (wlr.Edges, wlr.Surface, float64, float64, bool) {
@@ -272,6 +273,7 @@ func (server *Server) onDestroyView(view *View) {
 	i = slices.Index(server.tiled, view)
 	if i >= 0 {
 		server.tiled = slices.Delete(server.tiled, i, i+1)
+		server.layoutTiles(nil)
 	}
 
 	// TODO: Figure out why this causes a wlroots assertion failure.
@@ -402,6 +404,10 @@ func (server *Server) viewForSurface(s wlr.Surface) *View {
 }
 
 func (server *Server) bringViewToFront(view *View) {
+	if server.isTiled(view) {
+		return
+	}
+
 	i := slices.Index(server.views, view)
 	server.views = slices.Delete(server.views, i, i+1)
 	server.views = append(server.views, view)
@@ -409,8 +415,16 @@ func (server *Server) bringViewToFront(view *View) {
 
 func (server *Server) hideView(view *View) {
 	i := slices.Index(server.views, view)
-	server.views = slices.Delete(server.views, i, i+1)
+	if i >= 0 {
+		server.views = slices.Delete(server.views, i, i+1)
+	}
+	i = slices.Index(server.tiled, view)
+	if i >= 0 {
+		server.tiled = slices.Delete(server.tiled, i, i+1)
+		server.layoutTiles(nil)
+	}
 
+	// TODO: Remember whether or not a hidden view was tiled.
 	server.hidden = append(server.hidden, view)
 	server.mainMenu.Add(server, view.Title())
 }
@@ -428,12 +442,39 @@ func (server *Server) tileView(view *View) {
 	i := slices.Index(server.views, view)
 	server.views = slices.Delete(server.views, i, i+1)
 	server.tiled = append(server.tiled, view)
+
+	server.layoutTiles(nil)
 }
 
 func (server *Server) untileView(view *View) {
 	i := slices.Index(server.tiled, view)
 	server.tiled = slices.Delete(server.tiled, i, i+1)
 	server.views = append(server.views, view)
+
+	server.layoutTiles(nil)
+}
+
+func (server *Server) layoutTiles(out *Output) {
+	if len(server.tiled) == 0 {
+		return
+	}
+
+	if out == nil {
+		out = server.outputs[0]
+	}
+
+	x, y := server.outputLayout.OutputCoords(out.Output)
+	or := box(int(x), int(y), out.Output.Width(), out.Output.Height())
+
+	tiles := tile.RightThenDown(or, len(server.tiled))
+	for i, tile := range tiles {
+		tile = tile.Inset(3 * WindowBorder)
+		server.resizeViewTo(out, server.tiled[i], tile)
+	}
+}
+
+func (server *Server) isTiled(view *View) bool {
+	return slices.Contains(server.tiled, view)
 }
 
 func (server *Server) closeView(view *View) {

@@ -112,34 +112,34 @@ func (server *Server) selectMainMenu(n int) {
 	case 0: // New
 		server.startNew()
 	case 1: // Resize
-		server.startSelectView(wlr.BtnRight, func(view *View, tiled bool) {
-			if !tiled {
+		server.startSelectView(wlr.BtnRight, func(view *View) {
+			if !server.isTiled(view) {
 				server.startResize(view)
 			}
 		})
 	case 2: // Tile
-		server.startSelectView(wlr.BtnRight, func(view *View, tiled bool) {
+		server.startSelectView(wlr.BtnRight, func(view *View) {
 			defer server.startNormal()
-			if tiled {
+			if server.isTiled(view) {
 				server.untileView(view)
 				return
 			}
 			server.tileView(view)
 		})
 	case 3: // Move
-		server.startSelectView(wlr.BtnRight, func(view *View, tiled bool) {
-			if !tiled {
+		server.startSelectView(wlr.BtnRight, func(view *View) {
+			if !server.isTiled(view) {
 				server.startMove(view)
 			}
 		})
 	case 4: // Delete
-		server.startSelectView(wlr.BtnRight, func(view *View, tiled bool) {
+		server.startSelectView(wlr.BtnRight, func(view *View) {
 			server.closeView(view)
 			server.startNormal()
 		})
 	case 5: // Hide
-		server.startSelectView(wlr.BtnRight, func(view *View, tiled bool) {
-			if !tiled {
+		server.startSelectView(wlr.BtnRight, func(view *View) {
+			if !server.isTiled(view) {
 				server.hideView(view)
 				server.startNormal()
 			}
