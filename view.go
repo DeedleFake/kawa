@@ -27,13 +27,15 @@ var edgeCursors = [...]string{
 
 type View struct {
 	ViewSurface
-	X, Y int
+	X, Y    int
+	Restore image.Rectangle
 
 	onMapListener             wlr.Listener
 	onDestroyListener         wlr.Listener
 	onRequestMoveListener     wlr.Listener
 	onRequestResizeListener   wlr.Listener
 	onRequestMinimizeListener wlr.Listener
+	onRequestMaximizeListener wlr.Listener
 }
 
 func (view *View) Release() {
@@ -192,6 +194,9 @@ func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
 	view.onRequestMinimizeListener = surface.OnRequestMinimize(func(s wlr.XWaylandSurface) {
 		server.hideView(&view)
 	})
+	view.onRequestMaximizeListener = surface.OnRequestMaximize(func(s wlr.XWaylandSurface) {
+		server.toggleViewTiling(&view)
+	})
 
 	server.addView(&view)
 }
@@ -256,6 +261,9 @@ func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 	})
 	view.onRequestMinimizeListener = surface.TopLevel().OnRequestMinimize(func(t wlr.XDGTopLevel) {
 		server.hideView(&view)
+	})
+	view.onRequestMaximizeListener = surface.TopLevel().OnRequestMaximize(func(t wlr.XDGTopLevel) {
+		server.toggleViewTiling(&view)
 	})
 
 	surface.TopLevelSetTiled(wlr.EdgeLeft | wlr.EdgeRight | wlr.EdgeTop | wlr.EdgeBottom)
@@ -378,13 +386,13 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 	}
 	pv := server.viewForSurface(prev)
 	if pv != nil {
-		pv.Activate(false)
+		pv.SetActivated(false)
 	}
 
 	k := server.seat.GetKeyboard()
 	server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
 
-	view.Activate(true)
+	view.SetActivated(true)
 	server.bringViewToFront(view)
 }
 
@@ -404,7 +412,7 @@ func (server *Server) viewForSurface(s wlr.Surface) *View {
 }
 
 func (server *Server) bringViewToFront(view *View) {
-	if server.isTiled(view) {
+	if server.isViewTiled(view) {
 		return
 	}
 
@@ -427,6 +435,7 @@ func (server *Server) hideView(view *View) {
 	// TODO: Remember whether or not a hidden view was tiled.
 	server.hidden = append(server.hidden, view)
 	server.mainMenu.Add(server, view.Title())
+	view.SetMinimized(true)
 }
 
 func (server *Server) unhideView(view *View) {
@@ -436,6 +445,15 @@ func (server *Server) unhideView(view *View) {
 
 	server.views = append(server.views, view)
 	server.focusView(view, view.Surface())
+	view.SetMinimized(false)
+}
+
+func (server *Server) toggleViewTiling(view *View) {
+	if server.isViewTiled(view) {
+		server.untileView(view)
+		return
+	}
+	server.tileView(view)
 }
 
 func (server *Server) tileView(view *View) {
@@ -443,7 +461,10 @@ func (server *Server) tileView(view *View) {
 	server.views = slices.Delete(server.views, i, i+1)
 	server.tiled = append(server.tiled, view)
 
+	view.Restore = box(view.X, view.Y, view.Surface().Current().Width(), view.Surface().Current().Height())
+	view.SetMaximized(true)
 	server.layoutTiles(nil)
+	server.focusView(view, view.Surface())
 }
 
 func (server *Server) untileView(view *View) {
@@ -451,7 +472,10 @@ func (server *Server) untileView(view *View) {
 	server.tiled = slices.Delete(server.tiled, i, i+1)
 	server.views = append(server.views, view)
 
+	server.resizeViewTo(nil, view, view.Restore)
+	view.SetMaximized(false)
 	server.layoutTiles(nil)
+	server.focusView(view, view.Surface())
 }
 
 func (server *Server) layoutTiles(out *Output) {
@@ -473,7 +497,7 @@ func (server *Server) layoutTiles(out *Output) {
 	}
 }
 
-func (server *Server) isTiled(view *View) bool {
+func (server *Server) isViewTiled(view *View) bool {
 	return slices.Contains(server.tiled, view)
 }
 

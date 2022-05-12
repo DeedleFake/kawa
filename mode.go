@@ -58,7 +58,7 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevic
 	default:
 		switch b {
 		case wlr.BtnLeft:
-			if !server.isTiled(view) {
+			if !server.isViewTiled(view) {
 				server.startBorderResize(view, edges)
 			}
 		case wlr.BtnRight:

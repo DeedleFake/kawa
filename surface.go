@@ -14,10 +14,12 @@ type ViewSurface interface {
 	Surface() wlr.Surface
 	Resize(w, h int)
 	SetResizing(bool)
+	SetMinimized(bool)
+	SetMaximized(bool)
 
 	Mapped() bool
-	Activate(bool)
 	Activated() bool
+	SetActivated(bool)
 
 	ForEachSurface(func(wlr.Surface, int, int))
 	SurfaceAt(x, y float64) (s wlr.Surface, sx, sy float64, ok bool)
@@ -60,6 +62,14 @@ func (s *viewSurfaceXDG) SetResizing(resizing bool) {
 	s.s.TopLevelSetResizing(resizing)
 }
 
+func (s *viewSurfaceXDG) SetMinimized(m bool) {
+	// Apparently XDG clients can't be minimized. Huh.
+}
+
+func (s *viewSurfaceXDG) SetMaximized(m bool) {
+	s.s.TopLevelSetMaximized(m)
+}
+
 func (s *viewSurfaceXDG) Surface() wlr.Surface {
 	return s.s.Surface()
 }
@@ -68,7 +78,7 @@ func (s *viewSurfaceXDG) Mapped() bool {
 	return s.s.Mapped()
 }
 
-func (s *viewSurfaceXDG) Activate(a bool) {
+func (s *viewSurfaceXDG) SetActivated(a bool) {
 	s.s.TopLevelSetActivated(a)
 }
 
@@ -119,6 +129,14 @@ func (s *viewSurfaceXWayland) SetResizing(resizing bool) {
 	// Doesn't make sense for XWayland clients, it seems.
 }
 
+func (s *viewSurfaceXWayland) SetMinimized(m bool) {
+	s.s.SetMinimized(m)
+}
+
+func (s *viewSurfaceXWayland) SetMaximized(m bool) {
+	s.s.SetMaximized(m)
+}
+
 func (s *viewSurfaceXWayland) Surface() wlr.Surface {
 	return s.s.Surface()
 }
@@ -127,7 +145,7 @@ func (s *viewSurfaceXWayland) Mapped() bool {
 	return s.s.Mapped()
 }
 
-func (s *viewSurfaceXWayland) Activate(a bool) {
+func (s *viewSurfaceXWayland) SetActivated(a bool) {
 	s.s.Activate(a)
 	s.activated = a
 }
