@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"image"
 	"os"
+	"os/signal"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 
@@ -158,13 +160,40 @@ func (server *Server) run() error {
 	return nil
 }
 
+func profileCPU(path string) {
+	f, err := os.Create(path)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	err = pprof.StartCPUProfile(f)
+	if err != nil {
+		panic(err)
+	}
+	defer pprof.StopCPUProfile()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	defer signal.Stop(c)
+	<-c
+
+	wlr.Log(wlr.Debug, "Writing CPU profile...")
+}
+
 func main() {
 	wlr.InitLog(wlr.Debug, nil)
 
 	term := flag.String("term", "alacritty", "terminal to use when creating a new window")
 	bg := flag.String("bg", "", "background image")
 	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
+	cprof := flag.String("cprof", "", "cpu profile file")
 	flag.Parse()
+
+	if *cprof != "" {
+		wlr.Log(wlr.Debug, "CPU profiling enabled. Send SIGINT to write profile to %q.", *cprof)
+		go profileCPU(*cprof)
+	}
 
 	outputConfigsParsed, err := parseOutputConfigs(*outputConfigs)
 	if err != nil {
