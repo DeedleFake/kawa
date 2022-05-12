@@ -168,11 +168,7 @@ func (view *View) SurfaceAt(x, y float64) (s wlr.Surface, sx, sy float64, ok boo
 		return view.xdg.SurfaceAt(x, y)
 	}
 	if view.xwayland.Valid() {
-		b := box(0, 0, view.xwayland.Width(), view.xwayland.Height())
-		if image.Pt(int(x), int(y)).In(b) {
-			return view.xwayland.Surface(), 0, 0, true
-		}
-		return wlr.Surface{}, 0, 0, false
+		return view.xwayland.Surface().SurfaceAt(x, y)
 	}
 
 	panic("Unsupported surface type.")
