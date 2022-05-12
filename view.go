@@ -28,10 +28,11 @@ type View struct {
 	ViewSurface
 	X, Y int
 
-	Map           wlr.Listener
-	Destroy       wlr.Listener
-	RequestMove   wlr.Listener
-	RequestResize wlr.Listener
+	Map             wlr.Listener
+	Destroy         wlr.Listener
+	RequestMove     wlr.Listener
+	RequestResize   wlr.Listener
+	RequestMinimize wlr.Listener
 }
 
 func (view *View) Release() {
@@ -168,6 +169,9 @@ func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
 	view.RequestResize = surface.OnRequestResize(func(s wlr.XWaylandSurface, edges wlr.Edges) {
 		server.startBorderResize(&view, edges)
 	})
+	view.RequestMinimize = surface.OnRequestMinimize(func(s wlr.XWaylandSurface) {
+		server.hideView(&view)
+	})
 
 	server.addView(&view)
 }
@@ -224,11 +228,14 @@ func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 	view.Map = surface.OnMap(func(s wlr.XDGSurface) {
 		server.onMapView(&view)
 	})
-	view.RequestMove = surface.TopLevel().OnRequestMove(func(client wlr.SeatClient, serial uint32) {
+	view.RequestMove = surface.TopLevel().OnRequestMove(func(t wlr.XDGTopLevel, client wlr.SeatClient, serial uint32) {
 		server.startMove(&view)
 	})
-	view.RequestResize = surface.TopLevel().OnRequestResize(func(client wlr.SeatClient, serial uint32, edges wlr.Edges) {
+	view.RequestResize = surface.TopLevel().OnRequestResize(func(t wlr.XDGTopLevel, client wlr.SeatClient, serial uint32, edges wlr.Edges) {
 		server.startBorderResize(&view, edges)
+	})
+	view.RequestMinimize = surface.TopLevel().OnRequestMinimize(func(t wlr.XDGTopLevel) {
+		server.hideView(&view)
 	})
 
 	surface.TopLevelSetTiled(wlr.EdgeLeft | wlr.EdgeRight | wlr.EdgeTop | wlr.EdgeBottom)
