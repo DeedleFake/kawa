@@ -72,11 +72,11 @@ func (server *Server) run() error {
 	server.inputMode = &inputModeNormal{}
 
 	server.display = wlr.CreateDisplay()
-	defer server.display.Destroy()
-	defer server.display.DestroyClients()
+	//defer server.display.Destroy()
+	//defer server.display.DestroyClients()
 
 	server.backend = wlr.AutocreateBackend(server.display)
-	defer server.backend.Destroy()
+	//defer server.backend.Destroy()
 
 	server.renderer = wlr.AutocreateRenderer(server.backend)
 	server.allocator = wlr.AutocreateAllocator(server.backend, server.renderer)
