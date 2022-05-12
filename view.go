@@ -25,16 +25,13 @@ var edgeCursors = [...]string{
 }
 
 type View struct {
-	X, Y          int
+	ViewSurface
+	X, Y int
+
 	Map           wlr.Listener
 	Destroy       wlr.Listener
 	RequestMove   wlr.Listener
 	RequestResize wlr.Listener
-
-	xdg      wlr.XDGSurface
-	xwayland wlr.XWaylandSurface
-
-	activated bool
 }
 
 func (view *View) Release() {
@@ -42,136 +39,6 @@ func (view *View) Release() {
 	view.Map.Destroy()
 	view.RequestMove.Destroy()
 	view.RequestResize.Destroy()
-}
-
-func (view *View) PID() int {
-	if view.xdg.Valid() {
-		client := view.xdg.Resource().GetClient()
-		pid, _, _ := client.GetCredentials()
-		return pid
-	}
-	if view.xwayland.Valid() {
-		return -1 // Doesn't seem to be possible to find out.
-	}
-
-	panic("Unsupported surface type.")
-}
-
-func (view *View) HasSurface(surface wlr.Surface) (has bool) {
-	view.ForEachSurface(func(s wlr.Surface, x, y int) {
-		if s == surface {
-			has = true
-		}
-	})
-	return has
-}
-
-func (view *View) Close() {
-	if view.xdg.Valid() {
-		view.xdg.SendClose()
-		return
-	}
-	if view.xwayland.Valid() {
-		view.xwayland.Close()
-		return
-	}
-
-	panic("Unsupported surface type.")
-}
-
-func (view *View) Title() string {
-	if view.xdg.Valid() {
-		return view.xdg.TopLevel().Title()
-	}
-	if view.xwayland.Valid() {
-		return view.xwayland.Title()
-	}
-
-	panic("Unsupported surface type.")
-}
-
-func (view *View) Resize(w, h uint32) {
-	if view.xdg.Valid() {
-		view.xdg.TopLevelSetSize(w, h)
-		return
-	}
-	if view.xwayland.Valid() {
-		view.xwayland.Configure(0, 0, uint16(w), uint16(h))
-		return
-	}
-
-	panic("Unsupported surface type.")
-}
-
-func (view *View) Surface() wlr.Surface {
-	if view.xdg.Valid() {
-		return view.xdg.Surface()
-	}
-	if view.xwayland.Valid() {
-		return view.xwayland.Surface()
-	}
-
-	panic("Unsupported surface type.")
-}
-
-func (view *View) Mapped() bool {
-	if view.xdg.Valid() {
-		return view.xdg.Mapped()
-	}
-	if view.xwayland.Valid() {
-		return view.xwayland.Mapped()
-	}
-
-	panic("Unsupported surface type.")
-}
-
-func (view *View) Activate(a bool) {
-	if view.xdg.Valid() {
-		view.xdg.TopLevelSetActivated(a)
-		return
-	}
-	if view.xwayland.Valid() {
-		view.xwayland.Activate(a)
-		view.activated = a
-		return
-	}
-
-	panic("Unsupported surface type.")
-}
-
-func (view *View) Activated() bool {
-	if view.xdg.Valid() {
-		return view.xdg.TopLevel().Current().Activated()
-	}
-	if view.xwayland.Valid() {
-		return view.activated
-	}
-
-	panic("Unsupported surface type.")
-}
-
-func (view *View) ForEachSurface(cb func(wlr.Surface, int, int)) {
-	if view.xdg.Valid() {
-		view.xdg.ForEachSurface(cb)
-		return
-	}
-	if view.xwayland.Valid() {
-		cb(view.xwayland.Surface(), 0, 0)
-		return
-	}
-
-	panic("Unsupported surface type.")
-}
-
-func (view *View) SurfaceAt(x, y float64) (s wlr.Surface, sx, sy float64, ok bool) {
-	if view.xdg.Valid() {
-		return view.xdg.SurfaceAt(x, y)
-	}
-	if view.xwayland.Valid() {
-		return view.xwayland.Surface().SurfaceAt(x, y)
-	}
-
-	panic("Unsupported surface type.")
 }
 
 func (server *Server) viewBounds(out *Output, view *View) image.Rectangle {
@@ -269,9 +136,9 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, wlr.Edges, wlr.S
 
 func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
 	view := View{
-		X:        -1,
-		Y:        -1,
-		xwayland: surface,
+		ViewSurface: &viewSurfaceXWayland{s: surface},
+		X:           -1,
+		Y:           -1,
 	}
 	view.Destroy = surface.OnDestroy(func(s wlr.XWaylandSurface) {
 		server.onDestroyView(&view)
@@ -304,9 +171,9 @@ func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
 
 func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 	view := View{
-		X:   -1,
-		Y:   -1,
-		xdg: surface,
+		ViewSurface: &viewSurfaceXDG{s: surface},
+		X:           -1,
+		Y:           -1,
 	}
 	view.Destroy = surface.OnDestroy(func(s wlr.XDGSurface) {
 		server.onDestroyView(&view)
@@ -367,10 +234,8 @@ func (server *Server) addView(view *View) {
 
 		view.X = nv.To.Min.X
 		view.Y = nv.To.Min.Y
-		view.Resize(
-			uint32(nv.To.Dx()),
-			uint32(nv.To.Dy()),
-		)
+		view.Resize(nv.To.Dx(), nv.To.Dy())
+
 		nv.OnStarted(view)
 	}
 }
@@ -409,7 +274,7 @@ func (server *Server) resizeViewTo(out *Output, view *View, r image.Rectangle) {
 
 	view.X = r.Min.X
 	view.Y = r.Min.Y
-	view.Resize(uint32(r.Dx()), uint32(r.Dy()))
+	view.Resize(r.Dx(), r.Dy())
 
 	if out == nil {
 		out = server.outputAt(float64(view.X), float64(view.Y))
