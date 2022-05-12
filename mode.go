@@ -118,6 +118,7 @@ func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
 }
 
 func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from image.Rectangle) {
+	view.SetResizing(true)
 	server.focusView(view, view.Surface())
 	server.inputMode = &inputModeBorderResize{
 		view:  view,
@@ -182,6 +183,7 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 }
 
 func (m *inputModeBorderResize) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+	m.view.SetResizing(false)
 	server.startNormal()
 }
 

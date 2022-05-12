@@ -13,6 +13,7 @@ type ViewSurface interface {
 	PID() int
 	Surface() wlr.Surface
 	Resize(w, h int)
+	SetResizing(bool)
 
 	Mapped() bool
 	Activate(bool)
@@ -53,6 +54,10 @@ func (s *viewSurfaceXDG) Title() string {
 
 func (s *viewSurfaceXDG) Resize(w, h int) {
 	s.s.TopLevelSetSize(uint32(w), uint32(h))
+}
+
+func (s *viewSurfaceXDG) SetResizing(resizing bool) {
+	s.s.TopLevelSetResizing(resizing)
 }
 
 func (s *viewSurfaceXDG) Surface() wlr.Surface {
@@ -108,6 +113,10 @@ func (s *viewSurfaceXWayland) Title() string {
 
 func (s *viewSurfaceXWayland) Resize(w, h int) {
 	s.s.Configure(0, 0, uint16(w), uint16(h))
+}
+
+func (s *viewSurfaceXWayland) SetResizing(resizing bool) {
+	// Doesn't make sense for XWayland clients, it seems.
 }
 
 func (s *viewSurfaceXWayland) Surface() wlr.Surface {
