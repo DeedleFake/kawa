@@ -160,12 +160,14 @@ func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
 }
 
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
-	if surface.Role() != wlr.XDGSurfaceRoleTopLevel {
+	switch surface.Role() {
+	case wlr.XDGSurfaceRoleTopLevel:
+		server.addXDGTopLevel(surface)
+	case wlr.XDGSurfaceRolePopup:
 		server.addXDGPopup(surface)
-		return
+	case wlr.XDGSurfaceRoleNone:
+		// TODO
 	}
-
-	server.addXDGTopLevel(surface)
 }
 
 func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
