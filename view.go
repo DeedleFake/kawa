@@ -210,6 +210,21 @@ func (server *Server) onDestroyView(view *View) {
 }
 
 func (server *Server) onMapView(view *View) {
+	pid := view.PID()
+
+	nv, ok := server.newViews[pid]
+	if ok {
+		delete(server.newViews, pid)
+
+		server.resizeViewTo(nil, view, *nv.To)
+
+		if nv.OnStarted != nil {
+			nv.OnStarted(view)
+		}
+
+		return
+	}
+
 	out := server.outputAt(server.cursor.X(), server.cursor.Y())
 	if out == nil {
 		if len(server.outputs) == 0 {
@@ -229,19 +244,9 @@ func (server *Server) onMapView(view *View) {
 func (server *Server) addView(view *View) {
 	server.views = append(server.views, view)
 
-	pid := view.PID()
-
-	nv, ok := server.newViews[pid]
+	nv, ok := server.newViews[view.PID()]
 	if ok {
-		delete(server.newViews, pid)
-
-		view.X = nv.To.Min.X
-		view.Y = nv.To.Min.Y
 		view.Resize(nv.To.Dx(), nv.To.Dy())
-
-		if nv.OnStarted != nil {
-			nv.OnStarted(view)
-		}
 	}
 }
 
@@ -272,6 +277,10 @@ func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
 }
 
 func (server *Server) resizeViewTo(out *Output, view *View, r image.Rectangle) {
+	if out == nil {
+		out = server.outputAt(float64(r.Min.X), float64(r.Min.Y))
+	}
+
 	vb := server.viewBounds(out, view)
 	sb := server.surfaceBounds(out, view.Surface(), view.X, view.Y)
 	off := sb.Min.Sub(vb.Min)
@@ -281,9 +290,6 @@ func (server *Server) resizeViewTo(out *Output, view *View, r image.Rectangle) {
 	view.Y = r.Min.Y
 	view.Resize(r.Dx(), r.Dy())
 
-	if out == nil {
-		out = server.outputAt(float64(view.X), float64(view.Y))
-	}
 	view.Surface().SendEnter(out.Output)
 }
 
