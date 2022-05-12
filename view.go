@@ -441,7 +441,7 @@ func (server *Server) hideView(view *View) {
 func (server *Server) unhideView(view *View) {
 	i := slices.Index(server.hidden, view)
 	server.hidden = slices.Delete(server.hidden, i, i+1)
-	server.mainMenu.Remove(5 + i)
+	server.mainMenu.Remove(6 + i)
 
 	server.views = append(server.views, view)
 	server.focusView(view, view.Surface())
