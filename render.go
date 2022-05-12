@@ -38,6 +38,10 @@ func (server *Server) onFrame(out *Output) {
 }
 
 func (server *Server) renderBG(out *Output, t time.Time) {
+	if !server.bg.Valid() {
+		return
+	}
+
 	m := wlr.ProjectBoxMatrix(
 		box(0, 0, out.Output.Width(), out.Output.Height()),
 		wlr.OutputTransformNormal,
