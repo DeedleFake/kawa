@@ -325,11 +325,10 @@ func (server *Server) onDestroyView(view *View) {
 		server.layoutTiles(nil)
 	}
 
-	// TODO: Figure out why this causes a wlroots assertion failure.
-	//if len(server.views) != 0 {
-	//	n := server.views[len(server.views)-1]
-	//	server.focusView(n, n.Surface())
-	//}
+	if len(server.views) != 0 {
+		n := server.views[len(server.views)-1]
+		server.focusView(n, n.Surface())
+	}
 }
 
 func (server *Server) onMapView(view *View) {
