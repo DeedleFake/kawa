@@ -45,6 +45,11 @@ func (view *View) Release() {
 	view.onRequestResizeListener.Destroy()
 }
 
+type NewView struct {
+	To        *image.Rectangle
+	OnStarted func(*View)
+}
+
 type Popup struct {
 	Surface wlr.XDGSurface
 
@@ -53,6 +58,16 @@ type Popup struct {
 
 func (p *Popup) Release() {
 	p.onDestroyListener.Destroy()
+}
+
+type Decoration struct {
+	Decoration wlr.ServerDecoration
+
+	onDestroyListener wlr.Listener
+}
+
+func (d *Decoration) Release() {
+	d.onDestroyListener.Destroy()
 }
 
 func (server *Server) viewBounds(out *Output, view *View) image.Rectangle {
@@ -234,8 +249,25 @@ func (server *Server) isPopupSurface(surface wlr.Surface) (ok bool) {
 				ok = true
 			}
 		})
+		if ok {
+			return true
+		}
 	}
-	return ok
+	return false
+}
+
+func (server *Server) isCSDSurface(surface wlr.Surface) (ok bool) {
+	for _, d := range server.decorations {
+		d.Decoration.Surface().ForEachSurface(func(s wlr.Surface, sx, sy int) {
+			if s == surface {
+				ok = true
+			}
+		})
+		if ok {
+			return d.Decoration.Mode() == wlr.ServerDecorationManagerModeClient
+		}
+	}
+	return false
 }
 
 func (server *Server) onDestroyPopup(p *Popup) {
@@ -511,4 +543,20 @@ func (server *Server) isViewTiled(view *View) bool {
 
 func (server *Server) closeView(view *View) {
 	view.Close()
+}
+
+func (server *Server) onNewDecoration(dm wlr.ServerDecorationManager, d wlr.ServerDecoration) {
+	deco := Decoration{
+		Decoration: d,
+	}
+	deco.onDestroyListener = d.OnDestroy(func(d wlr.ServerDecoration) {
+		server.onDestroyDecoration(&deco)
+	})
+
+	server.decorations = append(server.decorations, &deco)
+}
+
+func (server *Server) onDestroyDecoration(d *Decoration) {
+	i := slices.Index(server.decorations, d)
+	server.decorations = slices.Delete(server.decorations, i, i+1)
 }

@@ -21,28 +21,30 @@ type Server struct {
 
 	display wlr.Display
 
-	allocator    wlr.Allocator
-	backend      wlr.Backend
-	compositor   wlr.Compositor
-	cursor       wlr.Cursor
-	outputLayout wlr.OutputLayout
-	renderer     wlr.Renderer
-	seat         wlr.Seat
-	cursorMgr    wlr.XCursorManager
-	xdgShell     wlr.XDGShell
-	layerShell   wlr.LayerShellV1
-	xwayland     wlr.XWayland
+	allocator         wlr.Allocator
+	backend           wlr.Backend
+	compositor        wlr.Compositor
+	cursor            wlr.Cursor
+	outputLayout      wlr.OutputLayout
+	renderer          wlr.Renderer
+	seat              wlr.Seat
+	cursorMgr         wlr.XCursorManager
+	xdgShell          wlr.XDGShell
+	layerShell        wlr.LayerShellV1
+	xwayland          wlr.XWayland
+	decorationManager wlr.ServerDecorationManager
 
-	outputs   []*Output
-	inputs    []wlr.InputDevice
-	pointers  []wlr.InputDevice
-	keyboards []*Keyboard
-	views     []*View
-	popups    []*Popup
-	newViews  map[int]NewView
-	tiled     []*View
-	hidden    []*View
-	bg        wlr.Texture
+	outputs     []*Output
+	inputs      []wlr.InputDevice
+	pointers    []wlr.InputDevice
+	keyboards   []*Keyboard
+	views       []*View
+	tiled       []*View
+	hidden      []*View
+	newViews    map[int]NewView
+	popups      []*Popup
+	decorations []*Decoration
+	bg          wlr.Texture
 
 	mainMenu *Menu
 
@@ -57,13 +59,9 @@ type Server struct {
 	onNewXDGSurfaceListener        wlr.Listener
 	onNewXWaylandSurfaceListener   wlr.Listener
 	onNewLayerSurfaceListener      wlr.Listener
+	onNewDecorationListener        wlr.Listener
 
 	inputMode InputMode
-}
-
-type NewView struct {
-	To        *image.Rectangle
-	OnStarted func(*View)
 }
 
 func (server *Server) loadBG(path string) {

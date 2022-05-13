@@ -131,6 +131,10 @@ func (server *Server) init() error {
 	server.xwayland = wlr.CreateXWayland(server.display, server.compositor, false)
 	server.onNewXWaylandSurfaceListener = server.xwayland.OnNewSurface(server.onNewXWaylandSurface)
 
+	server.decorationManager = wlr.CreateServerDecorationManager(server.display)
+	server.decorationManager.SetDefaultMode(wlr.ServerDecorationManagerModeServer)
+	server.onNewDecorationListener = server.decorationManager.OnNewDecoration(server.onNewDecoration)
+
 	server.mainMenu = server.createMenu("New", "Resize", "Tile", "Move", "Delete", "Hide")
 	server.mainMenu.OnSelect = server.selectMainMenu
 
