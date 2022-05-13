@@ -141,7 +141,7 @@ func (server *Server) init() error {
 	server.decorationManager.SetDefaultMode(wlr.ServerDecorationManagerModeServer)
 	server.onNewDecorationListener = server.decorationManager.OnNewDecoration(server.onNewDecoration)
 
-	server.mainMenu = server.createMenu("New", "Resize", "Tile", "Move", "Close", "Hide")
+	server.mainMenu = server.createMenu(mainMenuItems...)
 	server.mainMenu.OnSelect = server.selectMainMenu
 
 	server.startNormal()

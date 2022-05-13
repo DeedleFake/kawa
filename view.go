@@ -494,7 +494,7 @@ func (server *Server) hideView(view *View) {
 func (server *Server) unhideView(view *View) {
 	i := slices.Index(server.hidden, view)
 	server.hidden = slices.Delete(server.hidden, i, i+1)
-	server.mainMenu.Remove(6 + i)
+	server.mainMenu.Remove(len(mainMenuItems) + i)
 
 	server.views = append(server.views, view)
 	server.focusView(view, view.Surface())
@@ -612,7 +612,7 @@ func (server *Server) isCSDSurface(surface wlr.Surface) (ok bool) {
 func (server *Server) updateTitles() {
 	// Not the best way to do this, perhaps...
 	for _, view := range server.hidden {
-		server.mainMenu.Remove(5)
+		server.mainMenu.Remove(len(mainMenuItems))
 		server.mainMenu.Add(server, view.Title())
 	}
 }

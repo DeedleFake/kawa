@@ -15,6 +15,17 @@ const (
 	WindowBorder = 5
 )
 
+var (
+	mainMenuItems = []string{
+		"New",
+		"Resize",
+		"Tile",
+		"Move",
+		"Close",
+		"Hide",
+	}
+)
+
 type Server struct {
 	Term          []string
 	OutputConfigs []OutputConfig
@@ -141,6 +152,6 @@ func (server *Server) selectMainMenu(n int) {
 			server.startNormal()
 		})
 	default:
-		server.unhideView(server.hidden[n-6])
+		server.unhideView(server.hidden[n-len(mainMenuItems)])
 	}
 }
