@@ -97,31 +97,33 @@ func (server *Server) viewAt(out *Output, x, y float64) (*View, wlr.Edges, wlr.S
 		out = server.outputAt(x, y)
 	}
 
-	for i := len(server.views) - 1; i >= 0; i-- {
-		view := server.views[i]
-		if !view.Mapped() {
-			continue
-		}
-
-		edges, surface, sx, sy, ok := server.isViewAt(out, view, x, y)
-		if ok {
-			return view, edges, surface, sx, sy
-		}
+	i, edges, surface, sx, sy := server.viewIndexAt(out, server.views, x, y)
+	if i >= 0 {
+		return server.views[i], edges, surface, sx, sy
 	}
 
-	for i := len(server.tiled) - 1; i >= 0; i-- {
-		view := server.tiled[i]
-		if !view.Mapped() {
-			continue
-		}
-
-		edges, surface, sx, sy, ok := server.isViewAt(out, view, x, y)
-		if ok {
-			return view, edges, surface, sx, sy
-		}
+	i, edges, surface, sx, sy = server.viewIndexAt(out, server.tiled, x, y)
+	if i >= 0 {
+		return server.tiled[i], edges, surface, sx, sy
 	}
 
 	return nil, wlr.EdgeNone, wlr.Surface{}, 0, 0
+}
+
+func (server *Server) viewIndexAt(out *Output, views []*View, x, y float64) (int, wlr.Edges, wlr.Surface, float64, float64) {
+	for i := len(views) - 1; i >= 0; i-- {
+		view := views[i]
+		if !view.Mapped() {
+			continue
+		}
+
+		edges, surface, sx, sy, ok := server.isViewAt(out, view, x, y)
+		if ok {
+			return i, edges, surface, sx, sy
+		}
+	}
+
+	return -1, 0, wlr.Surface{}, 0, 0
 }
 
 func (server *Server) isViewAt(out *Output, view *View, x, y float64) (wlr.Edges, wlr.Surface, float64, float64, bool) {

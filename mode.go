@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"deedles.dev/wlr"
+	"golang.org/x/exp/slices"
 )
 
 type InputMode interface{}
@@ -78,8 +79,6 @@ func (m *inputModeNormal) RequestCursor(server *Server, s wlr.Surface, x, y int)
 type inputModeMove struct {
 	view *View
 	off  image.Point
-	b    image.Rectangle
-	boff image.Point
 }
 
 func (server *Server) startMove(view *View) {
@@ -87,38 +86,31 @@ func (server *Server) startMove(view *View) {
 	server.focusView(view, view.Surface())
 
 	x, y := server.cursor.X(), server.cursor.Y()
-	b := server.viewBounds(nil, view)
-	boff := b.Min.Sub(image.Pt(view.X, view.Y))
 	server.inputMode = &inputModeMove{
 		view: view,
 		off:  image.Pt(int(x)-view.X, int(y)-view.Y),
-		b:    b,
-		boff: boff,
 	}
 }
 
 func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 	x, y := server.cursor.X(), server.cursor.Y()
 
-	p := image.Pt(int(x), int(y)).Sub(m.off)
 	if !server.isViewTiled(m.view) {
+		p := image.Pt(int(x), int(y)).Sub(m.off)
 		server.moveViewTo(nil, m.view, p.X, p.Y)
 		return
 	}
 
-	m.b = box(p.X, p.Y, m.b.Dx(), m.b.Dy()).Add(m.boff)
+	i, _, _, _, _ := server.viewIndexAt(nil, server.tiled, x, y)
+	if i >= 0 {
+		vi := slices.Index(server.tiled, m.view)
+		server.tiled[i], server.tiled[vi] = server.tiled[vi], server.tiled[i]
+		server.layoutTiles(nil)
+	}
 }
 
 func (m *inputModeMove) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	server.startNormal()
-}
-
-func (m *inputModeMove) Frame(server *Server, out *Output, t time.Time) {
-	if !server.isViewTiled(m.view) {
-		return
-	}
-
-	server.renderSelectionBox(out, m.b.Inset(-WindowBorder), t)
 }
 
 func (m *inputModeMove) TargetView() *View {
