@@ -436,12 +436,17 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 
 func (server *Server) viewForSurface(s wlr.Surface) *View {
 	for _, view := range server.views {
-		if view.HasSurface(s) {
+		if view.Mapped() && view.HasSurface(s) {
+			return view
+		}
+	}
+	for _, view := range server.tiled {
+		if view.Mapped() && view.HasSurface(s) {
 			return view
 		}
 	}
 	for _, view := range server.hidden {
-		if view.HasSurface(s) {
+		if view.Mapped() && view.HasSurface(s) {
 			return view
 		}
 	}
