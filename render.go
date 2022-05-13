@@ -75,7 +75,7 @@ func (server *Server) renderViews(out *Output, t time.Time) {
 }
 
 func (server *Server) renderView(out *Output, view *View, t time.Time) {
-	if !server.isCSDSurface(view.Surface()) {
+	if !view.CSD {
 		server.renderViewBorder(out, view, t)
 	}
 	server.renderViewSurfaces(out, view, t)

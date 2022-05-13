@@ -30,6 +30,7 @@ type View struct {
 	ViewSurface
 	X, Y    int
 	Restore image.Rectangle
+	CSD     bool
 
 	onMapListener             wlr.Listener
 	onDestroyListener         wlr.Listener
@@ -65,10 +66,12 @@ type Decoration struct {
 	Decoration wlr.ServerDecoration
 
 	onDestroyListener wlr.Listener
+	onModeListener    wlr.Listener
 }
 
 func (d *Decoration) Release() {
 	d.onDestroyListener.Destroy()
+	d.onModeListener.Destroy()
 }
 
 func (server *Server) viewBounds(out *Output, view *View) image.Rectangle {
@@ -149,7 +152,7 @@ func (server *Server) isViewAt(out *Output, view *View, x, y float64) (edges wlr
 	}
 
 	// Don't bother checking the borders if there aren't any.
-	if server.isCSDSurface(view.Surface()) {
+	if view.CSD {
 		return 0, wlr.Surface{}, 0, 0, false
 	}
 
@@ -365,6 +368,7 @@ func (server *Server) onMapView(view *View) {
 
 func (server *Server) addView(view *View) {
 	server.views = append(server.views, view)
+	server.updateCSDs()
 
 	nv, ok := server.newViews[view.PID()]
 	if ok {
@@ -554,11 +558,25 @@ func (server *Server) onNewDecoration(dm wlr.ServerDecorationManager, d wlr.Serv
 	deco.onDestroyListener = d.OnDestroy(func(d wlr.ServerDecoration) {
 		server.onDestroyDecoration(&deco)
 	})
+	deco.onModeListener = d.OnMode(func(d wlr.ServerDecoration) {
+		server.updateCSDs()
+	})
 
 	server.decorations = append(server.decorations, &deco)
+	server.updateCSDs()
 }
 
 func (server *Server) onDestroyDecoration(d *Decoration) {
 	i := slices.Index(server.decorations, d)
 	server.decorations = slices.Delete(server.decorations, i, i+1)
+	server.updateCSDs()
+}
+
+func (server *Server) updateCSDs() {
+	for _, view := range server.views {
+		view.CSD = server.isCSDSurface(view.Surface())
+	}
+	for _, view := range server.tiled {
+		view.CSD = server.isCSDSurface(view.Surface())
+	}
 }
