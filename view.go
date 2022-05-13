@@ -141,10 +141,15 @@ func (server *Server) viewIndexAt(out *Output, views []*View, x, y float64) (int
 	return -1, 0, wlr.Surface{}, 0, 0
 }
 
-func (server *Server) isViewAt(out *Output, view *View, x, y float64) (wlr.Edges, wlr.Surface, float64, float64, bool) {
+func (server *Server) isViewAt(out *Output, view *View, x, y float64) (edges wlr.Edges, s wlr.Surface, sx, sy float64, ok bool) {
 	surface, sx, sy, ok := view.SurfaceAt(x-float64(view.X), y-float64(view.Y))
 	if ok {
 		return wlr.EdgeNone, surface, sx, sy, true
+	}
+
+	// Don't bother checking the borders if there aren't any.
+	if server.isCSDSurface(view.Surface()) {
+		return 0, wlr.Surface{}, 0, 0, false
 	}
 
 	p := image.Pt(int(x), int(y))
