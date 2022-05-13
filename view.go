@@ -470,9 +470,9 @@ func (server *Server) tileView(view *View) {
 	server.tiled = append(server.tiled, view)
 
 	view.Restore = box(view.X, view.Y, view.Surface().Current().Width(), view.Surface().Current().Height())
-	view.SetMaximized(true)
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())
+	view.SetMaximized(true)
 }
 
 func (server *Server) untileView(view *View) {
@@ -481,9 +481,9 @@ func (server *Server) untileView(view *View) {
 	server.views = append(server.views, view)
 
 	server.resizeViewTo(nil, view, view.Restore)
-	view.SetMaximized(false)
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())
+	view.SetMaximized(false)
 }
 
 func (server *Server) layoutTiles(out *Output) {
