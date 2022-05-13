@@ -309,8 +309,6 @@ func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 		server.toggleViewTiling(&view)
 	})
 
-	surface.TopLevelSetTiled(wlr.EdgeLeft | wlr.EdgeRight | wlr.EdgeTop | wlr.EdgeBottom)
-
 	server.addView(&view)
 }
 
