@@ -24,7 +24,7 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 	x, y := server.cursor.X(), server.cursor.Y()
 
 	view, edges, surface, sx, sy := server.viewAt(nil, x, y)
-	if edges != m.prevEdges {
+	if (edges != m.prevEdges) && !server.isViewTiled(view) {
 		server.setCursor(edgeCursors[edges])
 		m.prevEdges = edges
 	}
