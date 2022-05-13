@@ -17,10 +17,13 @@ import (
 	"deedles.dev/wlr"
 )
 
+// box creates a new rectangle with a top-left corner at the given
+// coordinates and the given width and height.
 func box(x, y, w, h int) image.Rectangle {
 	return image.Rect(x, y, x+w, y+h)
 }
 
+// parseTransform parses an OutputTransform from a string.
 func parseTransform(str string) (wlr.OutputTransform, error) {
 	switch str {
 	case "normal", "0":
@@ -44,6 +47,7 @@ func parseTransform(str string) (wlr.OutputTransform, error) {
 	}
 }
 
+// parseOutputConfigs parses an OutputConfig from a string.
 func parseOutputConfigs(outputConfigs string) (configs []OutputConfig, err error) {
 	if outputConfigs == "" {
 		return
@@ -73,6 +77,8 @@ func parseOutputConfigs(outputConfigs string) (configs []OutputConfig, err error
 	return configs, nil
 }
 
+// init initializes the boilerplate necessary to get wlroots up and
+// running, as well as a few other pieces of initialization.
 func (server *Server) init() error {
 	server.newViews = make(map[int]NewView)
 
@@ -143,6 +149,8 @@ func (server *Server) init() error {
 	return nil
 }
 
+// run runs the server's main loop. It does not return unless there is
+// an error, but it probably should eventually.
 func (server *Server) run() error {
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {
@@ -165,6 +173,9 @@ func (server *Server) run() error {
 	return nil
 }
 
+// profileCPU writes profiling information to the file at path. This
+// function intercepts SIGINT and will not return until that signal
+// intercepted.
 func profileCPU(path string) {
 	defer wlr.Log(wlr.Debug, "CPU profile written to: %q", path)
 
