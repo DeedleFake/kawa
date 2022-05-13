@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 
+	"deedles.dev/kawa/internal/util"
 	"deedles.dev/kawa/tile"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
@@ -325,8 +326,7 @@ func (server *Server) onDestroyView(view *View) {
 		server.layoutTiles(nil)
 	}
 
-	if len(server.views) != 0 {
-		n := server.views[len(server.views)-1]
+	if n, ok := util.Last(server.tiled, server.views); ok {
 		server.focusView(n, n.Surface())
 	}
 }
