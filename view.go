@@ -492,11 +492,18 @@ func (server *Server) toggleViewTiling(view *View) {
 }
 
 func (server *Server) tileView(view *View) {
+	if !view.Mapped() {
+		return
+	}
+
 	i := slices.Index(server.views, view)
 	server.views = slices.Delete(server.views, i, i+1)
 	server.tiled = append(server.tiled, view)
 
-	view.Restore = box(view.X, view.Y, view.Surface().Current().Width(), view.Surface().Current().Height())
+	view.Restore = box(10, 10, 640, 480)
+	if s := view.Surface(); s.Valid() {
+		view.Restore = box(view.X, view.Y, s.Current().Width(), s.Current().Height())
+	}
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())
 	view.SetMaximized(true)
