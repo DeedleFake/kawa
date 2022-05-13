@@ -76,8 +76,10 @@ func (m *inputModeNormal) RequestCursor(server *Server, s wlr.Surface, x, y int)
 }
 
 type inputModeMove struct {
-	view   *View
-	ox, oy float64
+	view *View
+	off  image.Point
+	b    image.Rectangle
+	boff image.Point
 }
 
 func (server *Server) startMove(view *View) {
@@ -85,20 +87,38 @@ func (server *Server) startMove(view *View) {
 	server.focusView(view, view.Surface())
 
 	x, y := server.cursor.X(), server.cursor.Y()
+	b := server.viewBounds(nil, view)
+	boff := b.Min.Sub(image.Pt(view.X, view.Y))
 	server.inputMode = &inputModeMove{
 		view: view,
-		ox:   x - float64(view.X),
-		oy:   y - float64(view.Y),
+		off:  image.Pt(int(x)-view.X, int(y)-view.Y),
+		b:    b,
+		boff: boff,
 	}
 }
 
 func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 	x, y := server.cursor.X(), server.cursor.Y()
-	server.moveViewTo(nil, m.view, int(x-m.ox), int(y-m.oy))
+
+	p := image.Pt(int(x), int(y)).Sub(m.off)
+	if !server.isViewTiled(m.view) {
+		server.moveViewTo(nil, m.view, p.X, p.Y)
+		return
+	}
+
+	m.b = box(p.X, p.Y, m.b.Dx(), m.b.Dy()).Add(m.boff)
 }
 
 func (m *inputModeMove) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	server.startNormal()
+}
+
+func (m *inputModeMove) Frame(server *Server, out *Output, t time.Time) {
+	if !server.isViewTiled(m.view) {
+		return
+	}
+
+	server.renderSelectionBox(out, m.b.Inset(-WindowBorder), t)
 }
 
 func (m *inputModeMove) TargetView() *View {

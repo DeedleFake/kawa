@@ -130,11 +130,7 @@ func (server *Server) selectMainMenu(n int) {
 		})
 	case 3: // Move
 		server.startSelectView(wlr.BtnRight, func(view *View) {
-			if !server.isViewTiled(view) {
-				server.startMove(view)
-				return
-			}
-			server.startNormal()
+			server.startMove(view)
 		})
 	case 4: // Delete
 		server.startSelectView(wlr.BtnRight, func(view *View) {

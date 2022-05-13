@@ -189,7 +189,9 @@ func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
 		server.startMove(&view)
 	})
 	view.onRequestResizeListener = surface.OnRequestResize(func(s wlr.XWaylandSurface, edges wlr.Edges) {
-		server.startBorderResize(&view, edges)
+		if !server.isViewTiled(&view) {
+			server.startBorderResize(&view, edges)
+		}
 	})
 	view.onRequestMinimizeListener = surface.OnRequestMinimize(func(s wlr.XWaylandSurface) {
 		server.hideView(&view)
@@ -257,7 +259,9 @@ func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 		server.startMove(&view)
 	})
 	view.onRequestResizeListener = surface.TopLevel().OnRequestResize(func(t wlr.XDGTopLevel, client wlr.SeatClient, serial uint32, edges wlr.Edges) {
-		server.startBorderResize(&view, edges)
+		if !server.isViewTiled(&view) {
+			server.startBorderResize(&view, edges)
+		}
 	})
 	view.onRequestMinimizeListener = surface.TopLevel().OnRequestMinimize(func(t wlr.XDGTopLevel) {
 		server.hideView(&view)
