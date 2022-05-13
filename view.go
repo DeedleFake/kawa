@@ -409,6 +409,9 @@ func (server *Server) resizeViewTo(out *Output, view *View, r image.Rectangle) {
 
 func (server *Server) focusView(view *View, s wlr.Surface) {
 	if !s.Valid() {
+		if !view.Mapped() {
+			return
+		}
 		s = view.Surface()
 	}
 
