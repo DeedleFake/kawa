@@ -265,25 +265,11 @@ func (server *Server) isPopupSurface(surface wlr.Surface) (ok bool) {
 	return false
 }
 
-func (server *Server) isCSDSurface(surface wlr.Surface) (ok bool) {
-	for _, d := range server.decorations {
-		d.Decoration.Surface().ForEachSurface(func(s wlr.Surface, sx, sy int) {
-			if s == surface {
-				ok = true
-			}
-		})
-		if ok {
-			return d.Decoration.Mode() == wlr.ServerDecorationManagerModeClient
-		}
-	}
-	return false
-}
-
 func (server *Server) onDestroyPopup(p *Popup) {
+	p.Release()
+
 	i := slices.Index(server.popups, p)
 	server.popups = slices.Delete(server.popups, i, i+1)
-
-	p.Release()
 }
 
 func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
@@ -431,6 +417,9 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 		return
 	}
 	pv := server.viewForSurface(prev)
+	if pv == view {
+		return
+	}
 	if pv != nil {
 		pv.SetActivated(false)
 	}
@@ -579,4 +568,18 @@ func (server *Server) updateCSDs() {
 	for _, view := range server.tiled {
 		view.CSD = server.isCSDSurface(view.Surface())
 	}
+}
+
+func (server *Server) isCSDSurface(surface wlr.Surface) (ok bool) {
+	for _, d := range server.decorations {
+		d.Decoration.Surface().ForEachSurface(func(s wlr.Surface, sx, sy int) {
+			if s == surface {
+				ok = true
+			}
+		})
+		if ok {
+			return d.Decoration.Mode() == wlr.ServerDecorationManagerModeClient
+		}
+	}
+	return false
 }
