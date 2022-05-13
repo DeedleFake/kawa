@@ -33,6 +33,7 @@ func (server *Server) onFrame(out *Output) {
 	server.renderViews(out, t)
 	server.renderNewViews(out, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerTop, t)
+	server.renderStatusBar(out, t)
 	server.renderMode(out, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerOverlay, t)
 	server.renderCursor(out, t)
@@ -131,6 +132,10 @@ func (server *Server) renderNewViews(out *Output, t time.Time) {
 	for _, nv := range server.newViews {
 		server.renderSelectionBox(out, *nv.To, t)
 	}
+}
+
+func (server *Server) renderStatusBar(out *Output, t time.Time) {
+	// TODO
 }
 
 func (server *Server) renderMode(out *Output, t time.Time) {
