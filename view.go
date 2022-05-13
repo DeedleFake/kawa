@@ -38,6 +38,7 @@ type View struct {
 	onRequestResizeListener   wlr.Listener
 	onRequestMinimizeListener wlr.Listener
 	onRequestMaximizeListener wlr.Listener
+	onSetTitleListener        wlr.Listener
 }
 
 func (view *View) Release() {
@@ -45,6 +46,9 @@ func (view *View) Release() {
 	view.onMapListener.Destroy()
 	view.onRequestMoveListener.Destroy()
 	view.onRequestResizeListener.Destroy()
+	view.onRequestMinimizeListener.Destroy()
+	view.onRequestMaximizeListener.Destroy()
+	view.onSetTitleListener.Destroy()
 }
 
 type NewView struct {
@@ -225,6 +229,9 @@ func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
 	view.onRequestMaximizeListener = surface.OnRequestMaximize(func(s wlr.XWaylandSurface) {
 		server.toggleViewTiling(&view)
 	})
+	view.onSetTitleListener = surface.OnSetTitle(func(s wlr.XWaylandSurface, title string) {
+		server.updateTitles()
+	})
 
 	server.addView(&view)
 }
@@ -297,6 +304,9 @@ func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 	})
 	view.onRequestMaximizeListener = surface.TopLevel().OnRequestMaximize(func(t wlr.XDGTopLevel) {
 		server.toggleViewTiling(&view)
+	})
+	view.onSetTitleListener = surface.TopLevel().OnSetTitle(func(t wlr.XDGTopLevel, title string) {
+		server.updateTitles()
 	})
 
 	server.addView(&view)
@@ -597,4 +607,12 @@ func (server *Server) isCSDSurface(surface wlr.Surface) (ok bool) {
 		}
 	}
 	return false
+}
+
+func (server *Server) updateTitles() {
+	// Not the best way to do this, perhaps...
+	for _, view := range server.hidden {
+		server.mainMenu.Remove(5)
+		server.mainMenu.Add(server, view.Title())
+	}
 }
