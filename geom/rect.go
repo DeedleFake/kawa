@@ -148,6 +148,10 @@ func (r Rect[T]) Canon() Rect[T] {
 	return r
 }
 
+func (r Rect[T]) Center() Point[T] {
+	return r.Min.Add(r.Max).Div(2)
+}
+
 func (r Rect[T]) At(x, y T) color.Color {
 	if (Point[T]{x, y}).In(r) {
 		return color.Opaque
