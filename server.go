@@ -5,14 +5,8 @@ import (
 	"os"
 	"os/exec"
 
+	"deedles.dev/kawa/ui"
 	"deedles.dev/wlr"
-)
-
-const (
-	MinWidth  = 128
-	MinHeight = 24
-
-	WindowBorder = 5
 )
 
 var (
@@ -57,7 +51,7 @@ type Server struct {
 	decorations []*Decoration
 	bg          wlr.Texture
 
-	mainMenu *Menu
+	mainMenu *ui.Menu
 
 	onNewOutputListener            wlr.Listener
 	onNewInputListener             wlr.Listener

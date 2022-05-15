@@ -5,6 +5,8 @@ import (
 	"math"
 	"time"
 
+	"deedles.dev/kawa/theme"
+	"deedles.dev/kawa/ui"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 )
@@ -145,26 +147,26 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 	r := m.cur
 	if m.edges&wlr.EdgeTop != 0 {
 		r.Min.Y = oy
-		if r.Dy() < MinHeight {
-			r.Min.Y = r.Max.Y - MinHeight
+		if r.Dy() < theme.MinHeight {
+			r.Min.Y = r.Max.Y - theme.MinHeight
 		}
 	}
 	if m.edges&wlr.EdgeBottom != 0 {
 		r.Max.Y = oy
-		if r.Dy() < MinHeight {
-			r.Max.Y = r.Min.Y + MinHeight
+		if r.Dy() < theme.MinHeight {
+			r.Max.Y = r.Min.Y + theme.MinHeight
 		}
 	}
 	if m.edges&wlr.EdgeLeft != 0 {
 		r.Min.X = ox
-		if r.Dx() < MinWidth {
-			r.Min.X = r.Max.X - MinWidth
+		if r.Dx() < theme.MinWidth {
+			r.Min.X = r.Max.X - theme.MinWidth
 		}
 	}
 	if m.edges&wlr.EdgeRight != 0 {
 		r.Max.X = ox
-		if r.Dx() < MinWidth {
-			r.Max.X = r.Min.X + MinWidth
+		if r.Dx() < theme.MinWidth {
+			r.Max.X = r.Min.X + theme.MinWidth
 		}
 	}
 
@@ -203,12 +205,12 @@ func (m *inputModeBorderResize) TargetView() *View {
 }
 
 type inputModeMenu struct {
-	m   *Menu
+	m   *ui.Menu
 	p   image.Point
 	sel int
 }
 
-func (server *Server) startMenu(m *Menu) {
+func (server *Server) startMenu(m *ui.Menu) {
 	x, y := server.cursor.X(), server.cursor.Y()
 	out := server.outputAt(x, y)
 	ob := box(0, 0, out.Output.Width(), out.Output.Height())
@@ -237,7 +239,7 @@ func (m *inputModeMenu) CursorMoved(server *Server, t time.Time) {
 
 	m.sel = -1
 	if p.In(r) {
-		m.sel = (p.Y - r.Min.Y) / int(fontOptions.Size+WindowBorder*2)
+		m.sel = (p.Y - r.Min.Y) / int(fontOptions.Size+theme.WindowBorder*2)
 	}
 }
 
@@ -301,10 +303,10 @@ func (m *inputModeResize) CursorMoved(server *Server, t time.Time) {
 	}
 
 	x, y := server.cursor.X(), server.cursor.Y()
-	if math.Abs(x-m.sx) < MinWidth {
+	if math.Abs(x-m.sx) < theme.MinWidth {
 		return
 	}
-	if math.Abs(y-m.sy) < MinHeight {
+	if math.Abs(y-m.sy) < theme.MinHeight {
 		return
 	}
 
@@ -337,7 +339,7 @@ func (m *inputModeResize) CursorButtonReleased(server *Server, dev wlr.InputDevi
 
 	x, y := server.cursor.X(), server.cursor.Y()
 	r := image.Rect(int(m.sx), int(m.sy), int(x), int(y))
-	if (r.Dx() >= MinWidth) && (r.Dy() >= MinHeight) {
+	if (r.Dx() >= theme.MinWidth) && (r.Dy() >= theme.MinHeight) {
 		server.resizeViewTo(nil, m.view, r)
 	}
 	server.startNormal()
@@ -379,10 +381,10 @@ func (m *inputModeNew) CursorMoved(server *Server, t time.Time) {
 	}
 
 	x, y := server.cursor.X(), server.cursor.Y()
-	if math.Abs(x-float64(m.n.Min.X)) < MinWidth {
+	if math.Abs(x-float64(m.n.Min.X)) < theme.MinWidth {
 		return
 	}
-	if math.Abs(y-float64(m.n.Min.Y)) < MinHeight {
+	if math.Abs(y-float64(m.n.Min.Y)) < theme.MinHeight {
 		return
 	}
 
