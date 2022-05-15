@@ -5,7 +5,6 @@ import (
 	"image/color"
 	"time"
 
-	"deedles.dev/kawa/theme"
 	"deedles.dev/kawa/ui"
 	"deedles.dev/wlr"
 )
@@ -27,7 +26,7 @@ func (server *Server) onFrame(out *Output) {
 	server.renderer.Begin(out.Output, out.Output.Width(), out.Output.Height())
 	defer server.renderer.End()
 
-	server.renderer.Clear(theme.ColorBackground)
+	server.renderer.Clear(ui.ColorBackground)
 
 	server.renderBG(out, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerBackground, t)
@@ -85,28 +84,28 @@ func (server *Server) renderView(out *Output, view *View, t time.Time) {
 }
 
 func (server *Server) renderViewBorder(out *Output, view *View, t time.Time) {
-	color := theme.ColorInactiveBorder
+	color := ui.ColorInactiveBorder
 	if view.Activated() {
-		color = theme.ColorActiveBorder
+		color = ui.ColorActiveBorder
 	}
 	if server.targetView() == view {
-		color = theme.ColorSelectionBox
+		color = ui.ColorSelectionBox
 	}
 
-	r := server.viewBounds(out, view).Inset(-theme.WindowBorder)
+	r := server.viewBounds(out, view).Inset(-ui.WindowBorder)
 	server.renderRectBorder(out, r, color, t)
 }
 
 func (server *Server) renderRectBorder(out *Output, r image.Rectangle, color color.Color, t time.Time) {
-	server.renderer.RenderRect(box(r.Min.X, r.Min.Y, theme.WindowBorder, r.Dy()), color, out.Output.TransformMatrix())
-	server.renderer.RenderRect(box(r.Max.X-theme.WindowBorder, r.Min.Y, theme.WindowBorder, r.Dy()), color, out.Output.TransformMatrix())
-	server.renderer.RenderRect(box(r.Min.X, r.Min.Y, r.Dx(), theme.WindowBorder), color, out.Output.TransformMatrix())
-	server.renderer.RenderRect(box(r.Min.X, r.Max.Y-theme.WindowBorder, r.Dx(), theme.WindowBorder), color, out.Output.TransformMatrix())
+	server.renderer.RenderRect(box(r.Min.X, r.Min.Y, ui.WindowBorder, r.Dy()), color, out.Output.TransformMatrix())
+	server.renderer.RenderRect(box(r.Max.X-ui.WindowBorder, r.Min.Y, ui.WindowBorder, r.Dy()), color, out.Output.TransformMatrix())
+	server.renderer.RenderRect(box(r.Min.X, r.Min.Y, r.Dx(), ui.WindowBorder), color, out.Output.TransformMatrix())
+	server.renderer.RenderRect(box(r.Min.X, r.Max.Y-ui.WindowBorder, r.Dx(), ui.WindowBorder), color, out.Output.TransformMatrix())
 }
 
 func (server *Server) renderSelectionBox(out *Output, r image.Rectangle, t time.Time) {
-	server.renderRectBorder(out, r, theme.ColorSelectionBox, t)
-	server.renderer.RenderRect(r.Inset(theme.WindowBorder), theme.ColorSelectionBackground, out.Output.TransformMatrix())
+	server.renderRectBorder(out, r, ui.ColorSelectionBox, t)
+	server.renderer.RenderRect(r.Inset(ui.WindowBorder), ui.ColorSelectionBackground, out.Output.TransformMatrix())
 }
 
 func (server *Server) renderViewSurfaces(out *Output, view *View, t time.Time) {
@@ -155,21 +154,21 @@ func (server *Server) renderCursor(out *Output, t time.Time) {
 
 func (server *Server) renderMenu(out *Output, m *ui.Menu, x, y float64, sel int) {
 	r := m.Bounds().Add(image.Pt(int(x), int(y)))
-	server.renderer.RenderRect(r.Inset(-theme.WindowBorder), theme.ColorMenuBorder, out.Output.TransformMatrix())
-	server.renderer.RenderRect(r, theme.ColorMenuUnselected, out.Output.TransformMatrix())
+	server.renderer.RenderRect(r.Inset(-ui.WindowBorder), ui.ColorMenuBorder, out.Output.TransformMatrix())
+	server.renderer.RenderRect(r, ui.ColorMenuUnselected, out.Output.TransformMatrix())
 
 	for i := range m.inactive {
 		ar := box(
 			r.Min.X,
-			r.Min.Y+i*int(fontOptions.Size+theme.WindowBorder*2),
+			r.Min.Y+i*int(fontOptions.Size+ui.WindowBorder*2),
 			r.Dx(),
-			int(fontOptions.Size+theme.WindowBorder*2),
+			int(fontOptions.Size+ui.WindowBorder*2),
 		)
 
 		t := m.inactive[i]
 		if i == sel {
 			t = m.active[i]
-			server.renderer.RenderRect(ar, theme.ColorMenuSelected, out.Output.TransformMatrix())
+			server.renderer.RenderRect(ar, ui.ColorMenuSelected, out.Output.TransformMatrix())
 		}
 
 		tr := box(

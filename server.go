@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	mainMenuItems = []string{
+	mainMenuText = []string{
 		"New",
 		"Resize",
 		"Tile",
@@ -51,7 +51,8 @@ type Server struct {
 	decorations []*Decoration
 	bg          wlr.Texture
 
-	mainMenu *ui.Menu
+	mainMenu      *ui.Menu
+	mnainMenuPrev image.Point
 
 	onNewOutputListener            wlr.Listener
 	onNewInputListener             wlr.Listener
@@ -106,6 +107,66 @@ func (server *Server) exec(to *image.Rectangle) {
 	}
 }
 
+func (server *Server) initMainMenu() {
+	cbs := []func(){
+		server.onMainMenuNew,
+		server.onMainMenuResize,
+		server.onMainMenuTile,
+		server.onMainMenuMove,
+		server.onMainMenuClose,
+		server.onMainMenuHide,
+	}
+
+	items := make([]*MenuItem, 0, len(mainMenuText))
+	for i, text := range mainMenuText {
+		item := ui.NewMenuItem(
+			ui.CreateTextTexture(server.renderer, image.Black, text),
+			ui.CreateTextTexture(server.renderer, image.White, text),
+		)
+		item.OnSelect = cbs[i]
+		items = append(items, item)
+	}
+
+	server.mainMenu = ui.NewMenu(items...)
+}
+
+func (server *Server) onMainMenuNew() {
+	server.startNew()
+}
+
+func (server *Server) onMainMenuResize() {
+	server.startSelectView(wlr.BtnRight, func(view *View) {
+		server.startResize(view)
+	})
+}
+
+func (server *Server) onMainMenuTile() {
+	server.startSelectView(wlr.BtnRight, func(view *View) {
+		server.toggleViewTiling(view)
+		server.startNormal()
+	})
+}
+
+func (server *Server) onMainMenuMove() {
+	server.startSelectView(wlr.BtnRight, func(view *View) {
+		server.startMove(view)
+	})
+}
+
+func (server *Server) onMainMenuClose() {
+	server.startSelectView(wlr.BtnRight, func(view *View) {
+		server.closeView(view)
+		server.startNormal()
+	})
+}
+
+func (server *Server) onMainMenuHide() {
+	server.startSelectView(wlr.BtnRight, func(view *View) {
+		server.hideView(view)
+		server.startNormal()
+	})
+}
+
 func (server *Server) selectMainMenu(n int) {
 	if n < 0 {
 		return
@@ -113,30 +174,11 @@ func (server *Server) selectMainMenu(n int) {
 
 	switch n {
 	case 0: // New
-		server.startNew()
 	case 1: // Resize
-		server.startSelectView(wlr.BtnRight, func(view *View) {
-			server.startResize(view)
-		})
 	case 2: // Tile
-		server.startSelectView(wlr.BtnRight, func(view *View) {
-			server.toggleViewTiling(view)
-			server.startNormal()
-		})
 	case 3: // Move
-		server.startSelectView(wlr.BtnRight, func(view *View) {
-			server.startMove(view)
-		})
 	case 4: // Close
-		server.startSelectView(wlr.BtnRight, func(view *View) {
-			server.closeView(view)
-			server.startNormal()
-		})
 	case 5: // Hide
-		server.startSelectView(wlr.BtnRight, func(view *View) {
-			server.hideView(view)
-			server.startNormal()
-		})
 	default:
 		server.unhideView(server.hidden[n-len(mainMenuItems)])
 	}

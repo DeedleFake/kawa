@@ -6,6 +6,7 @@ import (
 
 	"deedles.dev/kawa/internal/util"
 	"deedles.dev/kawa/tile"
+	"deedles.dev/kawa/ui"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 )
@@ -487,14 +488,23 @@ func (server *Server) hideView(view *View) {
 
 	// TODO: Remember whether or not a hidden view was tiled.
 	server.hidden = append(server.hidden, view)
-	server.mainMenu.Add(server, view.Title())
 	view.SetMinimized(true)
+
+	item := ui.NewMenuItem(
+		ui.CreateTextTexture(server.renderer, image.White, view.Title()),
+		ui.CreateTextTexture(server.renderer, image.Black, view.Title()),
+	)
+	item.OnSelect = func() {
+		server.unhideView(view)
+		server.mainMenu.Remove(item)
+	}
+	server.mainMenu.Add(item)
 }
 
 func (server *Server) unhideView(view *View) {
 	i := slices.Index(server.hidden, view)
 	server.hidden = slices.Delete(server.hidden, i, i+1)
-	server.mainMenu.Remove(len(mainMenuItems) + i)
+	server.mainMenu.Remove(len(mainMenuText) + i)
 
 	server.views = append(server.views, view)
 	server.focusView(view, view.Surface())
