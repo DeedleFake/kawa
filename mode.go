@@ -314,6 +314,9 @@ func (m *inputModeResize) CursorMoved(server *Server, t time.Time) {
 		int(x),
 		int(y),
 	)
+	if server.isViewTiled(m.view) {
+		server.untileView(m.view, false)
+	}
 	server.startBorderResizeFrom(m.view, wlr.EdgeNone, r)
 }
 

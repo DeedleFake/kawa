@@ -503,7 +503,7 @@ func (server *Server) unhideView(view *View) {
 
 func (server *Server) toggleViewTiling(view *View) {
 	if server.isViewTiled(view) {
-		server.untileView(view)
+		server.untileView(view, true)
 		return
 	}
 	server.tileView(view)
@@ -527,12 +527,14 @@ func (server *Server) tileView(view *View) {
 	view.SetMaximized(true)
 }
 
-func (server *Server) untileView(view *View) {
+func (server *Server) untileView(view *View, restore bool) {
 	i := slices.Index(server.tiled, view)
 	server.tiled = slices.Delete(server.tiled, i, i+1)
 	server.views = append(server.views, view)
 
-	server.resizeViewTo(nil, view, view.Restore)
+	if restore {
+		server.resizeViewTo(nil, view, view.Restore)
+	}
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())
 	view.SetMaximized(false)
