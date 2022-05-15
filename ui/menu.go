@@ -3,98 +3,79 @@ package ui
 import (
 	"image"
 
-	"deedles.dev/kawa/theme"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
-	"golang.org/x/image/font"
-	"golang.org/x/image/math/fixed"
 )
 
 type Menu struct {
-	items []*MenuItem
-	prev  *MenuItem
+	items    []*MenuItem
+	itemInfo map[*MenuItem]image.Rectangle
+	bounds   image.Rectangle
 }
 
 func NewMenu(items ...*MenuItem) *Menu {
-	return &Menu{
-		items: items,
+	m := Menu{
+		items:    make([]*MenuItem, 0, len(items)),
+		itemInfo: make(map[*MenuItem]image.Rectangle, len(items)),
 	}
+	for _, item := range items {
+		m.Add(item)
+	}
+	return &m
 }
 
 func (m *Menu) Len() int {
 	return len(m.items)
 }
 
-func (m *Menu) forEach(cb func(*MenuItem, image.Rectangle) bool) {
-	var p image.Point
-	for _, t := range m.items {
-		r := image.Rect(0, 0, t.active.Width(), t.active.Height()).Add(p)
-		if !cb(t, r) {
-			return
-		}
-		p = r.Max
+func (m *Menu) updateBounds() {
+	r := image.ZR
+	for _, ib := range m.itemInfo {
+		r = r.Union(ib)
 	}
+	m.bounds = r
 }
 
 func (m *Menu) Bounds() (b image.Rectangle) {
-	m.forEach(func(item *MenuItem, r image.Rectangle) bool {
-		b = b.Union(r)
-		return true
-	})
-	return b.Inset(-theme.WindowBorder).Add(image.Pt(theme.WindowBorder, theme.WindowBorder))
+	return m.bounds
 }
 
-func (m *Menu) StartOffset() (p image.Point) {
-	m.forEach(func(item *MenuItem, r image.Rectangle) bool {
-		if item != m.prev {
-			return true
+func (m *Menu) ItemAt(p image.Point) (*MenuItem, bool) {
+	for item, ib := range m.itemInfo {
+		if p.In(ib) {
+			return item, true
 		}
-		p = r.Min.Add(r.Max).Div(2)
-		return false
-	})
-	return p
+	}
+	return nil, false
+}
+
+func (m *Menu) ItemBounds(item *MenuItem) (image.Rectangle, bool) {
+	b, ok := m.itemInfo[item]
+	return b, ok
 }
 
 func (m *Menu) Click(p image.Point) {
-	m.forEach(func(item *MenuItem, r image.Rectangle) bool {
-		if !p.In(r) {
-			return true
-		}
-		if cb := item.OnSelect; cb != nil {
-			cb()
-		}
-		m.prev = item
-		return false
-	})
+	item, ok := m.ItemAt(p)
+	if ok {
+		item.OnSelect()
+	}
 }
 
 func (m *Menu) Add(item *MenuItem) {
 	m.items = append(m.items, item)
+	b := image.Rect(0, 0, item.active.Width(), item.active.Height()).Add(image.Pt(
+		(m.bounds.Dx()/2)-(item.active.Width()/2),
+		m.bounds.Max.Y+WindowBorder,
+	)).Inset(-WindowBorder)
+	m.itemInfo[item] = b
+	m.bounds = m.bounds.Union(b)
 }
 
 func (m *Menu) Remove(i int) {
-	m.items[i].Destroy()
+	item := m.items[i]
 	m.items = slices.Delete(m.items, i, i+1)
-}
-
-func CreateTextTexture(renderer wlr.Renderer, src image.Image, face font.Face, item string) wlr.Texture {
-	fdraw := font.Drawer{
-		Src:  src,
-		Face: face,
-		Dot:  fixed.P(0, int(fontOptions.Size)),
-	}
-
-	extents, _ := fdraw.BoundString(item)
-	buf := image.NewNRGBA(image.Rect(
-		0,
-		0,
-		(extents.Max.X - extents.Min.X).Floor(),
-		int(fontOptions.Size),
-	))
-	fdraw.Dst = buf
-	fdraw.DrawString(item)
-
-	return wlr.TextureFromImage(renderer, buf)
+	delete(m.itemInfo, item)
+	m.updateBounds()
 }
 
 type MenuItem struct {
@@ -102,6 +83,17 @@ type MenuItem struct {
 
 	active   wlr.Texture
 	inactive wlr.Texture
+}
+
+func NewMenuItem(active, inactive wlr.Texture) *MenuItem {
+	if (active.Width() != inactive.Width()) || (active.Height() != inactive.Height()) {
+		panic("active and inactive sizes do no match")
+	}
+
+	return &MenuItem{
+		active:   active,
+		inactive: inactive,
+	}
 }
 
 func (item *MenuItem) Destroy() {

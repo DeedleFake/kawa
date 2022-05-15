@@ -2,12 +2,15 @@ package ui
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 
+	"deedles.dev/wlr"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gomono"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/font/sfnt"
+	"golang.org/x/image/math/fixed"
 )
 
 const (
@@ -50,4 +53,24 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("create font face: %w", err))
 	}
+}
+
+func CreateTextTexture(renderer wlr.Renderer, src image.Image, item string) wlr.Texture {
+	fdraw := font.Drawer{
+		Src:  src,
+		Face: gomonoFace,
+		Dot:  fixed.P(0, int(fontOptions.Size)),
+	}
+
+	extents, _ := fdraw.BoundString(item)
+	buf := image.NewNRGBA(image.Rect(
+		0,
+		0,
+		(extents.Max.X - extents.Min.X).Floor(),
+		int(fontOptions.Size),
+	))
+	fdraw.Dst = buf
+	fdraw.DrawString(item)
+
+	return wlr.TextureFromImage(renderer, buf)
 }
