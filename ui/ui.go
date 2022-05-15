@@ -1,6 +1,14 @@
-package theme
+package ui
 
-import "image/color"
+import (
+	"fmt"
+	"image/color"
+
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/gomono"
+	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/font/sfnt"
+)
 
 const (
 	MinWidth  = 128
@@ -20,3 +28,26 @@ var (
 	ColorMenuBorder          = color.NRGBA{0x78, 0xAD, 0x84, 0xFF}
 	ColorSurface             = color.NRGBA{0xEE, 0xEE, 0xEE, 0xFF}
 )
+
+var (
+	fontOptions = opentype.FaceOptions{
+		Size: 14,
+		DPI:  72,
+	}
+
+	gomonoFont *sfnt.Font
+	gomonoFace font.Face
+)
+
+func init() {
+	var err error
+	gomonoFont, err = opentype.Parse(gomono.TTF)
+	if err != nil {
+		panic(fmt.Errorf("parse font: %w", err))
+	}
+
+	gomonoFace, err = opentype.NewFace(gomonoFont, &fontOptions)
+	if err != nil {
+		panic(fmt.Errorf("create font face: %w", err))
+	}
+}

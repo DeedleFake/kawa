@@ -1,42 +1,14 @@
 package ui
 
 import (
-	"fmt"
 	"image"
 
 	"deedles.dev/kawa/theme"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/gomono"
-	"golang.org/x/image/font/opentype"
-	"golang.org/x/image/font/sfnt"
 	"golang.org/x/image/math/fixed"
 )
-
-var (
-	fontOptions = opentype.FaceOptions{
-		Size: 14,
-		DPI:  72,
-	}
-
-	gomonoFont *sfnt.Font
-	gomonoFace font.Face
-)
-
-func init() {
-	var err error
-	gomonoFont, err = opentype.Parse(gomono.TTF)
-	if err != nil {
-		panic(fmt.Errorf("parse font: %w", err))
-	}
-
-	gomonoFace, err = opentype.NewFace(gomonoFont, &fontOptions)
-	if err != nil {
-		panic(fmt.Errorf("create font face: %w", err))
-	}
-
-}
 
 type Menu struct {
 	items []*MenuItem
