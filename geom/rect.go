@@ -162,6 +162,34 @@ func (r Rect[T]) Align(p Point[T]) Rect[T] {
 	)
 }
 
+func (r Rect[T]) ClosestIn(s Rect[T]) Rect[T] {
+	if (r.Dx() > s.Dx()) || (r.Dy() > s.Dy()) {
+		return Rect[T]{}
+	}
+
+	r = r.Canon()
+	s = s.Canon()
+
+	switch {
+	case r.Min.X < s.Min.X:
+		r.Max.X += s.Min.X - r.Min.X
+		r.Min.X = s.Min.X
+	case r.Max.X > s.Max.X:
+		r.Min.X += s.Max.X - r.Max.X
+		r.Max.X = s.Max.X
+	}
+	switch {
+	case r.Min.Y < s.Min.Y:
+		r.Max.Y += s.Min.Y - r.Min.Y
+		r.Min.Y = s.Min.Y
+	case r.Max.Y > s.Max.Y:
+		r.Min.Y += s.Max.Y - r.Max.Y
+		r.Max.Y = s.Max.Y
+	}
+
+	return r
+}
+
 func (r Rect[T]) At(x, y T) color.Color {
 	if (Point[T]{x, y}).In(r) {
 		return color.Opaque
