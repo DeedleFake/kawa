@@ -118,6 +118,7 @@ func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 			server.tiled[i], server.tiled[vi] = server.tiled[vi], server.tiled[i]
 			server.layoutTiles(nil)
 		}
+		return
 	}
 
 	to := cc.Sub(m.off)
@@ -132,7 +133,6 @@ func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 	}
 
 	server.moveViewTo(nil, m.view, to)
-	return
 }
 
 func (m *inputModeMove) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
