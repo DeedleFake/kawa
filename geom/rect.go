@@ -152,6 +152,16 @@ func (r Rect[T]) Center() Point[T] {
 	return r.Min.Add(r.Max).Div(2)
 }
 
+func (r Rect[T]) Align(p Point[T]) Rect[T] {
+	hs := r.Size().Div(2)
+	return Rt(
+		p.X-hs.X,
+		p.Y-hs.Y,
+		p.X+hs.X,
+		p.Y+hs.Y,
+	)
+}
+
 func (r Rect[T]) At(x, y T) color.Color {
 	if (Point[T]{x, y}).In(r) {
 		return color.Opaque
