@@ -313,6 +313,7 @@ func (server *Server) onDestroyView(view *View) {
 		server.layoutTiles(nil)
 	}
 
+	server.updateTitles()
 	if n, ok := util.Last(server.tiled, server.views); ok {
 		server.focusView(n, n.Surface())
 	}
@@ -406,11 +407,7 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 		s = view.Surface()
 	}
 
-	prev := server.seat.KeyboardState().FocusedSurface()
-	if prev == s {
-		return
-	}
-	pv := server.viewForSurface(prev)
+	pv := server.focusedView()
 	if pv == view {
 		return
 	}
@@ -423,6 +420,13 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 
 	view.SetActivated(true)
 	server.bringViewToFront(view)
+
+	server.updateTitles()
+}
+
+func (server *Server) focusedView() *View {
+	s := server.seat.KeyboardState().FocusedSurface()
+	return server.viewForSurface(s)
 }
 
 func (server *Server) viewForSurface(s wlr.Surface) *View {
@@ -615,5 +619,13 @@ func (server *Server) updateTitles() {
 
 		server.mainMenu.Remove(item)
 		server.mainMenu.Add(n)
+	}
+
+	if server.focusedTitle.Valid() {
+		server.focusedTitle.Destroy()
+		server.focusedTitle = wlr.Texture{}
+	}
+	if fv := server.focusedView(); fv != nil {
+		server.focusedTitle = CreateTextTexture(server.renderer, image.White, fv.Title())
 	}
 }

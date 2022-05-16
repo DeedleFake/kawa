@@ -54,6 +54,8 @@ type Server struct {
 	mainMenu     *Menu
 	mainMenuPrev *MenuItem
 
+	focusedTitle wlr.Texture
+
 	onNewOutputListener            wlr.Listener
 	onNewInputListener             wlr.Listener
 	onCursorMotionListener         wlr.Listener
