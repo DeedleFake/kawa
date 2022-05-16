@@ -208,6 +208,10 @@ func (r Rect[T]) ClosestIn(s Rect[T]) Rect[T] {
 	return r
 }
 
+func (r Rect[T]) Resize(size Point[T]) Rect[T] {
+	return Rect[T]{Min: r.Min, Max: r.Min.Add(size)}
+}
+
 func (r Rect[T]) At(x, y T) color.Color {
 	if (Point[T]{x, y}).In(r) {
 		return color.Opaque
