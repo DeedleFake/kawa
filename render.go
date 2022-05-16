@@ -138,7 +138,8 @@ func (server *Server) renderNewViews(out *Output, t time.Time) {
 }
 
 func (server *Server) renderStatusBar(out *Output, t time.Time) {
-	// TODO
+	r := server.statusBarBounds(out)
+	server.renderer.RenderRect(r.ImageRect(), ColorMenuBorder, out.Output.TransformMatrix())
 }
 
 func (server *Server) renderMode(out *Output, t time.Time) {

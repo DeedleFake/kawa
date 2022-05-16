@@ -43,7 +43,19 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 }
 
 func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	view, edges, surface, _ := server.viewAt(nil, server.cursorCoords())
+	cc := server.cursorCoords()
+
+	out := server.outputAt(cc)
+	if out != nil {
+		if cc.In(server.statusBarBounds(out)) {
+			if b == wlr.BtnRight {
+				server.startMenu(server.mainMenu)
+			}
+			return
+		}
+	}
+
+	view, edges, surface, _ := server.viewAt(nil, cc)
 	if view == nil {
 		if b == wlr.BtnRight {
 			server.startMenu(server.mainMenu)
@@ -95,17 +107,28 @@ func (server *Server) startMove(view *View) {
 func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 	cc := server.cursorCoords()
 
-	if !server.isViewTiled(m.view) {
-		server.moveViewTo(nil, m.view, cc.Sub(m.off))
-		return
+	if server.isViewTiled(m.view) {
+		i, _, _, _ := server.viewIndexAt(nil, server.tiled, cc)
+		if i >= 0 {
+			vi := slices.Index(server.tiled, m.view)
+			server.tiled[i], server.tiled[vi] = server.tiled[vi], server.tiled[i]
+			server.layoutTiles(nil)
+		}
 	}
 
-	i, _, _, _ := server.viewIndexAt(nil, server.tiled, cc)
-	if i >= 0 {
-		vi := slices.Index(server.tiled, m.view)
-		server.tiled[i], server.tiled[vi] = server.tiled[vi], server.tiled[i]
-		server.layoutTiles(nil)
+	to := cc.Sub(m.off)
+
+	out := server.outputAt(cc)
+	if out != nil {
+		sbb := server.statusBarBounds(out)
+		sbb.Max.Y += WindowBorder
+		if cc.In(sbb) {
+			to.Y = m.view.Coords.Y
+		}
 	}
+
+	server.moveViewTo(nil, m.view, to)
+	return
 }
 
 func (m *inputModeMove) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {

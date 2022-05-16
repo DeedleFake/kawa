@@ -32,7 +32,7 @@ func (server *Server) outputAt(p geom.Point[float64]) *Output {
 
 func (server *Server) outputBounds(out *Output) geom.Rect[float64] {
 	x, y := server.outputLayout.OutputCoords(out.Output)
-	return geom.Rt(0, 0, float64(out.Output.Width()), float64(out.Output.Height())).Add(geom.Pt(x, y))
+	return geom.Rt(0, StatusBarHeight, float64(out.Output.Width()), float64(out.Output.Height())).Add(geom.Pt(x, y))
 }
 
 func (server *Server) onNewOutput(wout wlr.Output) {

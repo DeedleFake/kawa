@@ -18,7 +18,8 @@ const (
 	MinWidth  = 128
 	MinHeight = 24
 
-	WindowBorder = 5
+	WindowBorder    = 5
+	StatusBarHeight = 4 * WindowBorder
 )
 
 var (
