@@ -80,3 +80,26 @@ func CreateTextTexture(renderer wlr.Renderer, src image.Image, item string) wlr.
 
 	return wlr.TextureFromImage(renderer, buf)
 }
+
+type scaleFunc func(out, r geom.Rect[float64]) geom.Rect[float64]
+
+func scaleStretch(out, r geom.Rect[float64]) geom.Rect[float64] {
+	return out
+}
+
+func scaleCenter(out, r geom.Rect[float64]) geom.Rect[float64] {
+	return r.Align(out.Center())
+}
+
+func scaleFit(out, r geom.Rect[float64]) geom.Rect[float64] {
+	return scaleCenter(out, r).Intersect(out)
+}
+
+func scaleFill(out, r geom.Rect[float64]) geom.Rect[float64] {
+	return scaleCenter(out, r.FitTo(out.Size()))
+}
+
+func scaleTile(out, r geom.Rect[float64]) geom.Rect[float64] {
+	// TODO
+	return scaleCenter(out, r)
+}

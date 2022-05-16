@@ -45,8 +45,11 @@ func (server *Server) renderBG(out *Output, t time.Time) {
 		return
 	}
 
+	ob := server.outputBounds(out)
+	r := geom.RConv[float64](geom.Rt(0, 0, server.bg.Width(), server.bg.Height()))
+
 	m := wlr.ProjectBoxMatrix(
-		image.Rect(0, 0, out.Output.Width(), out.Output.Height()),
+		server.bgScale(ob, r).ImageRect(),
 		wlr.OutputTransformNormal,
 		0,
 		out.Output.TransformMatrix(),

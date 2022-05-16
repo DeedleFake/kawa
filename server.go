@@ -53,7 +53,9 @@ type Server struct {
 	newViews    map[int]NewView
 	popups      []*Popup
 	decorations []*Decoration
-	bg          wlr.Texture
+
+	bg      wlr.Texture
+	bgScale scaleFunc
 
 	mainMenu   *Menu
 	systemMenu *Menu

@@ -196,6 +196,7 @@ func main() {
 
 	term := flag.String("term", "alacritty", "terminal to use when creating a new window")
 	bg := flag.String("bg", "", "background image")
+	bgScale := flag.String("bgscale", "stretch", "background image scaling method (stretch, center, fit, fill)")
 	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
 	cprof := flag.String("cprof", "", "cpu profile file")
 	flag.Parse()
@@ -224,6 +225,18 @@ func main() {
 
 	if *bg != "" {
 		server.loadBG(*bg)
+		switch *bgScale {
+		case "stretch":
+			server.bgScale = scaleStretch
+		case "center":
+			server.bgScale = scaleCenter
+		case "fit":
+			server.bgScale = scaleFit
+		case "fill":
+			server.bgScale = scaleFill
+		default:
+			wlr.Log(wlr.Error, "unknown scaling method: %q", *bgScale)
+		}
 	}
 
 	err = server.run()
