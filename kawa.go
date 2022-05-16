@@ -134,7 +134,7 @@ func (server *Server) init() error {
 	server.decorationManager.SetDefaultMode(wlr.ServerDecorationManagerModeServer)
 	server.onNewDecorationListener = server.decorationManager.OnNewDecoration(server.onNewDecoration)
 
-	server.initMainMenu()
+	server.initMenus()
 
 	server.startNormal()
 

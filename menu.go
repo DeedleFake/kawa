@@ -11,6 +11,7 @@ type Menu struct {
 	items    []*MenuItem
 	itemInfo map[*MenuItem]geom.Rect[float64]
 	bounds   geom.Rect[float64]
+	prev     *MenuItem
 }
 
 func NewMenu(items ...*MenuItem) *Menu {
@@ -56,6 +57,24 @@ func (m *Menu) Item(i int) *MenuItem {
 
 func (m *Menu) Bounds() (b geom.Rect[float64]) {
 	return m.bounds
+}
+
+func (m *Menu) Select(item *MenuItem) {
+	_, ok := m.itemInfo[item]
+	if !ok {
+		return
+	}
+
+	item.OnSelect()
+	m.prev = item
+}
+
+func (m *Menu) Prev() *MenuItem {
+	_, ok := m.itemInfo[m.prev]
+	if !ok {
+		return nil
+	}
+	return m.prev
 }
 
 func (m *Menu) ItemAt(p geom.Point[float64]) *MenuItem {

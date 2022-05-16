@@ -48,8 +48,11 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevic
 	out := server.outputAt(cc)
 	if out != nil {
 		if cc.In(server.statusBarBounds(out)) {
-			if b == wlr.BtnRight {
-				server.startMenu(server.mainMenu)
+			switch b {
+			case wlr.BtnLeft:
+				server.startMenu(server.systemMenu, b)
+			case wlr.BtnRight:
+				server.startMenu(server.mainMenu, b)
 			}
 			return
 		}
@@ -57,8 +60,9 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevic
 
 	view, edges, surface, _ := server.viewAt(nil, cc)
 	if view == nil {
-		if b == wlr.BtnRight {
-			server.startMenu(server.mainMenu)
+		switch b {
+		case wlr.BtnRight:
+			server.startMenu(server.mainMenu, b)
 		}
 		return
 	}
@@ -227,27 +231,24 @@ type inputModeMenu struct {
 	m   *Menu
 	p   geom.Point[float64]
 	sel *MenuItem
+	btn wlr.CursorButton
 }
 
-func (server *Server) startMenu(m *Menu) {
+func (server *Server) startMenu(m *Menu, btn wlr.CursorButton) {
 	cc := server.cursorCoords()
 	ob := server.outputBounds(server.outputAt(cc)).Inset(2 * WindowBorder)
 
-	ib := m.ItemBounds(server.mainMenuPrev)
+	ib := m.ItemBounds(server.mainMenu.Prev())
 	if ib.IsZero() {
 		ib = m.ItemBounds(m.Item(0))
 	}
 	mb := m.Bounds().Sub(ib.Center()).Add(cc)
-
-	if i := mb.Intersect(ob); mb != i {
-		before := mb
-		mb = mb.Sub(before.Min.Sub(i.Min))
-		mb = mb.Sub(before.Max.Sub(i.Max))
-	}
+	mb = mb.ClosestIn(ob)
 
 	mode := inputModeMenu{
-		m: m,
-		p: mb.Min,
+		m:   m,
+		p:   mb.Min,
+		btn: btn,
 	}
 	mode.CursorMoved(server, time.Now())
 	server.inputMode = &mode
@@ -259,15 +260,12 @@ func (m *inputModeMenu) CursorMoved(server *Server, t time.Time) {
 }
 
 func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	if b != wlr.BtnRight {
+	if b != m.btn {
 		return
 	}
 
 	server.startNormal()
-	if m.sel != nil {
-		m.sel.OnSelect()
-		server.mainMenuPrev = m.sel
-	}
+	m.m.Select(m.sel)
 }
 
 func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {

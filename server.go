@@ -18,6 +18,10 @@ var (
 		"Close",
 		"Hide",
 	}
+
+	systemMenuText = []string{
+		"Log Out",
+	}
 )
 
 type Server struct {
@@ -51,8 +55,8 @@ type Server struct {
 	decorations []*Decoration
 	bg          wlr.Texture
 
-	mainMenu     *Menu
-	mainMenuPrev *MenuItem
+	mainMenu   *Menu
+	systemMenu *Menu
 
 	focusedTitle wlr.Texture
 
@@ -113,6 +117,11 @@ func (server *Server) exec(to *geom.Rect[float64]) {
 	}
 }
 
+func (server *Server) initMenus() {
+	server.initMainMenu()
+	server.initSystemMenu()
+}
+
 func (server *Server) initMainMenu() {
 	cbs := []func(){
 		server.onMainMenuNew,
@@ -171,4 +180,27 @@ func (server *Server) onMainMenuHide() {
 		server.hideView(view)
 		server.startNormal()
 	})
+}
+
+func (server *Server) initSystemMenu() {
+	cbs := []func(){
+		server.onSystemMenuLogOut,
+	}
+
+	items := make([]*MenuItem, 0, len(systemMenuText))
+	for i, text := range systemMenuText {
+		item := NewMenuItem(
+			CreateTextTexture(server.renderer, image.White, text),
+			CreateTextTexture(server.renderer, image.Black, text),
+		)
+		item.OnSelect = cbs[i]
+		items = append(items, item)
+	}
+
+	server.systemMenu = NewMenu(items...)
+}
+
+func (server *Server) onSystemMenuLogOut() {
+	// TODO: Something other than this.
+	os.Exit(0)
 }
