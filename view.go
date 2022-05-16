@@ -603,8 +603,17 @@ func (server *Server) isCSDSurface(surface wlr.Surface) (ok bool) {
 
 func (server *Server) updateTitles() {
 	// Not the best way to do this, perhaps...
-	//for _, view := range server.hidden {
-	//	server.mainMenu.Remove(len(mainMenuText))
-	//	server.mainMenu.Add(server, view.Title())
-	//}
+	for _, view := range server.hidden {
+		item := server.mainMenu.Item(len(mainMenuText))
+		item.Release()
+
+		n := NewMenuItem(
+			CreateTextTexture(server.renderer, image.White, view.Title()),
+			CreateTextTexture(server.renderer, image.Black, view.Title()),
+		)
+		n.OnSelect = item.OnSelect
+
+		server.mainMenu.Remove(item)
+		server.mainMenu.Add(n)
+	}
 }
