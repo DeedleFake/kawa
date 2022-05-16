@@ -231,7 +231,7 @@ type inputModeMenu struct {
 
 func (server *Server) startMenu(m *Menu) {
 	cc := server.cursorCoords()
-	ob := server.outputBounds(server.outputAt(cc))
+	ob := server.outputBounds(server.outputAt(cc)).Inset(2 * WindowBorder)
 
 	ib := m.ItemBounds(server.mainMenuPrev)
 	if ib.IsZero() {
