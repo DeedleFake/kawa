@@ -212,6 +212,23 @@ func (r Rect[T]) Resize(size Point[T]) Rect[T] {
 	return Rect[T]{Min: r.Min, Max: r.Min.Add(size)}
 }
 
+func (r Rect[T]) FitTo(size Point[T]) Rect[T] {
+	aspect := r.Aspect()
+	r.Max = r.Min.Add(size)
+	return r.WithAspect(aspect)
+}
+
+func (r Rect[T]) Aspect() float64 {
+	return float64(r.Dx()) / float64(r.Dy())
+}
+
+func (r Rect[T]) WithAspect(aspect float64) Rect[T] {
+	if r.Aspect() > aspect {
+		return r.Resize(Pt(T(float64(r.Dy())*aspect), r.Dy()))
+	}
+	return r.Resize(Pt(r.Dx(), T(float64(r.Dx())/aspect)))
+}
+
 func (r Rect[T]) At(x, y T) color.Color {
 	if (Point[T]{x, y}).In(r) {
 		return color.Opaque
