@@ -76,14 +76,10 @@ func (m *Menu) Add(item *MenuItem) {
 	m.updateBounds()
 }
 
-func (m *Menu) Remove(i int) {
+func (m *Menu) Remove(item *MenuItem) {
+	i := slices.Index(m.items, item)
 	m.items = slices.Delete(m.items, i, i+1)
 	m.updateBounds()
-}
-
-func (m *Menu) RemoveItem(item *MenuItem) {
-	i := slices.Index(m.items, item)
-	m.Remove(i)
 }
 
 type MenuItem struct {
@@ -104,7 +100,7 @@ func NewMenuItem(active, inactive wlr.Texture) *MenuItem {
 	}
 }
 
-func (item *MenuItem) Destroy() {
+func (item *MenuItem) Release() {
 	item.active.Destroy()
 	item.inactive.Destroy()
 }

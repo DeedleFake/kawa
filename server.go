@@ -170,7 +170,3 @@ func (server *Server) onMainMenuHide() {
 		server.startNormal()
 	})
 }
-
-func (server *Server) onMainMenuUnhide(n int) {
-	server.unhideView(server.hidden[n])
-}
