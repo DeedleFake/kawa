@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"deedles.dev/kawa/ui"
+	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
 )
 
@@ -51,8 +51,8 @@ type Server struct {
 	decorations []*Decoration
 	bg          wlr.Texture
 
-	mainMenu      *ui.Menu
-	mnainMenuPrev image.Point
+	mainMenu     *Menu
+	mainMenuPrev *MenuItem
 
 	onNewOutputListener            wlr.Listener
 	onNewInputListener             wlr.Listener
@@ -68,6 +68,10 @@ type Server struct {
 	onNewDecorationListener        wlr.Listener
 
 	inputMode InputMode
+}
+
+func (server *Server) cursorCoords() geom.Point[float64] {
+	return geom.Pt(server.cursor.X(), server.cursor.Y())
 }
 
 func (server *Server) loadBG(path string) {
@@ -91,7 +95,7 @@ func (server *Server) loadBG(path string) {
 	wlr.Log(wlr.Info, "loaded %q as background", path)
 }
 
-func (server *Server) exec(to *image.Rectangle) {
+func (server *Server) exec(to *geom.Rect[float64]) {
 	cmd := exec.Command(server.Term[0], server.Term[1:]...) // TODO: Context support?
 	err := cmd.Start()
 	if err != nil {
@@ -119,15 +123,15 @@ func (server *Server) initMainMenu() {
 
 	items := make([]*MenuItem, 0, len(mainMenuText))
 	for i, text := range mainMenuText {
-		item := ui.NewMenuItem(
-			ui.CreateTextTexture(server.renderer, image.Black, text),
-			ui.CreateTextTexture(server.renderer, image.White, text),
+		item := NewMenuItem(
+			CreateTextTexture(server.renderer, image.White, text),
+			CreateTextTexture(server.renderer, image.Black, text),
 		)
 		item.OnSelect = cbs[i]
 		items = append(items, item)
 	}
 
-	server.mainMenu = ui.NewMenu(items...)
+	server.mainMenu = NewMenu(items...)
 }
 
 func (server *Server) onMainMenuNew() {
@@ -167,19 +171,6 @@ func (server *Server) onMainMenuHide() {
 	})
 }
 
-func (server *Server) selectMainMenu(n int) {
-	if n < 0 {
-		return
-	}
-
-	switch n {
-	case 0: // New
-	case 1: // Resize
-	case 2: // Tile
-	case 3: // Move
-	case 4: // Close
-	case 5: // Hide
-	default:
-		server.unhideView(server.hidden[n-len(mainMenuItems)])
-	}
+func (server *Server) onMainMenuUnhide(n int) {
+	server.unhideView(server.hidden[n])
 }

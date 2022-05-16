@@ -1,6 +1,9 @@
 package main
 
-import "deedles.dev/wlr"
+import (
+	"deedles.dev/kawa/geom"
+	"deedles.dev/wlr"
+)
 
 type Output struct {
 	Output wlr.Output
@@ -17,14 +20,19 @@ type OutputConfig struct {
 	Transform     wlr.OutputTransform
 }
 
-func (server *Server) outputAt(x, y float64) *Output {
-	wout := server.outputLayout.OutputAt(x, y)
+func (server *Server) outputAt(p geom.Point[float64]) *Output {
+	wout := server.outputLayout.OutputAt(p.X, p.Y)
 	for _, out := range server.outputs {
 		if out.Output == wout {
 			return out
 		}
 	}
 	return nil
+}
+
+func (server *Server) outputBounds(out *Output) geom.Rect[float64] {
+	x, y := server.outputLayout.OutputCoords(out.Output)
+	return geom.Rt(0, 0, float64(out.Output.Width()), float64(out.Output.Height())).Add(geom.Pt(x, y))
 }
 
 func (server *Server) onNewOutput(wout wlr.Output) {

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"image"
 
+	"deedles.dev/kawa/geom"
 	"deedles.dev/kawa/internal/util"
 	"deedles.dev/kawa/tile"
-	"deedles.dev/kawa/ui"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 )
@@ -29,8 +29,8 @@ var edgeCursors = [...]string{
 
 type View struct {
 	ViewSurface
-	X, Y    int
-	Restore image.Rectangle
+	Coords  geom.Point[float64]
+	Restore geom.Rect[float64]
 	CSD     bool
 
 	onMapListener             wlr.Listener
@@ -53,7 +53,7 @@ func (view *View) Release() {
 }
 
 type NewView struct {
-	To        *image.Rectangle
+	To        *geom.Rect[float64]
 	OnStarted func(*View)
 }
 
@@ -79,32 +79,22 @@ func (d *Decoration) Release() {
 	d.onModeListener.Destroy()
 }
 
-func (server *Server) viewBounds(out *Output, view *View) image.Rectangle {
-	var r image.Rectangle
+func (server *Server) viewBounds(out *Output, view *View) geom.Rect[int] {
+	var r geom.Rect[int]
 	view.ForEachSurface(func(s wlr.Surface, sx, sy int) {
 		if server.isPopupSurface(s) {
 			return
 		}
-		r = r.Union(server.surfaceBounds(out, s, view.X+sx, view.Y+sy))
+
+		sb := server.surfaceBounds(s, geom.Pt(sx, sy)).Add(geom.PConv[int](view.Coords))
+		r = r.Union(sb)
 	})
 	return r
 }
 
-func (server *Server) surfaceBounds(out *Output, surface wlr.Surface, x, y int) image.Rectangle {
-	var ox, oy float64
-	scale := float32(1)
-	if out != nil {
-		ox, oy = server.outputLayout.OutputCoords(out.Output)
-		scale = out.Output.Scale()
-	}
-
-	current := surface.Current()
-	return box(
-		int((ox+float64(x))*float64(scale)),
-		int((oy+float64(y))*float64(scale)),
-		int(float64(current.Width())*float64(scale)),
-		int(float64(current.Height())*float64(scale)),
-	)
+func (server *Server) surfaceBounds(s wlr.Surface, p geom.Point[int]) geom.Rect[int] {
+	current := s.Current()
+	return geom.Rt(0, 0, current.Width(), current.Height()).Add(p)
 }
 
 func (server *Server) targetView() *View {
@@ -116,88 +106,87 @@ func (server *Server) targetView() *View {
 	return m.TargetView()
 }
 
-func (server *Server) viewAt(out *Output, x, y float64) (*View, wlr.Edges, wlr.Surface, float64, float64) {
+func (server *Server) viewAt(out *Output, p geom.Point[float64]) (*View, wlr.Edges, wlr.Surface, geom.Point[float64]) {
 	if out == nil {
-		out = server.outputAt(x, y)
+		out = server.outputAt(p)
 	}
 
-	i, edges, surface, sx, sy := server.viewIndexAt(out, server.views, x, y)
+	i, edges, surface, sp := server.viewIndexAt(out, server.views, p)
 	if i >= 0 {
-		return server.views[i], edges, surface, sx, sy
+		return server.views[i], edges, surface, sp
 	}
 
-	i, edges, surface, sx, sy = server.viewIndexAt(out, server.tiled, x, y)
+	i, edges, surface, sp = server.viewIndexAt(out, server.tiled, p)
 	if i >= 0 {
-		return server.tiled[i], edges, surface, sx, sy
+		return server.tiled[i], edges, surface, sp
 	}
 
-	return nil, wlr.EdgeNone, wlr.Surface{}, 0, 0
+	return nil, wlr.EdgeNone, wlr.Surface{}, geom.Point[float64]{}
 }
 
-func (server *Server) viewIndexAt(out *Output, views []*View, x, y float64) (int, wlr.Edges, wlr.Surface, float64, float64) {
+func (server *Server) viewIndexAt(out *Output, views []*View, p geom.Point[float64]) (int, wlr.Edges, wlr.Surface, geom.Point[float64]) {
 	for i := len(views) - 1; i >= 0; i-- {
 		view := views[i]
 		if !view.Mapped() {
 			continue
 		}
 
-		edges, surface, sx, sy, ok := server.isViewAt(out, view, x, y)
+		edges, surface, sp, ok := server.isViewAt(out, view, p)
 		if ok {
-			return i, edges, surface, sx, sy
+			return i, edges, surface, sp
 		}
 	}
 
-	return -1, 0, wlr.Surface{}, 0, 0
+	return -1, 0, wlr.Surface{}, geom.Point[float64]{}
 }
 
-func (server *Server) isViewAt(out *Output, view *View, x, y float64) (edges wlr.Edges, s wlr.Surface, sx, sy float64, ok bool) {
-	surface, sx, sy, ok := view.SurfaceAt(x-float64(view.X), y-float64(view.Y))
+func (server *Server) isViewAt(out *Output, view *View, p geom.Point[float64]) (edges wlr.Edges, s wlr.Surface, sp geom.Point[float64], ok bool) {
+	surface, sp, ok := view.SurfaceAt(p.Sub(view.Coords))
 	if ok {
-		return wlr.EdgeNone, surface, sx, sy, true
+		return wlr.EdgeNone, surface, sp, true
 	}
 
 	// Don't bother checking the borders if there aren't any.
 	if view.CSD {
-		return 0, wlr.Surface{}, 0, 0, false
+		return 0, wlr.Surface{}, geom.Point[float64]{}, false
 	}
 
-	p := image.Pt(int(x), int(y))
-	r := server.viewBounds(nil, view)
+	r := geom.RConv[float64](server.viewBounds(nil, view))
 	if !p.In(r.Inset(-WindowBorder)) {
-		return 0, wlr.Surface{}, 0, 0, false
+		return 0, wlr.Surface{}, geom.Point[float64]{}, false
 	}
 
-	left := image.Rect(r.Min.X-WindowBorder, r.Min.Y, r.Max.X, r.Max.Y)
+	left := geom.Rt(r.Min.X-WindowBorder, r.Min.Y, r.Max.X, r.Max.Y)
 	if p.In(left) {
-		return wlr.EdgeLeft, wlr.Surface{}, 0, 0, true
+		return wlr.EdgeLeft, wlr.Surface{}, geom.Point[float64]{}, true
 	}
 
-	top := image.Rect(r.Min.X, r.Min.Y-WindowBorder, r.Max.X, r.Max.Y)
+	top := geom.Rt(r.Min.X, r.Min.Y-WindowBorder, r.Max.X, r.Max.Y)
 	if p.In(top) {
-		return wlr.EdgeTop, wlr.Surface{}, 0, 0, true
+		return wlr.EdgeTop, wlr.Surface{}, geom.Point[float64]{}, true
 	}
 
-	right := image.Rect(r.Min.X, r.Min.Y, r.Max.X+WindowBorder, r.Max.Y)
+	right := geom.Rt(r.Min.X, r.Min.Y, r.Max.X+WindowBorder, r.Max.Y)
 	if p.In(right) {
-		return wlr.EdgeRight, wlr.Surface{}, 0, 0, true
+		return wlr.EdgeRight, wlr.Surface{}, geom.Point[float64]{}, true
 	}
 
-	bottom := image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y+WindowBorder)
+	bottom := geom.Rt(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y+WindowBorder)
 	if p.In(bottom) {
-		return wlr.EdgeBottom, wlr.Surface{}, 0, 0, true
+		return wlr.EdgeBottom, wlr.Surface{}, geom.Point[float64]{}, true
 	}
 
 	if (p.X < r.Min.X) && (p.Y < r.Min.Y) {
-		return wlr.EdgeTop | wlr.EdgeLeft, wlr.Surface{}, 0, 0, true
+		return wlr.EdgeTop | wlr.EdgeLeft, wlr.Surface{}, geom.Point[float64]{}, true
 	}
 	if (p.X >= r.Max.X) && (p.Y < r.Min.Y) {
-		return wlr.EdgeTop | wlr.EdgeRight, wlr.Surface{}, 0, 0, true
+		return wlr.EdgeTop | wlr.EdgeRight, wlr.Surface{}, geom.Point[float64]{}, true
 	}
 	if (p.X < r.Min.X) && (p.Y >= r.Max.Y) {
-		return wlr.EdgeBottom | wlr.EdgeLeft, wlr.Surface{}, 0, 0, true
+		return wlr.EdgeBottom | wlr.EdgeLeft, wlr.Surface{}, geom.Point[float64]{}, true
 	}
 	if (p.X >= r.Max.X) && (p.Y >= r.Max.Y) {
-		return wlr.EdgeBottom | wlr.EdgeRight, wlr.Surface{}, 0, 0, true
+		return wlr.EdgeBottom | wlr.EdgeRight, wlr.Surface{}, geom.Point[float64]{}, true
 	}
 
 	// Where else could it possibly be if it gets to here?
@@ -207,8 +196,7 @@ func (server *Server) isViewAt(out *Output, view *View, x, y float64) (edges wlr
 func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
 	view := View{
 		ViewSurface: &viewSurfaceXWayland{s: surface},
-		X:           -1,
-		Y:           -1,
+		Coords:      geom.Pt[float64](-1, -1),
 	}
 	view.onDestroyListener = surface.OnDestroy(func(s wlr.XWaylandSurface) {
 		server.onDestroyView(&view)
@@ -283,8 +271,7 @@ func (server *Server) onDestroyPopup(p *Popup) {
 func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 	view := View{
 		ViewSurface: &viewSurfaceXDG{s: surface},
-		X:           -1,
-		Y:           -1,
+		Coords:      geom.Pt[float64](-1, -1),
 	}
 	view.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
 		server.onDestroyView(&view)
@@ -347,7 +334,7 @@ func (server *Server) onMapView(view *View) {
 		return
 	}
 
-	out := server.outputAt(server.cursor.X(), server.cursor.Y())
+	out := server.outputAt(server.cursorCoords())
 	if out == nil {
 		if len(server.outputs) == 0 {
 			return
@@ -355,12 +342,12 @@ func (server *Server) onMapView(view *View) {
 		out = server.outputs[0]
 	}
 
-	if (view.X == -1) || (view.Y == -1) {
+	if view.Coords == geom.Pt[float64](-1, -1) {
 		server.centerViewOnOutput(out, view)
 		return
 	}
 
-	server.moveViewTo(out, view, view.X, view.Y)
+	server.moveViewTo(out, view, view.Coords)
 }
 
 func (server *Server) addView(view *View) {
@@ -369,49 +356,42 @@ func (server *Server) addView(view *View) {
 
 	nv, ok := server.newViews[view.PID()]
 	if ok {
-		view.Resize(nv.To.Dx(), nv.To.Dy())
+		view.Resize(int(nv.To.Dx()), int(nv.To.Dy()))
 	}
 }
 
 func (server *Server) centerViewOnOutput(out *Output, view *View) {
-	layout := server.outputLayout.Get(out.Output)
-	current := view.Surface().Current()
-	ow, oh := out.Output.EffectiveResolution()
+	ob := server.outputBounds(out)
+	vb := geom.RConv[float64](server.viewBounds(out, view))
+	p := vb.Align(ob.Center())
 
-	server.moveViewTo(
-		out,
-		view,
-		layout.X()+(ow/2-current.Width()/2),
-		layout.Y()+(oh/2-current.Height()/2),
-	)
+	server.moveViewTo(out, view, p.Min)
 }
 
-func (server *Server) moveViewTo(out *Output, view *View, x, y int) {
+func (server *Server) moveViewTo(out *Output, view *View, p geom.Point[float64]) {
 	if out == nil {
-		out = server.outputAt(float64(x), float64(y))
+		out = server.outputAt(p)
 	}
 
-	view.X = x
-	view.Y = y
+	view.Coords = p
 
 	if out != nil {
 		view.Surface().SendEnter(out.Output)
 	}
 }
 
-func (server *Server) resizeViewTo(out *Output, view *View, r image.Rectangle) {
+func (server *Server) resizeViewTo(out *Output, view *View, r geom.Rect[float64]) {
 	if out == nil {
-		out = server.outputAt(float64(r.Min.X), float64(r.Min.Y))
+		out = server.outputAt(r.Min)
 	}
 
 	vb := server.viewBounds(out, view)
-	sb := server.surfaceBounds(out, view.Surface(), view.X, view.Y)
+	sb := server.surfaceBounds(view.Surface(), geom.PConv[int](view.Coords))
 	off := sb.Min.Sub(vb.Min)
-	r = r.Add(off)
+	r = r.Add(geom.PConv[float64](off))
 
-	view.X = r.Min.X
-	view.Y = r.Min.Y
-	view.Resize(r.Dx(), r.Dy())
+	view.Coords = r.Min
+	view.Resize(int(r.Dx()), int(r.Dy()))
 
 	if out != nil {
 		view.Surface().SendEnter(out.Output)
@@ -490,13 +470,12 @@ func (server *Server) hideView(view *View) {
 	server.hidden = append(server.hidden, view)
 	view.SetMinimized(true)
 
-	item := ui.NewMenuItem(
-		ui.CreateTextTexture(server.renderer, image.White, view.Title()),
-		ui.CreateTextTexture(server.renderer, image.Black, view.Title()),
+	item := NewMenuItem(
+		CreateTextTexture(server.renderer, image.White, view.Title()),
+		CreateTextTexture(server.renderer, image.Black, view.Title()),
 	)
 	item.OnSelect = func() {
 		server.unhideView(view)
-		server.mainMenu.Remove(item)
 	}
 	server.mainMenu.Add(item)
 }
@@ -528,9 +507,9 @@ func (server *Server) tileView(view *View) {
 	server.views = slices.Delete(server.views, i, i+1)
 	server.tiled = append(server.tiled, view)
 
-	view.Restore = box(10, 10, 640, 480)
+	view.Restore = DefaultRestore
 	if s := view.Surface(); s.Valid() {
-		view.Restore = box(view.X, view.Y, s.Current().Width(), s.Current().Height())
+		view.Restore = geom.RConv[float64](server.viewBounds(nil, view))
 	}
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())
@@ -559,9 +538,7 @@ func (server *Server) layoutTiles(out *Output) {
 		out = server.outputs[0]
 	}
 
-	x, y := server.outputLayout.OutputCoords(out.Output)
-	or := box(int(x), int(y), out.Output.Width(), out.Output.Height())
-
+	or := server.outputBounds(out)
 	tiles := tile.RightThenDown(or, len(server.tiled))
 	for i, tile := range tiles {
 		tile = tile.Inset(3 * WindowBorder)
@@ -623,8 +600,8 @@ func (server *Server) isCSDSurface(surface wlr.Surface) (ok bool) {
 
 func (server *Server) updateTitles() {
 	// Not the best way to do this, perhaps...
-	for _, view := range server.hidden {
-		server.mainMenu.Remove(len(mainMenuItems))
-		server.mainMenu.Add(server, view.Title())
-	}
+	//for _, view := range server.hidden {
+	//	server.mainMenu.Remove(len(mainMenuText))
+	//	server.mainMenu.Add(server, view.Title())
+	//}
 }

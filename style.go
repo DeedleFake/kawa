@@ -1,10 +1,11 @@
-package ui
+package main
 
 import (
 	"fmt"
 	"image"
 	"image/color"
 
+	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gomono"
@@ -30,6 +31,10 @@ var (
 	ColorMenuUnselected      = color.NRGBA{0xEB, 0xFF, 0xEC, 0xFF}
 	ColorMenuBorder          = color.NRGBA{0x78, 0xAD, 0x84, 0xFF}
 	ColorSurface             = color.NRGBA{0xEE, 0xEE, 0xEE, 0xFF}
+)
+
+var (
+	DefaultRestore = geom.Rt[float64](0, 0, 640, 480).Add(geom.Pt[float64](10, 10))
 )
 
 var (
