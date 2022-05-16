@@ -460,17 +460,15 @@ func (server *Server) bringViewToFront(view *View) {
 }
 
 func (server *Server) hideView(view *View) {
+	// TODO: Remember whether or not a hidden view was tiled.
+	if server.isViewTiled(view) {
+		server.untileView(view, true)
+	}
 	i := slices.Index(server.views, view)
 	if i >= 0 {
 		server.views = slices.Delete(server.views, i, i+1)
 	}
-	i = slices.Index(server.tiled, view)
-	if i >= 0 {
-		server.tiled = slices.Delete(server.tiled, i, i+1)
-		server.layoutTiles(nil)
-	}
 
-	// TODO: Remember whether or not a hidden view was tiled.
 	server.hidden = append(server.hidden, view)
 	view.SetMinimized(true)
 
@@ -525,7 +523,7 @@ func (server *Server) untileView(view *View, restore bool) {
 	server.tiled = slices.Delete(server.tiled, i, i+1)
 	server.views = append(server.views, view)
 
-	if restore {
+	if restore && !view.Restore.IsZero() {
 		server.resizeViewTo(nil, view, view.Restore)
 	}
 	server.layoutTiles(nil)
