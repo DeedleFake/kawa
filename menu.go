@@ -37,7 +37,7 @@ func (m *Menu) updateBounds() {
 	bounds := make([]geom.Rect[float64], 0, len(m.items))
 	r := geom.Rect[float64]{}
 	for _, item := range m.items {
-		tb := geom.Rt(0, 0, float64(item.active.Width())+2*WindowBorder, float64(item.active.Height())+2*WindowBorder)
+		tb := geom.Rt(0, 0, float64(item.active.Width())+WindowBorder, float64(item.active.Height())+WindowBorder)
 		if tb.Dx() < r.Dx() {
 			tb.Max.X = r.Max.X
 		}

@@ -168,7 +168,7 @@ func (server *Server) renderCursor(out *Output, t time.Time) {
 
 func (server *Server) renderMenu(out *Output, m *Menu, p geom.Point[float64], sel *MenuItem) {
 	r := m.Bounds().Add(p)
-	server.renderer.RenderRect(r.Inset(-WindowBorder).ImageRect(), ColorMenuBorder, out.Output.TransformMatrix())
+	server.renderer.RenderRect(r.Inset(-WindowBorder/2).ImageRect(), ColorMenuBorder, out.Output.TransformMatrix())
 	server.renderer.RenderRect(r.ImageRect(), ColorMenuUnselected, out.Output.TransformMatrix())
 
 	for _, item := range m.items {
