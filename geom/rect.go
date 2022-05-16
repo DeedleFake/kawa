@@ -7,10 +7,20 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+// A Rect contains the points with Min.X <= X < Max.X, Min.Y <= Y < Max.Y. It
+// is well-formed if Min.X <= Max.X and likewise for Y. Points are always
+// well-formed. A rectangle's methods always return well-formed outputs for
+// well-formed inputs.
+//
+// A Rect is also an Image whose bounds are the rectangle itself. At returns
+// color.Opaque for points in the rectangle and color.Transparent otherwise.
 type Rect[T constraints.Integer | constraints.Float] struct {
 	Min, Max Point[T]
 }
 
+// Rt is shorthand for Rect{Pt(x0, y0), Pt(x1, y1)}. The returned
+// rectangle has minimum and maximum coordinates swapped if necessary
+// so that it is well-formed.
 func Rt[T constraints.Integer | constraints.Float](x0, y0, x1, y1 T) Rect[T] {
 	if x0 > x1 {
 		x0, x1 = x1, x0
@@ -21,6 +31,7 @@ func Rt[T constraints.Integer | constraints.Float](x0, y0, x1, y1 T) Rect[T] {
 	return Rect[T]{Point[T]{x0, y0}, Point[T]{x1, y1}}
 }
 
+// RConv converts a Rect[In] to a Rect[Out] with possible loss of precision.
 func RConv[Out constraints.Integer | constraints.Float, In constraints.Integer | constraints.Float](r Rect[In]) Rect[Out] {
 	return Rect[Out]{
 		Min: PConv[Out](r.Min),
@@ -148,10 +159,13 @@ func (r Rect[T]) Canon() Rect[T] {
 	return r
 }
 
+// Center returns the point at the middle of r.
 func (r Rect[T]) Center() Point[T] {
 	return r.Min.Add(r.Max).Div(2)
 }
 
+// Align returns a new rectangle with the same dimensions as r but
+// with a center point at p.
 func (r Rect[T]) Align(p Point[T]) Rect[T] {
 	hs := r.Size().Div(2)
 	return Rt(
@@ -162,6 +176,10 @@ func (r Rect[T]) Align(p Point[T]) Rect[T] {
 	)
 }
 
+// ClosestIn returns r shifted to be inside of s at the closest
+// possible point to its starting position. If r is already entirely
+// inside of s, r is returned unchanged. If r can not fit entirely
+// inside of s, the zero Rect is returned.
 func (r Rect[T]) ClosestIn(s Rect[T]) Rect[T] {
 	if (r.Dx() > s.Dx()) || (r.Dy() > s.Dy()) {
 		return Rect[T]{}
