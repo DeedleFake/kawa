@@ -541,7 +541,7 @@ func (server *Server) layoutTiles(out *Output) {
 	}
 
 	or := server.outputBounds(out)
-	tiles := tile.RightThenDown(or, len(server.tiled))
+	tiles := tile.TwoThirdsSidebar(or, len(server.tiled))
 	for i, tile := range tiles {
 		tile = tile.Inset(3 * WindowBorder)
 		server.resizeViewTo(out, server.tiled[i], tile)
