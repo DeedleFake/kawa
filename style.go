@@ -92,7 +92,10 @@ func scaleCenter(out, r geom.Rect[float64]) geom.Rect[float64] {
 }
 
 func scaleFit(out, r geom.Rect[float64]) geom.Rect[float64] {
-	return scaleCenter(out, r).Intersect(out)
+	if (r.Dx() < out.Dx()) && (r.Dy() < out.Dy()) {
+		return r
+	}
+	return scaleFill(out, r)
 }
 
 func scaleFill(out, r geom.Rect[float64]) geom.Rect[float64] {
