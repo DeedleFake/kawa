@@ -474,10 +474,7 @@ func (server *Server) hideView(view *View) {
 	server.hidden = append(server.hidden, view)
 	view.SetMinimized(true)
 
-	item := NewMenuItem(
-		CreateTextTexture(server.renderer, image.White, view.Title()),
-		CreateTextTexture(server.renderer, image.Black, view.Title()),
-	)
+	item := NewTextMenuItem(server.renderer, view.Title())
 	item.OnSelect = func() {
 		server.unhideView(view)
 	}
@@ -611,10 +608,7 @@ func (server *Server) updateTitles() {
 		item := server.mainMenu.Item(len(mainMenuText))
 		item.Release()
 
-		n := NewMenuItem(
-			CreateTextTexture(server.renderer, image.White, view.Title()),
-			CreateTextTexture(server.renderer, image.Black, view.Title()),
-		)
+		n := NewTextMenuItem(server.renderer, view.Title())
 		n.OnSelect = item.OnSelect
 
 		server.mainMenu.Remove(item)

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image"
+
 	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/maps"
@@ -117,6 +119,13 @@ func NewMenuItem(active, inactive wlr.Texture) *MenuItem {
 		active:   active,
 		inactive: inactive,
 	}
+}
+
+func NewTextMenuItem(renderer wlr.Renderer, text string) *MenuItem {
+	return NewMenuItem(
+		CreateTextTexture(renderer, image.White, text),
+		CreateTextTexture(renderer, image.Black, text),
+	)
 }
 
 func (item *MenuItem) Release() {

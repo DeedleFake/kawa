@@ -134,10 +134,7 @@ func (server *Server) initMainMenu() {
 
 	items := make([]*MenuItem, 0, len(mainMenuText))
 	for i, text := range mainMenuText {
-		item := NewMenuItem(
-			CreateTextTexture(server.renderer, image.White, text),
-			CreateTextTexture(server.renderer, image.Black, text),
-		)
+		item := NewTextMenuItem(server.renderer, text)
 		item.OnSelect = cbs[i]
 		items = append(items, item)
 	}
@@ -189,10 +186,7 @@ func (server *Server) initSystemMenu() {
 
 	items := make([]*MenuItem, 0, len(systemMenuText))
 	for i, text := range systemMenuText {
-		item := NewMenuItem(
-			CreateTextTexture(server.renderer, image.White, text),
-			CreateTextTexture(server.renderer, image.Black, text),
-		)
+		item := NewTextMenuItem(server.renderer, text)
 		item.OnSelect = cbs[i]
 		items = append(items, item)
 	}
