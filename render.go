@@ -144,9 +144,9 @@ func (server *Server) renderStatusBar(out *Output, t time.Time) {
 	if server.focusedTitle.Valid() {
 		r := geom.Rt(
 			r.Min.X+WindowBorder,
-			r.Max.Y-float64(server.focusedTitle.Height())-1,
+			r.Max.Y-float64(server.focusedTitle.Height())-WindowBorder,
 			float64(server.focusedTitle.Width()),
-			r.Max.Y-1,
+			r.Max.Y-WindowBorder,
 		)
 		m := wlr.ProjectBoxMatrix(r.ImageRect(), wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
 		server.renderer.RenderTextureWithMatrix(server.focusedTitle, m, 1)

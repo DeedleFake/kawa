@@ -19,7 +19,7 @@ const (
 	MinHeight = 24
 
 	WindowBorder    = 5
-	StatusBarHeight = 4 * WindowBorder
+	StatusBarHeight = 5 * WindowBorder
 )
 
 var (
