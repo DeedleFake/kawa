@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"image"
 	"os"
 	"os/signal"
 	"runtime/pprof"
@@ -16,12 +15,6 @@ import (
 
 	"deedles.dev/wlr"
 )
-
-// box creates a new rectangle with a top-left corner at the given
-// coordinates and the given width and height.
-func box(x, y, w, h int) image.Rectangle {
-	return image.Rect(x, y, x+w, y+h)
-}
 
 // parseTransform parses an OutputTransform from a string.
 func parseTransform(str string) (wlr.OutputTransform, error) {
@@ -141,8 +134,7 @@ func (server *Server) init() error {
 	server.decorationManager.SetDefaultMode(wlr.ServerDecorationManagerModeServer)
 	server.onNewDecorationListener = server.decorationManager.OnNewDecoration(server.onNewDecoration)
 
-	server.mainMenu = server.createMenu(mainMenuItems...)
-	server.mainMenu.OnSelect = server.selectMainMenu
+	server.initMainMenu()
 
 	server.startNormal()
 

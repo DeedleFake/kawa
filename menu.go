@@ -1,127 +1,110 @@
 package main
 
 import (
-	"fmt"
-	"image"
-
+	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/gomono"
-	"golang.org/x/image/font/opentype"
-	"golang.org/x/image/font/sfnt"
-	"golang.org/x/image/math/fixed"
 )
-
-var (
-	fontOptions = opentype.FaceOptions{
-		Size: 14,
-		DPI:  72,
-	}
-
-	gomonoFont *sfnt.Font
-	gomonoFace font.Face
-)
-
-func init() {
-	var err error
-	gomonoFont, err = opentype.Parse(gomono.TTF)
-	if err != nil {
-		panic(fmt.Errorf("parse font: %w", err))
-	}
-
-	gomonoFace, err = opentype.NewFace(gomonoFont, &fontOptions)
-	if err != nil {
-		panic(fmt.Errorf("create font face: %w", err))
-	}
-
-}
 
 type Menu struct {
-	OnSelect func(int)
-
-	prev     int
-	active   []wlr.Texture
-	inactive []wlr.Texture
+	items    []*MenuItem
+	itemInfo map[*MenuItem]geom.Rect[float64]
+	bounds   geom.Rect[float64]
 }
 
-func (server *Server) createMenu(text ...string) *Menu {
+func NewMenu(items ...*MenuItem) *Menu {
 	m := Menu{
-		inactive: make([]wlr.Texture, 0, len(text)),
-		active:   make([]wlr.Texture, 0, len(text)),
+		items:    make([]*MenuItem, 0, len(items)),
+		itemInfo: make(map[*MenuItem]geom.Rect[float64], len(items)),
 	}
-	for _, item := range text {
-		m.Add(server, item)
+	for _, item := range items {
+		m.Add(item)
 	}
-
 	return &m
 }
 
 func (m *Menu) Len() int {
-	return len(m.active)
+	return len(m.items)
 }
 
-func (m *Menu) Bounds() image.Rectangle {
-	var w int
-	for _, t := range m.active {
-		if tw := t.Width() + WindowBorder*2; tw > w {
-			w = tw
+func (m *Menu) updateBounds() {
+	maps.Clear(m.itemInfo)
+
+	bounds := make([]geom.Rect[float64], 0, len(m.items))
+	r := geom.Rect[float64]{}
+	for _, item := range m.items {
+		tb := geom.Rt(0, 0, float64(item.active.Width())+2*WindowBorder, float64(item.active.Height())+2*WindowBorder)
+		if tb.Dx() < r.Dx() {
+			tb.Max.X = r.Max.X
+		}
+		tb = tb.Add(geom.Pt(0, r.Max.Y))
+		bounds = append(bounds, tb)
+		r = r.Union(tb)
+	}
+	m.bounds = r
+
+	for i, b := range bounds {
+		item := m.items[i]
+		m.itemInfo[item] = geom.Rt(0, 0, r.Dx(), b.Dy()).Add(b.Min)
+	}
+}
+
+func (m *Menu) Item(i int) *MenuItem {
+	return m.items[i]
+}
+
+func (m *Menu) Bounds() (b geom.Rect[float64]) {
+	return m.bounds
+}
+
+func (m *Menu) ItemAt(p geom.Point[float64]) *MenuItem {
+	for item, ib := range m.itemInfo {
+		if p.In(ib) {
+			return item
 		}
 	}
-
-	return box(0, 0, w, len(m.active)*int(fontOptions.Size+WindowBorder*2))
+	return nil
 }
 
-func (m *Menu) StartOffset() image.Point {
-	b := m.Bounds()
-	return image.Pt(
-		-b.Dx()/2,
-		-int(fontOptions.Size+WindowBorder*2)*m.prev-int(fontOptions.Size+WindowBorder*2)/2,
-	)
+func (m *Menu) ItemBounds(item *MenuItem) geom.Rect[float64] {
+	return m.itemInfo[item]
 }
 
-func (m *Menu) Select(n int) {
-	if (n >= 0) && (n < m.Len()) {
-		m.prev = n
-	}
-	if m.OnSelect != nil {
-		m.OnSelect(n)
-	}
-}
-
-func (m *Menu) Add(server *Server, item string) {
-	m.inactive = append(m.inactive, server.createTextTexture(image.Black, gomonoFace, item))
-	m.active = append(m.active, server.createTextTexture(image.White, gomonoFace, item))
+func (m *Menu) Add(item *MenuItem) {
+	m.items = append(m.items, item)
+	m.updateBounds()
 }
 
 func (m *Menu) Remove(i int) {
-	m.inactive[i].Destroy()
-	m.active[i].Destroy()
+	m.items = slices.Delete(m.items, i, i+1)
+	m.updateBounds()
+}
 
-	m.inactive = slices.Delete(m.inactive, i, i+1)
-	m.active = slices.Delete(m.active, i, i+1)
+func (m *Menu) RemoveItem(item *MenuItem) {
+	i := slices.Index(m.items, item)
+	m.Remove(i)
+}
 
-	if m.prev >= m.Len() {
-		m.prev = m.Len() - 1
+type MenuItem struct {
+	OnSelect func()
+
+	active   wlr.Texture
+	inactive wlr.Texture
+}
+
+func NewMenuItem(active, inactive wlr.Texture) *MenuItem {
+	if (active.Width() != inactive.Width()) || (active.Height() != inactive.Height()) {
+		panic("active and inactive sizes do no match")
+	}
+
+	return &MenuItem{
+		active:   active,
+		inactive: inactive,
 	}
 }
 
-func (server *Server) createTextTexture(src image.Image, face font.Face, item string) wlr.Texture {
-	fdraw := font.Drawer{
-		Src:  src,
-		Face: face,
-		Dot:  fixed.P(0, int(fontOptions.Size)),
-	}
-
-	extents, _ := fdraw.BoundString(item)
-	buf := image.NewNRGBA(image.Rect(
-		0,
-		0,
-		(extents.Max.X - extents.Min.X).Floor(),
-		int(fontOptions.Size),
-	))
-	fdraw.Dst = buf
-	fdraw.DrawString(item)
-
-	return wlr.TextureFromImage(server.renderer, buf)
+func (item *MenuItem) Destroy() {
+	item.active.Destroy()
+	item.inactive.Destroy()
 }

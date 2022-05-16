@@ -5,18 +5,12 @@ import (
 	"os"
 	"os/exec"
 
+	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
 )
 
-const (
-	MinWidth  = 128
-	MinHeight = 24
-
-	WindowBorder = 5
-)
-
 var (
-	mainMenuItems = []string{
+	mainMenuText = []string{
 		"New",
 		"Resize",
 		"Tile",
@@ -57,7 +51,8 @@ type Server struct {
 	decorations []*Decoration
 	bg          wlr.Texture
 
-	mainMenu *Menu
+	mainMenu     *Menu
+	mainMenuPrev *MenuItem
 
 	onNewOutputListener            wlr.Listener
 	onNewInputListener             wlr.Listener
@@ -73,6 +68,10 @@ type Server struct {
 	onNewDecorationListener        wlr.Listener
 
 	inputMode InputMode
+}
+
+func (server *Server) cursorCoords() geom.Point[float64] {
+	return geom.Pt(server.cursor.X(), server.cursor.Y())
 }
 
 func (server *Server) loadBG(path string) {
@@ -96,7 +95,7 @@ func (server *Server) loadBG(path string) {
 	wlr.Log(wlr.Info, "loaded %q as background", path)
 }
 
-func (server *Server) exec(to *image.Rectangle) {
+func (server *Server) exec(to *geom.Rect[float64]) {
 	cmd := exec.Command(server.Term[0], server.Term[1:]...) // TODO: Context support?
 	err := cmd.Start()
 	if err != nil {
@@ -112,38 +111,66 @@ func (server *Server) exec(to *image.Rectangle) {
 	}
 }
 
-func (server *Server) selectMainMenu(n int) {
-	if n < 0 {
-		return
+func (server *Server) initMainMenu() {
+	cbs := []func(){
+		server.onMainMenuNew,
+		server.onMainMenuResize,
+		server.onMainMenuTile,
+		server.onMainMenuMove,
+		server.onMainMenuClose,
+		server.onMainMenuHide,
 	}
 
-	switch n {
-	case 0: // New
-		server.startNew()
-	case 1: // Resize
-		server.startSelectView(wlr.BtnRight, func(view *View) {
-			server.startResize(view)
-		})
-	case 2: // Tile
-		server.startSelectView(wlr.BtnRight, func(view *View) {
-			server.toggleViewTiling(view)
-			server.startNormal()
-		})
-	case 3: // Move
-		server.startSelectView(wlr.BtnRight, func(view *View) {
-			server.startMove(view)
-		})
-	case 4: // Close
-		server.startSelectView(wlr.BtnRight, func(view *View) {
-			server.closeView(view)
-			server.startNormal()
-		})
-	case 5: // Hide
-		server.startSelectView(wlr.BtnRight, func(view *View) {
-			server.hideView(view)
-			server.startNormal()
-		})
-	default:
-		server.unhideView(server.hidden[n-len(mainMenuItems)])
+	items := make([]*MenuItem, 0, len(mainMenuText))
+	for i, text := range mainMenuText {
+		item := NewMenuItem(
+			CreateTextTexture(server.renderer, image.White, text),
+			CreateTextTexture(server.renderer, image.Black, text),
+		)
+		item.OnSelect = cbs[i]
+		items = append(items, item)
 	}
+
+	server.mainMenu = NewMenu(items...)
+}
+
+func (server *Server) onMainMenuNew() {
+	server.startNew()
+}
+
+func (server *Server) onMainMenuResize() {
+	server.startSelectView(wlr.BtnRight, func(view *View) {
+		server.startResize(view)
+	})
+}
+
+func (server *Server) onMainMenuTile() {
+	server.startSelectView(wlr.BtnRight, func(view *View) {
+		server.toggleViewTiling(view)
+		server.startNormal()
+	})
+}
+
+func (server *Server) onMainMenuMove() {
+	server.startSelectView(wlr.BtnRight, func(view *View) {
+		server.startMove(view)
+	})
+}
+
+func (server *Server) onMainMenuClose() {
+	server.startSelectView(wlr.BtnRight, func(view *View) {
+		server.closeView(view)
+		server.startNormal()
+	})
+}
+
+func (server *Server) onMainMenuHide() {
+	server.startSelectView(wlr.BtnRight, func(view *View) {
+		server.hideView(view)
+		server.startNormal()
+	})
+}
+
+func (server *Server) onMainMenuUnhide(n int) {
+	server.unhideView(server.hidden[n])
 }

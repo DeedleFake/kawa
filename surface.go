@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 
+	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
 )
 
@@ -22,7 +23,7 @@ type ViewSurface interface {
 	SetActivated(bool)
 
 	ForEachSurface(func(wlr.Surface, int, int))
-	SurfaceAt(x, y float64) (s wlr.Surface, sx, sy float64, ok bool)
+	SurfaceAt(geom.Point[float64]) (s wlr.Surface, sp geom.Point[float64], ok bool)
 	HasSurface(wlr.Surface) bool
 }
 
@@ -90,8 +91,9 @@ func (s *viewSurfaceXDG) ForEachSurface(cb func(wlr.Surface, int, int)) {
 	s.s.ForEachSurface(cb)
 }
 
-func (s *viewSurfaceXDG) SurfaceAt(x, y float64) (surface wlr.Surface, sx, sy float64, ok bool) {
-	return s.s.SurfaceAt(x, y)
+func (s *viewSurfaceXDG) SurfaceAt(p geom.Point[float64]) (surface wlr.Surface, sp geom.Point[float64], ok bool) {
+	surface, sx, sy, ok := s.s.SurfaceAt(p.X, p.Y)
+	return surface, geom.Pt(sx, sy), ok
 }
 
 type viewSurfaceXWayland struct {
@@ -158,6 +160,7 @@ func (s *viewSurfaceXWayland) ForEachSurface(cb func(wlr.Surface, int, int)) {
 	s.s.Surface().ForEachSurface(cb)
 }
 
-func (s *viewSurfaceXWayland) SurfaceAt(x, y float64) (surface wlr.Surface, sx, sy float64, ok bool) {
-	return s.s.Surface().SurfaceAt(x, y)
+func (s *viewSurfaceXWayland) SurfaceAt(p geom.Point[float64]) (surface wlr.Surface, sp geom.Point[float64], ok bool) {
+	surface, sx, sy, ok := s.s.Surface().SurfaceAt(p.X, p.Y)
+	return surface, geom.Pt(sx, sy), ok
 }

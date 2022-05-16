@@ -1,10 +1,10 @@
 package main
 
 import (
-	"image"
 	"math"
 	"time"
 
+	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 )
@@ -22,9 +22,9 @@ func (server *Server) startNormal() {
 }
 
 func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
-	x, y := server.cursor.X(), server.cursor.Y()
+	cc := server.cursorCoords()
 
-	view, edges, surface, sx, sy := server.viewAt(nil, x, y)
+	view, edges, surface, sp := server.viewAt(nil, cc)
 	if (edges != m.prevEdges) && !server.isViewTiled(view) {
 		server.setCursor(edgeCursors[edges])
 		m.prevEdges = edges
@@ -38,12 +38,12 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 		return
 	}
 
-	server.seat.PointerNotifyEnter(surface, sx, sy)
-	server.seat.PointerNotifyMotion(t, sx, sy)
+	server.seat.PointerNotifyEnter(surface, sp.X, sp.Y)
+	server.seat.PointerNotifyMotion(t, sp.X, sp.Y)
 }
 
 func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
-	view, edges, surface, _, _ := server.viewAt(nil, server.cursor.X(), server.cursor.Y())
+	view, edges, surface, _ := server.viewAt(nil, server.cursorCoords())
 	if view == nil {
 		if b == wlr.BtnRight {
 			server.startMenu(server.mainMenu)
@@ -78,30 +78,29 @@ func (m *inputModeNormal) RequestCursor(server *Server, s wlr.Surface, x, y int)
 
 type inputModeMove struct {
 	view *View
-	off  image.Point
+	off  geom.Point[float64]
 }
 
 func (server *Server) startMove(view *View) {
 	server.setCursor("grabbing")
 	server.focusView(view, view.Surface())
 
-	x, y := server.cursor.X(), server.cursor.Y()
+	cc := server.cursorCoords()
 	server.inputMode = &inputModeMove{
 		view: view,
-		off:  image.Pt(int(x)-view.X, int(y)-view.Y),
+		off:  cc.Sub(view.Coords),
 	}
 }
 
 func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
-	x, y := server.cursor.X(), server.cursor.Y()
+	cc := server.cursorCoords()
 
 	if !server.isViewTiled(m.view) {
-		p := image.Pt(int(x), int(y)).Sub(m.off)
-		server.moveViewTo(nil, m.view, p.X, p.Y)
+		server.moveViewTo(nil, m.view, cc.Sub(m.off))
 		return
 	}
 
-	i, _, _, _, _ := server.viewIndexAt(nil, server.tiled, x, y)
+	i, _, _, _ := server.viewIndexAt(nil, server.tiled, cc)
 	if i >= 0 {
 		vi := slices.Index(server.tiled, m.view)
 		server.tiled[i], server.tiled[vi] = server.tiled[vi], server.tiled[i]
@@ -120,15 +119,15 @@ func (m *inputModeMove) TargetView() *View {
 type inputModeBorderResize struct {
 	view  *View
 	edges wlr.Edges
-	cur   image.Rectangle
+	cur   geom.Rect[float64]
 }
 
 func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
 	vb := server.viewBounds(nil, view)
-	server.startBorderResizeFrom(view, edges, vb)
+	server.startBorderResizeFrom(view, edges, geom.RConv[float64](vb))
 }
 
-func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from image.Rectangle) {
+func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from geom.Rect[float64]) {
 	view.SetResizing(true)
 	server.focusView(view, view.Surface())
 	server.inputMode = &inputModeBorderResize{
@@ -139,51 +138,50 @@ func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from im
 }
 
 func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
-	x, y := server.cursor.X(), server.cursor.Y()
-	ox, oy := int(x), int(y)
+	cc := server.cursorCoords()
 
 	r := m.cur
 	if m.edges&wlr.EdgeTop != 0 {
-		r.Min.Y = oy
+		r.Min.Y = cc.Y
 		if r.Dy() < MinHeight {
 			r.Min.Y = r.Max.Y - MinHeight
 		}
 	}
 	if m.edges&wlr.EdgeBottom != 0 {
-		r.Max.Y = oy
+		r.Max.Y = cc.Y
 		if r.Dy() < MinHeight {
 			r.Max.Y = r.Min.Y + MinHeight
 		}
 	}
 	if m.edges&wlr.EdgeLeft != 0 {
-		r.Min.X = ox
+		r.Min.X = cc.X
 		if r.Dx() < MinWidth {
 			r.Min.X = r.Max.X - MinWidth
 		}
 	}
 	if m.edges&wlr.EdgeRight != 0 {
-		r.Max.X = ox
+		r.Max.X = cc.X
 		if r.Dx() < MinWidth {
 			r.Max.X = r.Min.X + MinWidth
 		}
 	}
 
-	if ox < r.Min.X {
+	if cc.X < r.Min.X {
 		m.edges |= wlr.EdgeLeft
 		m.edges &^= wlr.EdgeRight
 		server.setCursor(edgeCursors[m.edges])
 	}
-	if ox > r.Max.X {
+	if cc.X > r.Max.X {
 		m.edges |= wlr.EdgeRight
 		m.edges &^= wlr.EdgeLeft
 		server.setCursor(edgeCursors[m.edges])
 	}
-	if oy < r.Min.Y {
+	if cc.Y < r.Min.Y {
 		m.edges |= wlr.EdgeTop
 		m.edges &^= wlr.EdgeBottom
 		server.setCursor(edgeCursors[m.edges])
 	}
-	if oy > r.Max.Y {
+	if cc.Y > r.Max.Y {
 		m.edges |= wlr.EdgeBottom
 		m.edges &^= wlr.EdgeTop
 		server.setCursor(edgeCursors[m.edges])
@@ -204,16 +202,19 @@ func (m *inputModeBorderResize) TargetView() *View {
 
 type inputModeMenu struct {
 	m   *Menu
-	p   image.Point
-	sel int
+	p   geom.Point[float64]
+	sel *MenuItem
 }
 
 func (server *Server) startMenu(m *Menu) {
-	x, y := server.cursor.X(), server.cursor.Y()
-	out := server.outputAt(x, y)
-	ob := box(0, 0, out.Output.Width(), out.Output.Height())
+	cc := server.cursorCoords()
+	ob := server.outputBounds(server.outputAt(cc))
 
-	mb := m.Bounds().Add(m.StartOffset()).Add(image.Pt(int(x), int(y)))
+	ib := m.ItemBounds(server.mainMenuPrev)
+	if ib.IsZero() {
+		ib = m.ItemBounds(m.Item(0))
+	}
+	mb := m.Bounds().Sub(ib.Center()).Add(cc)
 
 	if i := mb.Intersect(ob); mb != i {
 		before := mb
@@ -230,15 +231,8 @@ func (server *Server) startMenu(m *Menu) {
 }
 
 func (m *inputModeMenu) CursorMoved(server *Server, t time.Time) {
-	cx, cy := server.cursor.X(), server.cursor.Y()
-
-	p := image.Pt(int(cx), int(cy))
-	r := m.m.Bounds().Add(m.p)
-
-	m.sel = -1
-	if p.In(r) {
-		m.sel = (p.Y - r.Min.Y) / int(fontOptions.Size+WindowBorder*2)
-	}
+	cc := server.cursorCoords().Sub(m.p)
+	m.sel = m.m.ItemAt(cc)
 }
 
 func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
@@ -247,11 +241,14 @@ func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice
 	}
 
 	server.startNormal()
-	m.m.Select(m.sel)
+	if m.sel != nil {
+		m.sel.OnSelect()
+		server.mainMenuPrev = m.sel
+	}
 }
 
 func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {
-	server.renderMenu(out, m.m, float64(m.p.X), float64(m.p.Y), m.sel)
+	server.renderMenu(out, m.m, m.p, m.sel)
 }
 
 type inputModeSelectView struct {
@@ -273,8 +270,8 @@ func (m *inputModeSelectView) CursorButtonPressed(server *Server, dev wlr.InputD
 		return
 	}
 
-	x, y := server.cursor.X(), server.cursor.Y()
-	view, _, _, _, _ := server.viewAt(nil, x, y)
+	cc := server.cursorCoords()
+	view, _, _, _ := server.viewAt(nil, cc)
 	if view != nil {
 		m.then(view)
 		return
@@ -284,7 +281,7 @@ func (m *inputModeSelectView) CursorButtonPressed(server *Server, dev wlr.InputD
 
 type inputModeResize struct {
 	view     *View
-	sx, sy   float64
+	s        geom.Point[float64]
 	resizing bool
 }
 
@@ -300,22 +297,21 @@ func (m *inputModeResize) CursorMoved(server *Server, t time.Time) {
 		return
 	}
 
-	x, y := server.cursor.X(), server.cursor.Y()
-	if math.Abs(x-m.sx) < MinWidth {
+	cc := server.cursorCoords()
+	if math.Abs(cc.X-m.s.X) < MinWidth {
 		return
 	}
-	if math.Abs(y-m.sy) < MinHeight {
+	if math.Abs(cc.Y-m.s.Y) < MinHeight {
 		return
 	}
 
-	r := image.Rect(
-		int(m.sx),
-		int(m.sy),
-		int(x),
-		int(y),
-	)
 	if server.isViewTiled(m.view) {
 		server.untileView(m.view, false)
+	}
+
+	r := geom.Rect[float64]{
+		Min: m.s,
+		Max: cc,
 	}
 	server.startBorderResizeFrom(m.view, wlr.EdgeNone, r)
 }
@@ -326,7 +322,7 @@ func (m *inputModeResize) CursorButtonPressed(server *Server, dev wlr.InputDevic
 		return
 	}
 
-	m.sx, m.sy = server.cursor.X(), server.cursor.Y()
+	m.s = server.cursorCoords()
 	m.resizing = true
 }
 
@@ -335,11 +331,6 @@ func (m *inputModeResize) CursorButtonReleased(server *Server, dev wlr.InputDevi
 		return
 	}
 
-	x, y := server.cursor.X(), server.cursor.Y()
-	r := image.Rect(int(m.sx), int(m.sy), int(x), int(y))
-	if (r.Dx() >= MinWidth) && (r.Dy() >= MinHeight) {
-		server.resizeViewTo(nil, m.view, r)
-	}
 	server.startNormal()
 }
 
@@ -348,13 +339,8 @@ func (m *inputModeResize) Frame(server *Server, out *Output, t time.Time) {
 		return
 	}
 
-	x, y := server.cursor.X(), server.cursor.Y()
-	r := image.Rect(
-		int(m.sx),
-		int(m.sy),
-		int(x),
-		int(y),
-	).Canon()
+	cc := server.cursorCoords()
+	r := geom.Rect[float64]{Min: m.s, Max: cc}
 	server.renderSelectionBox(out, r, t)
 }
 
@@ -363,7 +349,7 @@ func (m *inputModeResize) TargetView() *View {
 }
 
 type inputModeNew struct {
-	n        image.Rectangle
+	n        geom.Rect[float64]
 	dragging bool
 	started  bool
 }
@@ -378,16 +364,15 @@ func (m *inputModeNew) CursorMoved(server *Server, t time.Time) {
 		return
 	}
 
-	x, y := server.cursor.X(), server.cursor.Y()
-	if math.Abs(x-float64(m.n.Min.X)) < MinWidth {
-		return
-	}
-	if math.Abs(y-float64(m.n.Min.Y)) < MinHeight {
-		return
-	}
+	cc := server.cursorCoords()
+	m.n.Max = cc
 
-	m.n.Max.X = int(x)
-	m.n.Max.Y = int(y)
+	if math.Abs(cc.X-float64(m.n.Min.X)) < MinWidth {
+		return
+	}
+	if math.Abs(cc.Y-float64(m.n.Min.Y)) < MinHeight {
+		return
+	}
 
 	if !m.started {
 		server.exec(&m.n)
@@ -401,7 +386,8 @@ func (m *inputModeNew) CursorButtonPressed(server *Server, dev wlr.InputDevice, 
 		return
 	}
 
-	m.n.Min.X, m.n.Min.Y = int(server.cursor.X()), int(server.cursor.Y())
+	m.n.Min = server.cursorCoords()
+	m.n.Max = m.n.Min
 	m.dragging = true
 }
 
@@ -418,12 +404,5 @@ func (m *inputModeNew) Frame(server *Server, out *Output, t time.Time) {
 		return
 	}
 
-	x, y := server.cursor.X(), server.cursor.Y()
-	r := image.Rect(
-		int(m.n.Min.X),
-		int(m.n.Min.Y),
-		int(x),
-		int(y),
-	)
-	server.renderSelectionBox(out, r, t)
+	server.renderSelectionBox(out, m.n, t)
 }
