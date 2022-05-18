@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -76,19 +77,25 @@ func (server *Server) init() error {
 	server.newViews = make(map[int]NewView)
 
 	server.display = wlr.CreateDisplay()
-	//defer server.display.Destroy()
-	//defer server.display.DestroyClients()
 
 	server.backend = wlr.AutocreateBackend(server.display)
-	//defer server.backend.Destroy()
+	if !server.backend.Valid() {
+		return errors.New("failed to create backend")
+	}
 
 	server.renderer = wlr.AutocreateRenderer(server.backend)
+	server.renderer.InitWLSHM(server.display)
+
 	server.allocator = wlr.AutocreateAllocator(server.backend, server.renderer)
-	server.renderer.InitWLDisplay(server.display)
+	if !server.allocator.Valid() {
+		return errors.New("failed to create allocator")
+	}
 
 	server.compositor = wlr.CreateCompositor(server.display, server.renderer)
-	wlr.CreateDataDeviceManager(server.display)
 
+	wlr.CreateDRM(server.display, server.renderer)
+	wlr.CreateDataDeviceManager(server.display)
+	wlr.CreateLinuxDMABufV1(server.display, server.renderer)
 	wlr.CreateExportDMABufV1(server.display)
 	wlr.CreateScreencopyManagerV1(server.display)
 	wlr.CreateDataControlManagerV1(server.display)
