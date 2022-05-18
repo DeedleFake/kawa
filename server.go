@@ -62,6 +62,8 @@ type Server struct {
 
 	focusedTitle wlr.Texture
 
+	inputMode InputMode
+
 	onNewOutputListener            wlr.Listener
 	onNewInputListener             wlr.Listener
 	onCursorMotionListener         wlr.Listener
@@ -74,12 +76,25 @@ type Server struct {
 	onNewXWaylandSurfaceListener   wlr.Listener
 	onNewLayerSurfaceListener      wlr.Listener
 	onNewDecorationListener        wlr.Listener
-
-	inputMode InputMode
 }
 
-func (server *Server) cursorCoords() geom.Point[float64] {
-	return geom.Pt(server.cursor.X(), server.cursor.Y())
+func (server *Server) Release() {
+	server.onNewOutputListener.Destroy()
+	server.onNewInputListener.Destroy()
+	server.onCursorMotionListener.Destroy()
+	server.onCursorMotionAbsoluteListener.Destroy()
+	server.onCursorButtonListener.Destroy()
+	server.onCursorAxisListener.Destroy()
+	server.onCursorFrameListener.Destroy()
+	server.onRequestCursorListener.Destroy()
+	server.onNewXDGSurfaceListener.Destroy()
+	server.onNewXWaylandSurfaceListener.Destroy()
+	server.onNewLayerSurfaceListener.Destroy()
+	server.onNewDecorationListener.Destroy()
+}
+
+func (server *Server) Shutdown() {
+	server.display.Terminate()
 }
 
 func (server *Server) loadBG(path string) {
@@ -197,6 +212,5 @@ func (server *Server) initSystemMenu() {
 }
 
 func (server *Server) onSystemMenuLogOut() {
-	// TODO: Something other than this.
-	os.Exit(0)
+	server.Shutdown()
 }

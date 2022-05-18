@@ -222,6 +222,7 @@ func main() {
 		wlr.Log(wlr.Error, "init server: %v", err)
 		os.Exit(1)
 	}
+	defer server.Release()
 
 	if *bg != "" {
 		server.loadBG(*bg)

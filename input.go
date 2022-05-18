@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
 	"deedles.dev/wlr/xkb"
 )
@@ -177,4 +178,8 @@ func (server *Server) setCursor(name string) {
 func (server *Server) handleKeyboardShortcut(kb *Keyboard, code uint32, t time.Time) bool {
 	// TODO
 	return false
+}
+
+func (server *Server) cursorCoords() geom.Point[float64] {
+	return geom.Pt(server.cursor.X(), server.cursor.Y())
 }
