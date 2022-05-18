@@ -141,9 +141,10 @@ func (server *Server) init() error {
 	return nil
 }
 
-// run runs the server's main loop. It does not return unless there is
-// an error, but it probably should eventually.
+// run runs the server's main loop.
 func (server *Server) run() error {
+	defer server.Release()
+
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {
 		return err
@@ -222,7 +223,6 @@ func main() {
 		wlr.Log(wlr.Error, "init server: %v", err)
 		os.Exit(1)
 	}
-	defer server.Release()
 
 	if *bg != "" {
 		server.loadBG(*bg)
