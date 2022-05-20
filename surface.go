@@ -38,7 +38,7 @@ func (s *viewSurfaceXDG) PID() int {
 }
 
 func (s *viewSurfaceXDG) HasSurface(surface wlr.Surface) (has bool) {
-	s.ForEachSurface(func(s wlr.Surface, x, y int) {
+	s.ForEachSurface((s, x, y) => {
 		if s == surface {
 			has = true
 		}
@@ -106,7 +106,7 @@ func (s *viewSurfaceXWayland) PID() int {
 }
 
 func (s *viewSurfaceXWayland) HasSurface(surface wlr.Surface) (has bool) {
-	s.ForEachSurface(func(s wlr.Surface, x, y int) {
+	s.ForEachSurface((s, x, y) => {
 		if s == surface {
 			has = true
 		}

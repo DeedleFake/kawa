@@ -128,9 +128,7 @@ func (server *Server) exec(to *geom.Rect[float64]) {
 
 	server.newViews[cmd.Process.Pid] = NewView{
 		To: to,
-		OnStarted: func(view *View) {
-			server.startBorderResizeFrom(view, wlr.EdgeNone, *to)
-		},
+		OnStarted: (view) => { server.startBorderResizeFrom(view, wlr.EdgeNone, *to) },
 	}
 }
 
@@ -164,33 +162,29 @@ func (server *Server) onMainMenuNew() {
 }
 
 func (server *Server) onMainMenuResize() {
-	server.startSelectView(wlr.BtnRight, func(view *View) {
-		server.startResize(view)
-	})
+	server.startSelectView(wlr.BtnRight, server.startResize)
 }
 
 func (server *Server) onMainMenuTile() {
-	server.startSelectView(wlr.BtnRight, func(view *View) {
+	server.startSelectView(wlr.BtnRight, (view) => {
 		server.toggleViewTiling(view)
 		server.startNormal()
 	})
 }
 
 func (server *Server) onMainMenuMove() {
-	server.startSelectView(wlr.BtnRight, func(view *View) {
-		server.startMove(view)
-	})
+	server.startSelectView(wlr.BtnRight, server.startMove)
 }
 
 func (server *Server) onMainMenuClose() {
-	server.startSelectView(wlr.BtnRight, func(view *View) {
+	server.startSelectView(wlr.BtnRight, (view) => {
 		server.closeView(view)
 		server.startNormal()
 	})
 }
 
 func (server *Server) onMainMenuHide() {
-	server.startSelectView(wlr.BtnRight, func(view *View) {
+	server.startSelectView(wlr.BtnRight, (view) => {
 		server.hideView(view)
 		server.startNormal()
 	})

@@ -145,12 +145,8 @@ func (server *Server) addKeyboard(dev wlr.InputDevice) {
 	wkb.SetKeymap(keymap)
 	wkb.SetRepeatInfo(25, 600)
 
-	kb.onModifiersListener = wkb.OnModifiers(func(k wlr.Keyboard) {
-		server.onKeyboardModifiers(&kb)
-	})
-	kb.onKeyListener = wkb.OnKey(func(k wlr.Keyboard, t time.Time, code uint32, update bool, state wlr.KeyState) {
-		server.onKeyboardKey(&kb, code, update, state, t)
-	})
+	kb.onModifiersListener = wkb.OnModifiers((k) => { server.onKeyboardModifiers(&kb) })
+	kb.onKeyListener = wkb.OnKey((k, t, code, update, state) => { server.onKeyboardKey(&kb, code, update, state, t) })
 
 	server.seat.SetKeyboard(dev)
 	server.keyboards = append(server.keyboards, &kb)

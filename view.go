@@ -81,7 +81,7 @@ func (d *Decoration) Release() {
 
 func (server *Server) viewBounds(out *Output, view *View) geom.Rect[int] {
 	var r geom.Rect[int]
-	view.ForEachSurface(func(s wlr.Surface, sx, sy int) {
+	view.ForEachSurface((s, sx, sy) => {
 		if server.isPopupSurface(s) {
 			return
 		}
@@ -198,29 +198,17 @@ func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
 		ViewSurface: &viewSurfaceXWayland{s: surface},
 		Coords:      geom.Pt[float64](-1, -1),
 	}
-	view.onDestroyListener = surface.OnDestroy(func(s wlr.XWaylandSurface) {
-		server.onDestroyView(&view)
-	})
-	view.onMapListener = surface.OnMap(func(s wlr.XWaylandSurface) {
-		server.onMapView(&view)
-	})
-	view.onRequestMoveListener = surface.OnRequestMove(func(s wlr.XWaylandSurface) {
-		server.startMove(&view)
-	})
-	view.onRequestResizeListener = surface.OnRequestResize(func(s wlr.XWaylandSurface, edges wlr.Edges) {
+	view.onDestroyListener = surface.OnDestroy((s) => { server.onDestroyView(&view) })
+	view.onMapListener = surface.OnMap((s) => { server.onMapView(&view) })
+	view.onRequestMoveListener = surface.OnRequestMove((s) => { server.startMove(&view) })
+	view.onRequestResizeListener = surface.OnRequestResize((s, edges) => {
 		if !server.isViewTiled(&view) {
 			server.startBorderResize(&view, edges)
 		}
 	})
-	view.onRequestMinimizeListener = surface.OnRequestMinimize(func(s wlr.XWaylandSurface) {
-		server.hideView(&view)
-	})
-	view.onRequestMaximizeListener = surface.OnRequestMaximize(func(s wlr.XWaylandSurface) {
-		server.toggleViewTiling(&view)
-	})
-	view.onSetTitleListener = surface.OnSetTitle(func(s wlr.XWaylandSurface, title string) {
-		server.updateTitles()
-	})
+	view.onRequestMinimizeListener = surface.OnRequestMinimize((s) => { server.hideView(&view) })
+	view.onRequestMaximizeListener = surface.OnRequestMaximize((s) => { server.toggleViewTiling(&view) })
+	view.onSetTitleListener = surface.OnSetTitle((s, title) => { server.updateTitles() })
 
 	server.addView(&view)
 }
@@ -240,16 +228,14 @@ func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
 	p := Popup{
 		Surface: surface,
 	}
-	p.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
-		server.onDestroyPopup(&p)
-	})
+	p.onDestroyListener = surface.OnDestroy((s) => { server.onDestroyPopup(&p) })
 
 	server.popups = append(server.popups, &p)
 }
 
 func (server *Server) isPopupSurface(surface wlr.Surface) (ok bool) {
 	for _, p := range server.popups {
-		p.Surface.ForEachSurface(func(s wlr.Surface, sx, sy int) {
+		p.Surface.ForEachSurface((s, sx, sy) => {
 			if s == surface {
 				ok = true
 			}
@@ -273,29 +259,17 @@ func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 		ViewSurface: &viewSurfaceXDG{s: surface},
 		Coords:      geom.Pt[float64](-1, -1),
 	}
-	view.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
-		server.onDestroyView(&view)
-	})
-	view.onMapListener = surface.OnMap(func(s wlr.XDGSurface) {
-		server.onMapView(&view)
-	})
-	view.onRequestMoveListener = surface.TopLevel().OnRequestMove(func(t wlr.XDGTopLevel, client wlr.SeatClient, serial uint32) {
-		server.startMove(&view)
-	})
-	view.onRequestResizeListener = surface.TopLevel().OnRequestResize(func(t wlr.XDGTopLevel, client wlr.SeatClient, serial uint32, edges wlr.Edges) {
+	view.onDestroyListener = surface.OnDestroy((s) => { server.onDestroyView(&view) })
+	view.onMapListener = surface.OnMap((s) => { server.onMapView(&view) })
+	view.onRequestMoveListener = surface.TopLevel().OnRequestMove((t, client, serial) => { server.startMove(&view) })
+	view.onRequestResizeListener = surface.TopLevel().OnRequestResize((t, client, serial, edges) => {
 		if !server.isViewTiled(&view) {
 			server.startBorderResize(&view, edges)
 		}
 	})
-	view.onRequestMinimizeListener = surface.TopLevel().OnRequestMinimize(func(t wlr.XDGTopLevel) {
-		server.hideView(&view)
-	})
-	view.onRequestMaximizeListener = surface.TopLevel().OnRequestMaximize(func(t wlr.XDGTopLevel) {
-		server.toggleViewTiling(&view)
-	})
-	view.onSetTitleListener = surface.TopLevel().OnSetTitle(func(t wlr.XDGTopLevel, title string) {
-		server.updateTitles()
-	})
+	view.onRequestMinimizeListener = surface.TopLevel().OnRequestMinimize((t) => { server.hideView(&view) })
+	view.onRequestMaximizeListener = surface.TopLevel().OnRequestMaximize((t) => { server.toggleViewTiling(&view) })
+	view.onSetTitleListener = surface.TopLevel().OnSetTitle((t, title) => { server.updateTitles() })
 
 	server.addView(&view)
 }
@@ -473,9 +447,7 @@ func (server *Server) hideView(view *View) {
 	view.SetMinimized(true)
 
 	item := NewTextMenuItem(server.renderer, view.Title())
-	item.OnSelect = func() {
-		server.unhideView(view)
-	}
+	item.OnSelect = () => { server.unhideView(view) }
 	server.mainMenu.Add(item)
 }
 
@@ -560,12 +532,8 @@ func (server *Server) onNewDecoration(dm wlr.ServerDecorationManager, d wlr.Serv
 	deco := Decoration{
 		Decoration: d,
 	}
-	deco.onDestroyListener = d.OnDestroy(func(d wlr.ServerDecoration) {
-		server.onDestroyDecoration(&deco)
-	})
-	deco.onModeListener = d.OnMode(func(d wlr.ServerDecoration) {
-		server.updateCSDs()
-	})
+	deco.onDestroyListener = d.OnDestroy((d) => { server.onDestroyDecoration(&deco) })
+	deco.onModeListener = d.OnMode((d) => { server.updateCSDs() })
 
 	server.decorations = append(server.decorations, &deco)
 	server.updateCSDs()
@@ -588,7 +556,7 @@ func (server *Server) updateCSDs() {
 
 func (server *Server) isCSDSurface(surface wlr.Surface) (ok bool) {
 	for _, d := range server.decorations {
-		d.Decoration.Surface().ForEachSurface(func(s wlr.Surface, sx, sy int) {
+		d.Decoration.Surface().ForEachSurface((s, sx, sy) => {
 			if s == surface {
 				ok = true
 			}
