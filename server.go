@@ -51,7 +51,6 @@ type Server struct {
 	tiled       []*View
 	hidden      []*View
 	newViews    map[int]NewView
-	popups      []*Popup
 	decorations []*Decoration
 
 	bg      wlr.Texture

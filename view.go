@@ -33,6 +33,8 @@ type View struct {
 	Restore geom.Rect[float64]
 	CSD     bool
 
+	popups []*Popup
+
 	onMapListener             wlr.Listener
 	onDestroyListener         wlr.Listener
 	onRequestMoveListener     wlr.Listener
@@ -50,6 +52,56 @@ func (view *View) Release() {
 	view.onRequestMinimizeListener.Destroy()
 	view.onRequestMaximizeListener.Destroy()
 	view.onSetTitleListener.Destroy()
+}
+
+func (view *View) Bounds() geom.Rect[float64] {
+	var r geom.Rect[int]
+	view.ForEachSurface(func(s wlr.Surface, sx, sy int) {
+		if view.isPopupSurface(s) {
+			return
+		}
+
+		sb := surfaceBounds(s).Add(geom.Pt(sx, sy))
+		r = r.Union(sb)
+	})
+	return geom.RConv[float64](r).Add(view.Coords)
+}
+
+func (view *View) addPopup(surface wlr.XDGSurface) {
+	p := Popup{
+		Surface: surface,
+	}
+	p.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
+		view.onDestroyPopup(&p)
+	})
+
+	view.popups = append(view.popups, &p)
+}
+
+func (view *View) onDestroyPopup(p *Popup) {
+	p.Release()
+
+	i := slices.Index(view.popups, p)
+	view.popups = slices.Delete(view.popups, i, i+1)
+}
+
+func (view *View) isPopupSurface(surface wlr.Surface) (ok bool) {
+	for _, p := range view.popups {
+		p.Surface.ForEachSurface(func(s wlr.Surface, sx, sy int) {
+			if s == surface {
+				ok = true
+			}
+		})
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+func surfaceBounds(s wlr.Surface) geom.Rect[int] {
+	c := s.Current()
+	return geom.Rt(0, 0, c.Width(), c.Height())
 }
 
 type NewView struct {
@@ -77,24 +129,6 @@ type Decoration struct {
 func (d *Decoration) Release() {
 	d.onDestroyListener.Destroy()
 	d.onModeListener.Destroy()
-}
-
-func (server *Server) viewBounds(out *Output, view *View) geom.Rect[float64] {
-	var r geom.Rect[int]
-	view.ForEachSurface(func(s wlr.Surface, sx, sy int) {
-		if server.isPopupSurface(s) {
-			return
-		}
-
-		sb := server.surfaceBounds(s, geom.Pt(sx, sy))
-		r = r.Union(sb)
-	})
-	return geom.RConv[float64](r).Add(view.Coords)
-}
-
-func (server *Server) surfaceBounds(s wlr.Surface, p geom.Point[int]) geom.Rect[int] {
-	current := s.Current()
-	return geom.Rt(0, 0, current.Width(), current.Height()).Add(p)
 }
 
 func (server *Server) targetView() *View {
@@ -151,7 +185,7 @@ func (server *Server) isViewAt(out *Output, view *View, p geom.Point[float64]) (
 		return 0, wlr.Surface{}, geom.Point[float64]{}, false
 	}
 
-	r := server.viewBounds(nil, view)
+	r := view.Bounds()
 	if !p.In(r.Inset(-WindowBorder)) {
 		return 0, wlr.Surface{}, geom.Point[float64]{}, false
 	}
@@ -236,35 +270,13 @@ func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
 }
 
 func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
-	p := Popup{
-		Surface: surface,
+	parent := server.viewForSurface(surface.Popup().Parent())
+	if parent == nil {
+		wlr.Log(wlr.Debug, "parent of popup could not be found")
+		return
 	}
-	p.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
-		server.onDestroyPopup(&p)
-	})
 
-	server.popups = append(server.popups, &p)
-}
-
-func (server *Server) isPopupSurface(surface wlr.Surface) (ok bool) {
-	for _, p := range server.popups {
-		p.Surface.ForEachSurface(func(s wlr.Surface, sx, sy int) {
-			if s == surface {
-				ok = true
-			}
-		})
-		if ok {
-			return true
-		}
-	}
-	return false
-}
-
-func (server *Server) onDestroyPopup(p *Popup) {
-	p.Release()
-
-	i := slices.Index(server.popups, p)
-	server.popups = slices.Delete(server.popups, i, i+1)
+	parent.addPopup(surface)
 }
 
 func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
@@ -356,7 +368,7 @@ func (server *Server) addView(view *View) {
 
 func (server *Server) centerViewOnOutput(out *Output, view *View) {
 	ob := server.outputBounds(out)
-	vb := server.viewBounds(out, view)
+	vb := view.Bounds()
 	p := vb.Align(ob.Center())
 
 	server.moveViewTo(out, view, p.Min)
@@ -379,7 +391,7 @@ func (server *Server) resizeViewTo(out *Output, view *View, r geom.Rect[float64]
 		out = server.outputAt(r.Min)
 	}
 
-	vb := server.viewBounds(out, view)
+	vb := view.Bounds()
 	off := view.Coords.Sub(vb.Min)
 	r = r.Add(off)
 
@@ -503,7 +515,7 @@ func (server *Server) tileView(view *View) {
 
 	view.Restore = DefaultRestore
 	if s := view.Surface(); s.Valid() {
-		view.Restore = server.viewBounds(nil, view)
+		view.Restore = view.Bounds()
 	}
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())

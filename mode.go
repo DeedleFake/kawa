@@ -150,7 +150,7 @@ type inputModeBorderResize struct {
 }
 
 func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
-	vb := server.viewBounds(nil, view)
+	vb := view.Bounds()
 	server.startBorderResizeFrom(view, edges, geom.RConv[float64](vb))
 }
 

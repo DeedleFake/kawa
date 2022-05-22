@@ -95,7 +95,7 @@ func (server *Server) renderViewBorder(out *Output, view *View, t time.Time) {
 		color = ColorSelectionBox
 	}
 
-	r := server.viewBounds(out, view).Inset(-WindowBorder)
+	r := view.Bounds().Inset(-WindowBorder)
 	server.renderRectBorder(out, geom.RConv[float64](r), color, t)
 }
 
@@ -126,7 +126,7 @@ func (server *Server) renderSurface(out *Output, s wlr.Surface, p geom.Point[int
 		return
 	}
 
-	r := server.surfaceBounds(s, geom.PConv[int](p))
+	r := surfaceBounds(s).Add(geom.PConv[int](p))
 	tr := s.Current().Transform().Invert()
 	m := wlr.ProjectBoxMatrix(r.ImageRect(), tr, 0, out.Output.TransformMatrix())
 
