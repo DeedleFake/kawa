@@ -2,7 +2,6 @@ package geom
 
 import (
 	"image"
-	"image/color"
 
 	"golang.org/x/exp/constraints"
 )
@@ -227,28 +226,6 @@ func (r Rect[T]) WithAspect(aspect float64) Rect[T] {
 		return r.Resize(Pt(T(float64(r.Dy())*aspect), r.Dy()))
 	}
 	return r.Resize(Pt(r.Dx(), T(float64(r.Dx())/aspect)))
-}
-
-func (r Rect[T]) At(x, y T) color.Color {
-	if (Point[T]{x, y}).In(r) {
-		return color.Opaque
-	}
-	return color.Transparent
-}
-
-func (r Rect[T]) RGBA64At(x, y T) color.RGBA64 {
-	if (Point[T]{x, y}).In(r) {
-		return color.RGBA64{0xffff, 0xffff, 0xffff, 0xffff}
-	}
-	return color.RGBA64{}
-}
-
-func (r Rect[T]) Bounds() Rect[T] {
-	return r
-}
-
-func (r Rect[T]) ColorModel() color.Model {
-	return color.Alpha16Model
 }
 
 func (r Rect[T]) IsZero() bool {
