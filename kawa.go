@@ -134,9 +134,6 @@ func (server *Server) init() error {
 	server.layerShell = wlr.CreateLayerShellV1(server.display)
 	server.onNewLayerSurfaceListener = server.layerShell.OnNewSurface(server.onNewLayerSurface)
 
-	server.xwayland = wlr.CreateXWayland(server.display, server.compositor, false)
-	server.onNewXWaylandSurfaceListener = server.xwayland.OnNewSurface(server.onNewXWaylandSurface)
-
 	server.decorationManager = wlr.CreateServerDecorationManager(server.display)
 	server.decorationManager.SetDefaultMode(wlr.ServerDecorationManagerModeServer)
 	server.onNewDecorationListener = server.decorationManager.OnNewDecoration(server.onNewDecoration)
@@ -152,6 +149,9 @@ func (server *Server) init() error {
 func (server *Server) run() error {
 	defer server.Release()
 
+	server.xwayland = wlr.CreateXWayland(server.display, server.compositor, false)
+	server.onNewXWaylandSurfaceListener = server.xwayland.OnNewSurface(server.onNewXWaylandSurface)
+
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {
 		return err
@@ -165,8 +165,10 @@ func (server *Server) run() error {
 	os.Setenv("WAYLAND_DISPLAY", socket)
 	wlr.Log(wlr.Info, "Running Wayland compositor on WAYLAND_DISPLAY=%v", socket)
 
-	os.Setenv("DISPLAY", server.xwayland.Server().DisplayName())
-	wlr.Log(wlr.Info, "Running XWayland on DISPLAY=%v", server.xwayland.Server().DisplayName())
+	if server.xwayland.Valid() {
+		os.Setenv("DISPLAY", server.xwayland.Server().DisplayName())
+		wlr.Log(wlr.Info, "Running XWayland on DISPLAY=%v", server.xwayland.Server().DisplayName())
+	}
 
 	server.display.Run()
 

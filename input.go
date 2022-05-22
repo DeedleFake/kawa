@@ -171,7 +171,9 @@ func (server *Server) setCursor(name string) {
 		return
 	}
 
-	server.xwayland.SetCursor(server.cursorMgr.GetXCursor(name, 1).Image(0))
+	if server.xwayland.Valid() {
+		server.xwayland.SetCursor(server.cursorMgr.GetXCursor(name, 1).Image(0))
+	}
 	server.cursorMgr.SetCursorImage(name, server.cursor)
 }
 
