@@ -79,7 +79,7 @@ func (d *Decoration) Release() {
 	d.onModeListener.Destroy()
 }
 
-func (server *Server) viewBounds(out *Output, view *View) geom.Rect[int] {
+func (server *Server) viewBounds(out *Output, view *View) geom.Rect[float64] {
 	var r geom.Rect[int]
 	view.ForEachSurface(func(s wlr.Surface, sx, sy int) {
 		if server.isPopupSurface(s) {
@@ -89,7 +89,7 @@ func (server *Server) viewBounds(out *Output, view *View) geom.Rect[int] {
 		sb := server.surfaceBounds(s, geom.Pt(sx, sy))
 		r = r.Union(sb)
 	})
-	return r.Add(geom.PConv[int](view.Coords))
+	return geom.RConv[float64](r).Add(view.Coords)
 }
 
 func (server *Server) surfaceBounds(s wlr.Surface, p geom.Point[int]) geom.Rect[int] {
@@ -151,7 +151,7 @@ func (server *Server) isViewAt(out *Output, view *View, p geom.Point[float64]) (
 		return 0, wlr.Surface{}, geom.Point[float64]{}, false
 	}
 
-	r := geom.RConv[float64](server.viewBounds(nil, view))
+	r := server.viewBounds(nil, view)
 	if !p.In(r.Inset(-WindowBorder)) {
 		return 0, wlr.Surface{}, geom.Point[float64]{}, false
 	}
@@ -356,7 +356,7 @@ func (server *Server) addView(view *View) {
 
 func (server *Server) centerViewOnOutput(out *Output, view *View) {
 	ob := server.outputBounds(out)
-	vb := geom.RConv[float64](server.viewBounds(out, view))
+	vb := server.viewBounds(out, view)
 	p := vb.Align(ob.Center())
 
 	server.moveViewTo(out, view, p.Min)
@@ -379,9 +379,9 @@ func (server *Server) resizeViewTo(out *Output, view *View, r geom.Rect[float64]
 		out = server.outputAt(r.Min)
 	}
 
-	vb := geom.RConv[float64](server.viewBounds(out, view))
+	vb := server.viewBounds(out, view)
 	off := view.Coords.Sub(vb.Min)
-	r = r.Add(geom.PConv[float64](off))
+	r = r.Add(off)
 
 	view.Coords = r.Min
 	view.Resize(int(r.Dx()), int(r.Dy()))
@@ -503,7 +503,7 @@ func (server *Server) tileView(view *View) {
 
 	view.Restore = DefaultRestore
 	if s := view.Surface(); s.Valid() {
-		view.Restore = geom.RConv[float64](server.viewBounds(nil, view))
+		view.Restore = server.viewBounds(nil, view)
 	}
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())
