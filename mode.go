@@ -167,29 +167,34 @@ func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from ge
 func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 	cc := server.cursorCoords()
 
+	min := geom.Pt(
+		math.Max(MinWidth, m.view.MinWidth()),
+		math.Max(MinHeight, m.view.MinHeight()),
+	)
+
 	r := m.cur
 	if m.edges&wlr.EdgeTop != 0 {
 		r.Min.Y = cc.Y
-		if r.Dy() < MinHeight {
-			r.Min.Y = r.Max.Y - MinHeight
+		if r.Dy() < min.Y {
+			r.Min.Y = r.Max.Y - min.Y
 		}
 	}
 	if m.edges&wlr.EdgeBottom != 0 {
 		r.Max.Y = cc.Y
-		if r.Dy() < MinHeight {
-			r.Max.Y = r.Min.Y + MinHeight
+		if r.Dy() < min.Y {
+			r.Max.Y = r.Min.Y + min.Y
 		}
 	}
 	if m.edges&wlr.EdgeLeft != 0 {
 		r.Min.X = cc.X
-		if r.Dx() < MinWidth {
-			r.Min.X = r.Max.X - MinWidth
+		if r.Dx() < min.X {
+			r.Min.X = r.Max.X - min.X
 		}
 	}
 	if m.edges&wlr.EdgeRight != 0 {
 		r.Max.X = cc.X
-		if r.Dx() < MinWidth {
-			r.Max.X = r.Min.X + MinWidth
+		if r.Dx() < min.X {
+			r.Max.X = r.Min.X + min.X
 		}
 	}
 
@@ -319,10 +324,10 @@ func (m *inputModeResize) CursorMoved(server *Server, t time.Time) {
 	}
 
 	cc := server.cursorCoords()
-	if math.Abs(cc.X-m.s.X) < MinWidth {
+	if math.Abs(cc.X-m.s.X) < math.Max(MinWidth, m.view.MinWidth()) {
 		return
 	}
-	if math.Abs(cc.Y-m.s.Y) < MinHeight {
+	if math.Abs(cc.Y-m.s.Y) < math.Max(MinHeight, m.view.MinHeight()) {
 		return
 	}
 

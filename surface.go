@@ -18,6 +18,9 @@ type ViewSurface interface {
 	SetMinimized(bool)
 	SetMaximized(bool)
 
+	MinWidth() float64
+	MinHeight() float64
+
 	Mapped() bool
 	Activated() bool
 	SetActivated(bool)
@@ -69,6 +72,14 @@ func (s *viewSurfaceXDG) SetMinimized(m bool) {
 
 func (s *viewSurfaceXDG) SetMaximized(m bool) {
 	s.s.TopLevelSetMaximized(m)
+}
+
+func (s *viewSurfaceXDG) MinWidth() float64 {
+	return float64(s.s.TopLevel().Current().MinWidth())
+}
+
+func (s *viewSurfaceXDG) MinHeight() float64 {
+	return float64(s.s.TopLevel().Current().MinHeight())
 }
 
 func (s *viewSurfaceXDG) Surface() wlr.Surface {
@@ -137,6 +148,14 @@ func (s *viewSurfaceXWayland) SetMinimized(m bool) {
 
 func (s *viewSurfaceXWayland) SetMaximized(m bool) {
 	s.s.SetMaximized(m)
+}
+
+func (s *viewSurfaceXWayland) MinWidth() float64 {
+	return MinWidth
+}
+
+func (s *viewSurfaceXWayland) MinHeight() float64 {
+	return MinHeight
 }
 
 func (s *viewSurfaceXWayland) Surface() wlr.Surface {
