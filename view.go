@@ -86,10 +86,10 @@ func (server *Server) viewBounds(out *Output, view *View) geom.Rect[int] {
 			return
 		}
 
-		sb := server.surfaceBounds(s, geom.Pt(sx, sy)).Add(geom.PConv[int](view.Coords))
+		sb := server.surfaceBounds(s, geom.Pt(sx, sy))
 		r = r.Union(sb)
 	})
-	return r
+	return r.Add(geom.PConv[int](view.Coords))
 }
 
 func (server *Server) surfaceBounds(s wlr.Surface, p geom.Point[int]) geom.Rect[int] {
@@ -379,9 +379,8 @@ func (server *Server) resizeViewTo(out *Output, view *View, r geom.Rect[float64]
 		out = server.outputAt(r.Min)
 	}
 
-	vb := server.viewBounds(out, view)
-	sb := server.surfaceBounds(view.Surface(), geom.PConv[int](view.Coords))
-	off := sb.Min.Sub(vb.Min)
+	vb := geom.RConv[float64](server.viewBounds(out, view))
+	off := view.Coords.Sub(vb.Min)
 	r = r.Add(geom.PConv[float64](off))
 
 	view.Coords = r.Min
