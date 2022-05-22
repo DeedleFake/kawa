@@ -196,7 +196,6 @@ func (server *Server) isViewAt(out *Output, view *View, p geom.Point[float64]) (
 func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
 	view := View{
 		ViewSurface: &viewSurfaceXWayland{s: surface},
-		Coords:      geom.Pt[float64](-1, -1),
 	}
 	view.onDestroyListener = surface.OnDestroy(func(s wlr.XWaylandSurface) {
 		server.onDestroyView(&view)
@@ -271,7 +270,6 @@ func (server *Server) onDestroyPopup(p *Popup) {
 func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 	view := View{
 		ViewSurface: &viewSurfaceXDG{s: surface},
-		Coords:      geom.Pt[float64](-1, -1),
 	}
 	view.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
 		server.onDestroyView(&view)
@@ -343,12 +341,7 @@ func (server *Server) onMapView(view *View) {
 		out = server.outputs[0]
 	}
 
-	if view.Coords == geom.Pt[float64](-1, -1) {
-		server.centerViewOnOutput(out, view)
-		return
-	}
-
-	server.moveViewTo(out, view, view.Coords)
+	server.centerViewOnOutput(out, view)
 }
 
 func (server *Server) addView(view *View) {
