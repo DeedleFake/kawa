@@ -113,7 +113,7 @@ func (server *Server) renderSelectionBox(out *Output, r geom.Rect[float64], t ti
 }
 
 func (server *Server) renderViewSurfaces(out *Output, view *View, t time.Time) {
-	view.ForEachSurface(func(s wlr.Surface, x, y int) {
+	view.ForEachSurface((s, x, y) => {
 		p := geom.Pt(x, y)
 		server.renderSurface(out, s, geom.PConv[int](view.Coords).Add(p), t)
 	})

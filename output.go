@@ -41,9 +41,7 @@ func (server *Server) onNewOutput(wout wlr.Output) {
 	out := Output{
 		Output: wout,
 	}
-	out.onFrameListener = wout.OnFrame(func(wout wlr.Output) {
-		server.onFrame(&out)
-	})
+	out.onFrameListener = wout.OnFrame((wout) => { server.onFrame(&out) })
 	server.addOutput(&out)
 
 	wout.Commit()
