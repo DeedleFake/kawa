@@ -60,3 +60,29 @@ func (p Point[T]) IsZero() bool {
 func (p Point[T]) ImagePoint() image.Point {
 	return image.Pt(int(p.X), int(p.Y))
 }
+
+func Min[T constraints.Integer | constraints.Float](points ...Point[T]) Point[T] {
+	r := points[0]
+	for _, p := range points[1:] {
+		if p.X < r.X {
+			r.X = p.X
+		}
+		if p.Y < r.Y {
+			r.Y = p.Y
+		}
+	}
+	return r
+}
+
+func Max[T constraints.Integer | constraints.Float](points ...Point[T]) Point[T] {
+	r := points[0]
+	for _, p := range points[1:] {
+		if p.X > r.X {
+			r.X = p.X
+		}
+		if p.Y > r.Y {
+			r.Y = p.Y
+		}
+	}
+	return r
+}
