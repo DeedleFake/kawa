@@ -136,7 +136,7 @@ func (server *Server) renderSurface(out *Output, s wlr.Surface, p geom.Point[int
 
 func (server *Server) renderNewViews(out *Output, t time.Time) {
 	for _, nv := range server.newViews {
-		server.renderSelectionBox(out, *nv.To, t)
+		server.renderSelectionBox(out, *nv, t)
 	}
 }
 

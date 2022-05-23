@@ -50,7 +50,7 @@ type Server struct {
 	views       []*View
 	tiled       []*View
 	hidden      []*View
-	newViews    map[int]NewView
+	newViews    map[int]*geom.Rect[float64]
 	decorations []*Decoration
 
 	bg      wlr.Texture
@@ -125,12 +125,7 @@ func (server *Server) exec(to *geom.Rect[float64]) {
 		return
 	}
 
-	server.newViews[cmd.Process.Pid] = NewView{
-		To: to,
-		OnStarted: func(view *View) {
-			server.startBorderResizeFrom(view, wlr.EdgeNone, *to)
-		},
-	}
+	server.newViews[cmd.Process.Pid] = to
 }
 
 func (server *Server) initMenus() {

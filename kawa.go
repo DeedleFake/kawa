@@ -14,6 +14,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 
+	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
 )
 
@@ -74,7 +75,7 @@ func parseOutputConfigs(outputConfigs string) (configs []OutputConfig, err error
 // init initializes the boilerplate necessary to get wlroots up and
 // running, as well as a few other pieces of initialization.
 func (server *Server) init() error {
-	server.newViews = make(map[int]NewView)
+	server.newViews = make(map[int]*geom.Rect[float64])
 
 	server.display = wlr.CreateDisplay()
 

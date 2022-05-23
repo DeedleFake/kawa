@@ -13,11 +13,12 @@ type ViewSurface interface {
 	Title() string
 	PID() int
 	Surface() wlr.Surface
-	Resize(w, h int)
 	SetResizing(bool)
 	SetMinimized(bool)
 	SetMaximized(bool)
 
+	Resize(w, h int)
+	Geometry() geom.Rect[int]
 	MinWidth() float64
 	MinHeight() float64
 
@@ -72,6 +73,10 @@ func (s *viewSurfaceXDG) SetMinimized(m bool) {
 
 func (s *viewSurfaceXDG) SetMaximized(m bool) {
 	s.s.TopLevelSetMaximized(m)
+}
+
+func (s *viewSurfaceXDG) Geometry() geom.Rect[int] {
+	return geom.FromImageRect(s.s.GetGeometry())
 }
 
 func (s *viewSurfaceXDG) MinWidth() float64 {
@@ -148,6 +153,10 @@ func (s *viewSurfaceXWayland) SetMinimized(m bool) {
 
 func (s *viewSurfaceXWayland) SetMaximized(m bool) {
 	s.s.SetMaximized(m)
+}
+
+func (s *viewSurfaceXWayland) Geometry() geom.Rect[int] {
+	return geom.Rt(0, 0, s.s.Width(), s.s.Height())
 }
 
 func (s *viewSurfaceXWayland) MinWidth() float64 {

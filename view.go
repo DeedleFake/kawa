@@ -55,16 +55,7 @@ func (view *View) Release() {
 }
 
 func (view *View) Bounds() geom.Rect[float64] {
-	var r geom.Rect[int]
-	view.ForEachSurface(func(s wlr.Surface, sx, sy int) {
-		if view.isPopupSurface(s) {
-			return
-		}
-
-		sb := surfaceBounds(s).Add(geom.Pt(sx, sy))
-		r = r.Union(sb)
-	})
-	return geom.RConv[float64](r).Add(view.Coords)
+	return geom.RConv[float64](view.Geometry()).Add(view.Coords)
 }
 
 func (view *View) addPopup(surface wlr.XDGSurface) {
@@ -102,11 +93,6 @@ func (view *View) isPopupSurface(surface wlr.Surface) (ok bool) {
 func surfaceBounds(s wlr.Surface) geom.Rect[int] {
 	c := s.Current()
 	return geom.Rt(0, 0, c.Width(), c.Height())
-}
-
-type NewView struct {
-	To        *geom.Rect[float64]
-	OnStarted func(*View)
 }
 
 type Popup struct {
@@ -335,13 +321,7 @@ func (server *Server) onMapView(view *View) {
 	nv, ok := server.newViews[pid]
 	if ok {
 		delete(server.newViews, pid)
-
-		server.resizeViewTo(nil, view, *nv.To)
-
-		if nv.OnStarted != nil {
-			nv.OnStarted(view)
-		}
-
+		server.startBorderResizeFrom(view, wlr.EdgeNone, *nv)
 		return
 	}
 
@@ -362,7 +342,7 @@ func (server *Server) addView(view *View) {
 
 	nv, ok := server.newViews[view.PID()]
 	if ok {
-		view.Resize(int(nv.To.Dx()), int(nv.To.Dy()))
+		server.resizeViewTo(nil, view, *nv)
 	}
 }
 
@@ -393,7 +373,7 @@ func (server *Server) resizeViewTo(out *Output, view *View, r geom.Rect[float64]
 
 	vb := view.Bounds()
 	off := view.Coords.Sub(vb.Min)
-	r = r.Add(off)
+	r = r.Add(off).Canon()
 
 	view.Coords = r.Min
 	view.Resize(int(r.Dx()), int(r.Dy()))
@@ -621,7 +601,7 @@ func (server *Server) updateTitles() {
 		server.focusedTitle.Destroy()
 		server.focusedTitle = wlr.Texture{}
 	}
-	if fv := server.focusedView(); fv != nil {
+	if fv := server.focusedView(); (fv != nil) && (fv.Title() != "") {
 		server.focusedTitle = CreateTextTexture(server.renderer, image.White, fv.Title())
 	}
 }

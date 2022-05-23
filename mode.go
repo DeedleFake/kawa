@@ -150,8 +150,8 @@ type inputModeBorderResize struct {
 }
 
 func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
-	vb := view.Bounds()
-	server.startBorderResizeFrom(view, edges, geom.RConv[float64](vb))
+	from := view.Bounds()
+	server.startBorderResizeFrom(view, edges, from)
 }
 
 func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from geom.Rect[float64]) {
@@ -172,55 +172,53 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 		math.Max(MinHeight, m.view.MinHeight()),
 	)
 
-	r := m.cur
 	if m.edges&wlr.EdgeTop != 0 {
-		r.Min.Y = cc.Y
-		if r.Dy() < min.Y {
-			r.Min.Y = r.Max.Y - min.Y
+		m.cur.Min.Y = cc.Y
+		if m.cur.Dy() < min.Y {
+			m.cur.Min.Y = m.cur.Max.Y - min.Y
 		}
 	}
 	if m.edges&wlr.EdgeBottom != 0 {
-		r.Max.Y = cc.Y
-		if r.Dy() < min.Y {
-			r.Max.Y = r.Min.Y + min.Y
+		m.cur.Max.Y = cc.Y
+		if m.cur.Dy() < min.Y {
+			m.cur.Max.Y = m.cur.Min.Y + min.Y
 		}
 	}
 	if m.edges&wlr.EdgeLeft != 0 {
-		r.Min.X = cc.X
-		if r.Dx() < min.X {
-			r.Min.X = r.Max.X - min.X
+		m.cur.Min.X = cc.X
+		if m.cur.Dx() < min.X {
+			m.cur.Min.X = m.cur.Max.X - min.X
 		}
 	}
 	if m.edges&wlr.EdgeRight != 0 {
-		r.Max.X = cc.X
-		if r.Dx() < min.X {
-			r.Max.X = r.Min.X + min.X
+		m.cur.Max.X = cc.X
+		if m.cur.Dx() < min.X {
+			m.cur.Max.X = m.cur.Min.X + min.X
 		}
 	}
 
-	if cc.X < r.Min.X {
+	if cc.X < m.cur.Min.X {
 		m.edges |= wlr.EdgeLeft
 		m.edges &^= wlr.EdgeRight
 		server.setCursor(edgeCursors[m.edges])
 	}
-	if cc.X > r.Max.X {
+	if cc.X > m.cur.Max.X {
 		m.edges |= wlr.EdgeRight
 		m.edges &^= wlr.EdgeLeft
 		server.setCursor(edgeCursors[m.edges])
 	}
-	if cc.Y < r.Min.Y {
+	if cc.Y < m.cur.Min.Y {
 		m.edges |= wlr.EdgeTop
 		m.edges &^= wlr.EdgeBottom
 		server.setCursor(edgeCursors[m.edges])
 	}
-	if cc.Y > r.Max.Y {
+	if cc.Y > m.cur.Max.Y {
 		m.edges |= wlr.EdgeBottom
 		m.edges &^= wlr.EdgeTop
 		server.setCursor(edgeCursors[m.edges])
 	}
 
-	m.cur = r
-	server.resizeViewTo(nil, m.view, r.Canon())
+	server.resizeViewTo(nil, m.view, m.cur)
 }
 
 func (m *inputModeBorderResize) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
@@ -324,10 +322,11 @@ func (m *inputModeResize) CursorMoved(server *Server, t time.Time) {
 	}
 
 	cc := server.cursorCoords()
-	if math.Abs(cc.X-m.s.X) < math.Max(MinWidth, m.view.MinWidth()) {
+	r := geom.Rect[float64]{Min: m.s, Max: cc}.Canon()
+	if r.Dx() < math.Max(MinWidth, m.view.MinWidth()) {
 		return
 	}
-	if math.Abs(cc.Y-m.s.Y) < math.Max(MinHeight, m.view.MinHeight()) {
+	if r.Dy() < math.Max(MinHeight, m.view.MinHeight()) {
 		return
 	}
 
@@ -335,10 +334,6 @@ func (m *inputModeResize) CursorMoved(server *Server, t time.Time) {
 		server.untileView(m.view, false)
 	}
 
-	r := geom.Rect[float64]{
-		Min: m.s,
-		Max: cc,
-	}
 	server.startBorderResizeFrom(m.view, wlr.EdgeNone, r)
 }
 
