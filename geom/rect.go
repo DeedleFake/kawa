@@ -10,9 +10,6 @@ import (
 // is well-formed if Min.X <= Max.X and likewise for Y. Points are always
 // well-formed. A rectangle's methods always return well-formed outputs for
 // well-formed inputs.
-//
-// A Rect is also an Image whose bounds are the rectangle itself. At returns
-// color.Opaque for points in the rectangle and color.Transparent otherwise.
 type Rect[T constraints.Integer | constraints.Float] struct {
 	Min, Max Point[T]
 }
@@ -28,6 +25,13 @@ func Rt[T constraints.Integer | constraints.Float](x0, y0, x1, y1 T) Rect[T] {
 		y0, y1 = y1, y0
 	}
 	return Rect[T]{Point[T]{x0, y0}, Point[T]{x1, y1}}
+}
+
+func FromImageRect(r image.Rectangle) Rect[int] {
+	return Rect[int]{
+		Min: FromImagePoint(r.Min),
+		Max: FromImagePoint(r.Max),
+	}
 }
 
 // RConv converts a Rect[In] to a Rect[Out] with possible loss of precision.

@@ -14,6 +14,10 @@ func Pt[T constraints.Integer | constraints.Float](X, Y T) Point[T] {
 	return Point[T]{X, Y}
 }
 
+func FromImagePoint(p image.Point) Point[int] {
+	return Pt(p.X, p.Y)
+}
+
 func PConv[Out constraints.Integer | constraints.Float, In constraints.Integer | constraints.Float](p Point[In]) Point[Out] {
 	return Pt(Out(p.X), Out(p.Y))
 }
