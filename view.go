@@ -497,9 +497,10 @@ func (server *Server) tileView(view *View) {
 	if s := view.Surface(); s.Valid() {
 		view.Restore = view.Bounds()
 	}
+	view.SetMaximized(true) // TODO: Fix the race condition between this and resizing the view.
+
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())
-	view.SetMaximized(true)
 }
 
 func (server *Server) untileView(view *View, restore bool) {
@@ -507,12 +508,13 @@ func (server *Server) untileView(view *View, restore bool) {
 	server.tiled = slices.Delete(server.tiled, i, i+1)
 	server.views = append(server.views, view)
 
+	server.layoutTiles(nil)
+	server.focusView(view, view.Surface())
+
+	view.SetMaximized(false)
 	if restore && !view.Restore.IsZero() {
 		server.resizeViewTo(nil, view, view.Restore)
 	}
-	server.layoutTiles(nil)
-	server.focusView(view, view.Surface())
-	view.SetMaximized(false)
 }
 
 func (server *Server) layoutTiles(out *Output) {
