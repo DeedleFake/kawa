@@ -63,6 +63,10 @@ func (server *Server) addOutput(out *Output) {
 	}
 
 	server.configureOutput(out, nil)
+
+	if server.statusBar.Bounds() == (geom.Rect[float64]{}) {
+		server.statusBar.MoveToOutput(server, out)
+	}
 }
 
 func (server *Server) configureOutput(out *Output, config *OutputConfig) {

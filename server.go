@@ -59,7 +59,7 @@ type Server struct {
 	mainMenu   *Menu
 	systemMenu *Menu
 
-	focusedTitle wlr.Texture
+	statusBar StatusBar
 
 	inputMode InputMode
 
@@ -128,7 +128,7 @@ func (server *Server) exec(to *geom.Rect[float64]) {
 	server.newViews[cmd.Process.Pid] = to
 }
 
-func (server *Server) initMenus() {
+func (server *Server) initUI() {
 	server.initMainMenu()
 	server.initSystemMenu()
 }

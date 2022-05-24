@@ -599,11 +599,9 @@ func (server *Server) updateTitles() {
 		server.mainMenu.Add(n)
 	}
 
-	if server.focusedTitle.Valid() {
-		server.focusedTitle.Destroy()
-		server.focusedTitle = wlr.Texture{}
-	}
+	var focusedTitle wlr.Texture
 	if fv := server.focusedView(); (fv != nil) && (fv.Title() != "") {
-		server.focusedTitle = CreateTextTexture(server.renderer, image.White, fv.Title())
+		focusedTitle = CreateTextTexture(server.renderer, image.White, fv.Title())
 	}
+	server.statusBar.SetTitle(focusedTitle)
 }

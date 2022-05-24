@@ -141,18 +141,22 @@ func (server *Server) renderNewViews(out *Output, t time.Time) {
 }
 
 func (server *Server) renderStatusBar(out *Output, t time.Time) {
-	r := server.statusBarBounds(out)
+	if server.statusBar.Bounds() == (geom.Rect[float64]{}) {
+		return
+	}
+
+	r := server.statusBar.Bounds()
 	server.renderer.RenderRect(r.ImageRect(), ColorMenuBorder, out.Output.TransformMatrix())
 
-	if server.focusedTitle.Valid() {
+	if server.statusBar.title.Valid() {
 		r := geom.Rt(
 			r.Min.X+WindowBorder,
-			r.Max.Y-float64(server.focusedTitle.Height())-WindowBorder,
-			float64(server.focusedTitle.Width()),
+			r.Max.Y-float64(server.statusBar.title.Height())-WindowBorder,
+			float64(server.statusBar.title.Width()),
 			r.Max.Y-WindowBorder,
 		)
 		m := wlr.ProjectBoxMatrix(r.ImageRect(), wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
-		server.renderer.RenderTextureWithMatrix(server.focusedTitle, m, 1)
+		server.renderer.RenderTextureWithMatrix(server.statusBar.title, m, 1)
 	}
 }
 

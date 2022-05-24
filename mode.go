@@ -47,7 +47,7 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevic
 
 	out := server.outputAt(cc)
 	if out != nil {
-		if cc.In(server.statusBarBounds(out)) {
+		if cc.In(server.statusBar.Bounds()) {
 			switch b {
 			case wlr.BtnLeft:
 				server.startMenu(server.systemMenu, b)
@@ -125,7 +125,7 @@ func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 
 	out := server.outputAt(cc)
 	if out != nil {
-		sbb := server.statusBarBounds(out)
+		sbb := server.statusBar.Bounds()
 		sbb.Max.Y += WindowBorder
 		if cc.In(sbb) {
 			to.Y = m.view.Coords.Y
