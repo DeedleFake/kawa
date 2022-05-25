@@ -38,6 +38,10 @@ func (server *Server) onFrame(out *Output) {
 	server.renderMode(out, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerOverlay, t)
 	server.renderCursor(out, t)
+
+	b := server.outputBounds(out)
+	size := out.Child.Layout(LayoutConstraints{MaxSize: b.Size()})
+	out.Child.Render(server, out, geom.Rect[float64]{Max: size}.Align(b.Center()))
 }
 
 func (server *Server) renderBG(out *Output, t time.Time) {

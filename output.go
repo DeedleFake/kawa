@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image"
+
 	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
 )
@@ -8,6 +10,7 @@ import (
 type Output struct {
 	Output wlr.Output
 	Layers [4][]LayerSurface
+	Child  Widget
 
 	onFrameListener wlr.Listener
 }
@@ -36,16 +39,21 @@ func (server *Server) outputBounds(out *Output) geom.Rect[float64] {
 }
 
 func (server *Server) onNewOutput(wout wlr.Output) {
-	wout.InitRender(server.allocator, server.renderer)
+	//box := NewBox(true)
+	//box.Add(NewStatusBar())
+	//box.Add(NewViewer())
+	box := NewCenter(NewLabel(server.renderer, image.White, "This is a test."))
 
 	out := Output{
 		Output: wout,
+		Child:  box,
 	}
 	out.onFrameListener = wout.OnFrame(func(wout wlr.Output) {
 		server.onFrame(&out)
 	})
 	server.addOutput(&out)
 
+	wout.InitRender(server.allocator, server.renderer)
 	wout.Commit()
 	wout.CreateGlobal()
 }
