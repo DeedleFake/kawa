@@ -271,7 +271,7 @@ func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice
 	m.m.Select(m.sel)
 }
 
-func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {
+func (m *inputModeMenu) Frame(server *Server, out *Output) {
 	server.renderMenu(out, m.m, m.p, m.sel)
 }
 
@@ -355,14 +355,14 @@ func (m *inputModeResize) CursorButtonReleased(server *Server, dev wlr.InputDevi
 	server.startNormal()
 }
 
-func (m *inputModeResize) Frame(server *Server, out *Output, t time.Time) {
+func (m *inputModeResize) Frame(server *Server, out *Output) {
 	if !m.resizing {
 		return
 	}
 
 	cc := server.cursorCoords()
 	r := geom.Rect[float64]{Min: m.s, Max: cc}
-	server.renderSelectionBox(out, r, t)
+	server.renderSelectionBox(out, r)
 }
 
 func (m *inputModeResize) TargetView() *View {
@@ -420,10 +420,10 @@ func (m *inputModeNew) CursorButtonReleased(server *Server, dev wlr.InputDevice,
 	server.startNormal()
 }
 
-func (m *inputModeNew) Frame(server *Server, out *Output, t time.Time) {
+func (m *inputModeNew) Frame(server *Server, out *Output) {
 	if !m.dragging || m.started {
 		return
 	}
 
-	server.renderSelectionBox(out, m.n, t)
+	server.renderSelectionBox(out, m.n)
 }

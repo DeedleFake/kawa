@@ -10,12 +10,10 @@ import (
 )
 
 type Framer interface {
-	Frame(*Server, *Output, time.Time)
+	Frame(*Server, *Output)
 }
 
 func (server *Server) onFrame(out *Output) {
-	t := time.Now()
-
 	_, err := out.Output.AttachRender()
 	if err != nil {
 		wlr.Log(wlr.Error, "output attach render: %v", err)
@@ -32,79 +30,28 @@ func (server *Server) onFrame(out *Output) {
 	size := out.Child.Layout(LayoutConstraints{MaxSize: b.Size()})
 	out.Child.Render(server, out, geom.Rect[float64]{Max: size}.Align(b.Center()))
 
-	server.renderLayer(out, wlr.LayerShellV1LayerBackground, t)
-	server.renderLayer(out, wlr.LayerShellV1LayerBottom, t)
-	server.renderViews(out, t)
-	server.renderNewViews(out, t)
-	server.renderLayer(out, wlr.LayerShellV1LayerTop, t)
-	server.renderMode(out, t)
-	server.renderLayer(out, wlr.LayerShellV1LayerOverlay, t)
-	server.renderCursor(out, t)
+	server.renderMode(out)
+	server.renderCursor(out)
 }
 
-func (server *Server) renderLayer(out *Output, layer wlr.LayerShellV1Layer, t time.Time) {
+func (server *Server) renderLayer(out *Output, layer wlr.LayerShellV1Layer) {
 	// TODO
 }
 
-func (server *Server) renderViews(out *Output, t time.Time) {
-	for _, view := range server.tiled {
-		if !view.Mapped() {
-			continue
-		}
-
-		server.renderView(out, view, t)
-	}
-
-	for _, view := range server.views {
-		if !view.Mapped() {
-			continue
-		}
-
-		server.renderView(out, view, t)
-	}
-}
-
-func (server *Server) renderView(out *Output, view *View, t time.Time) {
-	if !view.CSD {
-		server.renderViewBorder(out, view, t)
-	}
-	server.renderViewSurfaces(out, view, t)
-}
-
-func (server *Server) renderViewBorder(out *Output, view *View, t time.Time) {
-	color := ColorInactiveBorder
-	if view.Activated() {
-		color = ColorActiveBorder
-	}
-	if server.targetView() == view {
-		color = ColorSelectionBox
-	}
-
-	r := view.Bounds().Inset(-WindowBorder)
-	server.renderRectBorder(out, geom.RConv[float64](r), color, t)
-}
-
-func (server *Server) renderRectBorder(out *Output, r geom.Rect[float64], color color.Color, t time.Time) {
+func (server *Server) renderRectBorder(out *Output, r geom.Rect[float64], color color.Color) {
 	server.renderer.RenderRect(geom.Rt(0, 0, WindowBorder, r.Dy()).Add(r.Min).ImageRect(), color, out.Output.TransformMatrix())
 	server.renderer.RenderRect(geom.Rt(0, 0, WindowBorder, r.Dy()).Add(geom.Pt(r.Max.X-WindowBorder, r.Min.Y)).ImageRect(), color, out.Output.TransformMatrix())
 	server.renderer.RenderRect(geom.Rt(0, 0, r.Dx(), WindowBorder).Add(r.Min).ImageRect(), color, out.Output.TransformMatrix())
 	server.renderer.RenderRect(geom.Rt(0, 0, r.Dx(), WindowBorder).Add(geom.Pt(r.Min.X, r.Max.Y-WindowBorder)).ImageRect(), color, out.Output.TransformMatrix())
 }
 
-func (server *Server) renderSelectionBox(out *Output, r geom.Rect[float64], t time.Time) {
+func (server *Server) renderSelectionBox(out *Output, r geom.Rect[float64]) {
 	r = r.Canon()
-	server.renderRectBorder(out, r, ColorSelectionBox, t)
+	server.renderRectBorder(out, r, ColorSelectionBox)
 	server.renderer.RenderRect(r.Inset(WindowBorder).ImageRect(), ColorSelectionBackground, out.Output.TransformMatrix())
 }
 
-func (server *Server) renderViewSurfaces(out *Output, view *View, t time.Time) {
-	view.ForEachSurface(func(s wlr.Surface, x, y int) {
-		p := geom.Pt(x, y)
-		server.renderSurface(out, s, geom.PConv[int](view.Coords).Add(p), t)
-	})
-}
-
-func (server *Server) renderSurface(out *Output, s wlr.Surface, p geom.Point[int], t time.Time) {
+func (server *Server) renderSurface(out *Output, s wlr.Surface, p geom.Point[int]) {
 	texture := s.GetTexture()
 	if !texture.Valid() {
 		wlr.Log(wlr.Error, "invalid texture for surface")
@@ -116,25 +63,19 @@ func (server *Server) renderSurface(out *Output, s wlr.Surface, p geom.Point[int
 	m := wlr.ProjectBoxMatrix(r.ImageRect(), tr, 0, out.Output.TransformMatrix())
 
 	server.renderer.RenderTextureWithMatrix(texture, m, 1)
-	s.SendFrameDone(t)
+	s.SendFrameDone(time.Now())
 }
 
-func (server *Server) renderNewViews(out *Output, t time.Time) {
-	for _, nv := range server.newViews {
-		server.renderSelectionBox(out, *nv, t)
-	}
-}
-
-func (server *Server) renderMode(out *Output, t time.Time) {
+func (server *Server) renderMode(out *Output) {
 	m, ok := server.inputMode.(Framer)
 	if !ok {
 		return
 	}
 
-	m.Frame(server, out, t)
+	m.Frame(server, out)
 }
 
-func (server *Server) renderCursor(out *Output, t time.Time) {
+func (server *Server) renderCursor(out *Output) {
 	out.Output.RenderSoftwareCursors(image.ZR)
 }
 

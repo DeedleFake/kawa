@@ -615,7 +615,7 @@ func (v *Viewer) Layout(lc LayoutConstraints) geom.Point[float64] {
 	return lc.MaxSize
 }
 
-func (v *Viewer) Render(server *Server, out *Output, to geom.Rect[float64]) {
+func (v *Viewer) renderBG(server *Server, out *Output, to geom.Rect[float64]) {
 	if !server.bg.Valid() {
 		return
 	}
@@ -629,4 +629,65 @@ func (v *Viewer) Render(server *Server, out *Output, to geom.Rect[float64]) {
 		out.Output.TransformMatrix(),
 	)
 	server.renderer.RenderTextureWithMatrix(server.bg, m, 1)
+}
+
+func (v *Viewer) renderViews(server *Server, out *Output) {
+	for _, view := range server.tiled {
+		if !view.Mapped() {
+			continue
+		}
+
+		v.renderView(server, out, view)
+	}
+
+	for _, view := range server.views {
+		if !view.Mapped() {
+			continue
+		}
+
+		v.renderView(server, out, view)
+	}
+}
+
+func (v *Viewer) renderView(server *Server, out *Output, view *View) {
+	if !view.CSD {
+		v.renderViewBorder(server, out, view)
+	}
+	v.renderViewSurfaces(server, out, view)
+}
+
+func (v *Viewer) renderViewBorder(server *Server, out *Output, view *View) {
+	color := ColorInactiveBorder
+	if view.Activated() {
+		color = ColorActiveBorder
+	}
+	if server.targetView() == view {
+		color = ColorSelectionBox
+	}
+
+	r := view.Bounds().Inset(-WindowBorder)
+	server.renderRectBorder(out, geom.RConv[float64](r), color)
+}
+
+func (v *Viewer) renderViewSurfaces(server *Server, out *Output, view *View) {
+	view.ForEachSurface(func(s wlr.Surface, x, y int) {
+		p := geom.Pt(x, y)
+		server.renderSurface(out, s, geom.PConv[int](view.Coords).Add(p))
+	})
+}
+
+func (v *Viewer) renderNewViews(server *Server, out *Output) {
+	for _, nv := range server.newViews {
+		server.renderSelectionBox(out, *nv)
+	}
+}
+
+func (v *Viewer) Render(server *Server, out *Output, to geom.Rect[float64]) {
+	v.renderBG(server, out, to)
+	server.renderLayer(out, wlr.LayerShellV1LayerBackground)
+	server.renderLayer(out, wlr.LayerShellV1LayerBottom)
+	v.renderViews(server, out)
+	v.renderNewViews(server, out)
+	server.renderLayer(out, wlr.LayerShellV1LayerTop)
+	server.renderLayer(out, wlr.LayerShellV1LayerOverlay)
 }
