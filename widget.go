@@ -11,22 +11,20 @@ import (
 
 // Widget is a piece of the compositor's UI.
 type Widget interface {
-	// Layout causes the Widget to size and position itself into the
-	// available area.
-	//
-	// available should always be canonical.
-	Layout(available geom.Rect[float64])
-
-	// Bounds is the position and size of the widget on screen. If
-	// Bounds().IsZero() == true, the parent should call Layout.
-	Bounds() geom.Rect[float64]
+	// Layout returns the size that the widget wants given the provided
+	// constraints.
+	Layout(LayoutConstraints) (size geom.Point[float64])
 
 	// Render renders the widget onto the screen.
-	Render(server *Server, out *Output)
+	Render(server *Server, out *Output, to geom.Rect[float64])
+}
+
+type LayoutConstraints struct {
+	MinSize, MaxSize geom.Point[float64]
 }
 
 type Box struct {
-	bounds   geom.Rect[float64]
+	bounds   []geom.Rect[float64]
 	children []Widget
 	vert     bool
 }
@@ -52,37 +50,41 @@ func (b *Box) Children() []Widget {
 	return b.children
 }
 
-func (b *Box) Layout(r geom.Rect[float64]) {
-	need := geom.Rt(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y)
-	if b.vert {
-		need = geom.Rt(r.Min.X, r.Min.Y, r.Min.X, r.Max.Y)
+func (b *Box) Layout(lc LayoutConstraints) (size geom.Point[float64]) {
+	var bounds geom.Rect[float64]
+	cbounds := b.bounds[:0]
+	for _, c := range b.children {
+		off := geom.Pt(bounds.Dx(), 0)
+		if b.vert {
+			off = geom.Pt(0, bounds.Dy())
+		}
+
+		clc := lc
+		clc.MaxSize = clc.MaxSize.Sub(off)
+		csize := c.Layout(clc)
+		r := geom.Rect[float64]{Max: csize}.Add(off)
+
+		bounds = bounds.Union(r)
+		cbounds = append(cbounds, r)
 	}
 
-	for _, c := range b.children {
-		c.Layout(r)
-		need = need.Union(c.Bounds())
-	}
-
-	b.bounds = need
+	b.bounds = cbounds
+	return bounds.Size()
 }
 
-func (b *Box) Bounds() geom.Rect[float64] {
-	return b.bounds
-}
-
-func (b *Box) Render(server *Server, out *Output) {
-	for _, c := range b.children {
-		c.Render(server, out)
+func (b *Box) Render(server *Server, out *Output, to geom.Rect[float64]) {
+	for i, c := range b.children {
+		r := b.bounds[i]
+		c.Render(server, out, r.Add(to.Min))
 	}
 }
 
 type Padding struct {
-	bounds geom.Rect[float64]
 	child  Widget
-	amount float64
+	amount geom.Point[float64]
 }
 
-func NewPadding(amount float64, child Widget) *Padding {
+func NewPadding(amount geom.Point[float64], child Widget) *Padding {
 	return &Padding{child: child, amount: amount}
 }
 
@@ -94,26 +96,42 @@ func (p *Padding) Child() Widget {
 	return p.child
 }
 
-func (p *Padding) Layout(r geom.Rect[float64]) {
-	b := r.Inset(p.amount)
-	p.child.Layout(b)
-	p.bounds = p.child.Bounds().Inset(-p.amount)
+func (p *Padding) Layout(lc LayoutConstraints) geom.Point[float64] {
+	lc.MaxSize = lc.MaxSize.Add(p.amount.Mul(2))
+	return p.child.Layout(lc)
 }
 
-func (p *Padding) Bounds() geom.Rect[float64] {
-	return p.bounds
+func (p *Padding) Render(server *Server, out *Output, to geom.Rect[float64]) {
+	p.child.Render(server, out, to.Inset2(p.amount))
 }
 
-func (p *Padding) Render(server *Server, out *Output) {
-	p.child.Render(server, out)
+type Center struct {
+	child Widget
+	size  geom.Point[float64]
+}
+
+func NewCenter(child Widget) *Center {
+	return &Center{child: child}
+}
+
+func (c *Center) Layout(lc LayoutConstraints) geom.Point[float64] {
+	c.size = c.child.Layout(lc)
+	return c.size
+}
+
+func (c *Center) Render(server *Server, out *Output, to geom.Rect[float64]) {
+	c.child.Render(
+		server,
+		out,
+		geom.Rect[float64]{Max: c.size}.Align(to.Center()),
+	)
 }
 
 type Label struct {
-	bounds geom.Rect[float64]
-	r      wlr.Renderer
-	src    image.Image
-	s      string
-	t      wlr.Texture
+	r   wlr.Renderer
+	src image.Image
+	s   string
+	t   wlr.Texture
 }
 
 func NewLabel(r wlr.Renderer, src image.Image, text string) *Label {
@@ -131,27 +149,19 @@ func (label *Label) Text() string {
 
 func (label *Label) SetText(text string) {
 	label.t.Destroy()
-	label.bounds = geom.Rect[float64]{}
 
 	label.s = text
 	label.t = CreateTextTexture(label.r, label.src, text)
 }
 
-func (label *Label) Layout(r geom.Rect[float64]) {
-	// TODO: This isn't going to work like this...
-	label.bounds = geom.Rt(
-		0,
-		0,
+func (label *Label) Layout(lc LayoutConstraints) geom.Point[float64] {
+	return geom.Pt(
 		float64(label.t.Width()),
 		float64(label.t.Height()),
-	).Align(r.Center())
+	)
 }
 
-func (label *Label) Bounds() geom.Rect[float64] {
-	return label.bounds
-}
-
-func (label *Label) Render(server *Server, out *Output) {
-	m := wlr.ProjectBoxMatrix(label.bounds.ImageRect(), wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
+func (label *Label) Render(server *Server, out *Output, to geom.Rect[float64]) {
+	m := wlr.ProjectBoxMatrix(to.ImageRect(), wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
 	server.renderer.RenderTextureWithMatrix(label.t, m, 1)
 }
