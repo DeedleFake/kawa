@@ -136,12 +136,13 @@ type Label struct {
 }
 
 func NewLabel(r wlr.Renderer, src image.Image, text string) *Label {
-	return &Label{
+	label := Label{
 		r:   r,
 		src: src,
 		s:   text,
-		t:   CreateTextTexture(r, src, text),
 	}
+	label.SetText(text)
+	return &label
 }
 
 func (label *Label) Text() string {
@@ -149,13 +150,24 @@ func (label *Label) Text() string {
 }
 
 func (label *Label) SetText(text string) {
-	label.t.Destroy()
+	if label.t.Valid() {
+		label.t.Destroy()
+	}
+
+	if text == "" {
+		label.t = wlr.Texture{}
+		return
+	}
 
 	label.s = text
 	label.t = CreateTextTexture(label.r, label.src, text)
 }
 
 func (label *Label) Layout(lc LayoutConstraints) geom.Point[float64] {
+	if !label.t.Valid() {
+		return geom.Point[float64]{}
+	}
+
 	return geom.Pt(
 		float64(label.t.Width()),
 		float64(label.t.Height()),
@@ -163,6 +175,10 @@ func (label *Label) Layout(lc LayoutConstraints) geom.Point[float64] {
 }
 
 func (label *Label) Render(server *Server, out *Output, to geom.Rect[float64]) {
+	if !label.t.Valid() {
+		return
+	}
+
 	m := wlr.ProjectBoxMatrix(to.ImageRect(), wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
 	server.renderer.RenderTextureWithMatrix(label.t, m, 1)
 }

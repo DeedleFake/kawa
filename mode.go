@@ -45,18 +45,18 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	cc := server.cursorCoords()
 
-	out := server.outputAt(cc)
-	if out != nil {
-		if cc.In(server.statusBar.Bounds()) {
-			switch b {
-			case wlr.BtnLeft:
-				server.startMenu(server.systemMenu, b)
-			case wlr.BtnRight:
-				server.startMenu(server.mainMenu, b)
-			}
-			return
-		}
-	}
+	//out := server.outputAt(cc)
+	//if out != nil {
+	//	if cc.In(server.statusBar.Bounds()) {
+	//		switch b {
+	//		case wlr.BtnLeft:
+	//			server.startMenu(server.systemMenu, b)
+	//		case wlr.BtnRight:
+	//			server.startMenu(server.mainMenu, b)
+	//		}
+	//		return
+	//	}
+	//}
 
 	view, edges, surface, _ := server.viewAt(nil, cc)
 	if view == nil {
@@ -123,14 +123,14 @@ func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 
 	to := cc.Sub(m.off)
 
-	out := server.outputAt(cc)
-	if out != nil {
-		sbb := server.statusBar.Bounds()
-		sbb.Max.Y += WindowBorder
-		if cc.In(sbb) {
-			to.Y = m.view.Coords.Y
-		}
-	}
+	//out := server.outputAt(cc)
+	//if out != nil {
+	//	sbb := server.statusBar.Bounds()
+	//	sbb.Max.Y += WindowBorder
+	//	if cc.In(sbb) {
+	//		to.Y = m.view.Coords.Y
+	//	}
+	//}
 
 	server.moveViewTo(nil, m.view, to)
 }

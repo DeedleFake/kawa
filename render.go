@@ -34,7 +34,6 @@ func (server *Server) onFrame(out *Output) {
 	server.renderViews(out, t)
 	server.renderNewViews(out, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerTop, t)
-	server.renderStatusBar(out, t)
 	server.renderMode(out, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerOverlay, t)
 	server.renderCursor(out, t)
@@ -141,26 +140,6 @@ func (server *Server) renderSurface(out *Output, s wlr.Surface, p geom.Point[int
 func (server *Server) renderNewViews(out *Output, t time.Time) {
 	for _, nv := range server.newViews {
 		server.renderSelectionBox(out, *nv, t)
-	}
-}
-
-func (server *Server) renderStatusBar(out *Output, t time.Time) {
-	if server.statusBar.Bounds().IsZero() {
-		return
-	}
-
-	r := server.statusBar.Bounds()
-	server.renderer.RenderRect(r.ImageRect(), ColorMenuBorder, out.Output.TransformMatrix())
-
-	if server.statusBar.title.Valid() {
-		r := geom.Rt(
-			r.Min.X+WindowBorder,
-			r.Max.Y-float64(server.statusBar.title.Height())-WindowBorder,
-			float64(server.statusBar.title.Width()),
-			r.Max.Y-WindowBorder,
-		)
-		m := wlr.ProjectBoxMatrix(r.ImageRect(), wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
-		server.renderer.RenderTextureWithMatrix(server.statusBar.title, m, 1)
 	}
 }
 

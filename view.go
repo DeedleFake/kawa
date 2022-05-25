@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"image"
 
 	"deedles.dev/kawa/geom"
 	"deedles.dev/kawa/geom/tile"
@@ -10,6 +9,21 @@ import (
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 )
+
+type Viewer struct{}
+
+func NewViewer() *Viewer {
+	// TODO
+	return new(Viewer)
+}
+
+func (v *Viewer) Layout(lc LayoutConstraints) geom.Point[float64] {
+	return lc.MaxSize
+}
+
+func (v *Viewer) Render(server *Server, out *Output, to geom.Rect[float64]) {
+	// TODO
+}
 
 type ViewTargeter interface {
 	TargetView() *View
@@ -599,9 +613,9 @@ func (server *Server) updateTitles() {
 		server.mainMenu.Add(n)
 	}
 
-	var focusedTitle wlr.Texture
-	if fv := server.focusedView(); (fv != nil) && (fv.Title() != "") {
-		focusedTitle = CreateTextTexture(server.renderer, image.White, fv.Title())
+	var focusedTitle string
+	if fv := server.focusedView(); fv != nil {
+		focusedTitle = fv.Title()
 	}
 	server.statusBar.SetTitle(focusedTitle)
 }

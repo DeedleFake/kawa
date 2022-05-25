@@ -1,8 +1,6 @@
 package main
 
 import (
-	"image"
-
 	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
 )
@@ -35,14 +33,16 @@ func (server *Server) outputAt(p geom.Point[float64]) *Output {
 
 func (server *Server) outputBounds(out *Output) geom.Rect[float64] {
 	x, y := server.outputLayout.OutputCoords(out.Output)
-	return geom.Rt(0, StatusBarHeight, float64(out.Output.Width()), float64(out.Output.Height())).Add(geom.Pt(x, y))
+	return geom.Rt(0, 0, float64(out.Output.Width()), float64(out.Output.Height())).Add(geom.Pt(x, y))
 }
 
 func (server *Server) onNewOutput(wout wlr.Output) {
-	//box := NewBox(true)
-	//box.Add(NewStatusBar())
-	//box.Add(NewViewer())
-	box := NewCenter(NewLabel(server.renderer, image.White, "This is a test."))
+	box := NewBox(true)
+	if server.statusBar == nil {
+		server.statusBar = NewStatusBar(server)
+		box.Add(server.statusBar)
+	}
+	box.Add(NewViewer())
 
 	out := Output{
 		Output: wout,
@@ -71,10 +71,6 @@ func (server *Server) addOutput(out *Output) {
 	}
 
 	server.configureOutput(out, nil)
-
-	if server.statusBar.Bounds().IsZero() {
-		server.statusBar.MoveToOutput(server, out)
-	}
 }
 
 func (server *Server) configureOutput(out *Output, config *OutputConfig) {

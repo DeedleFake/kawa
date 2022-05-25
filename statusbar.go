@@ -1,33 +1,35 @@
 package main
 
 import (
+	"image"
+
 	"deedles.dev/kawa/geom"
-	"deedles.dev/wlr"
 )
 
 type StatusBar struct {
-	b     geom.Rect[float64]
-	title wlr.Texture
+	title *Label
+	tpad  Widget
+	tsize geom.Point[float64]
 }
 
-func NewStatusBar(server *Server, out *Output) *StatusBar {
-	var b StatusBar
-	b.MoveToOutput(server, out)
-	return &b
-}
-
-func (b *StatusBar) Bounds() geom.Rect[float64] {
-	return b.b
-}
-
-func (b *StatusBar) MoveToOutput(server *Server, out *Output) {
-	ob := server.outputBounds(out)
-	b.b = geom.Rt(ob.Min.X, ob.Min.Y-StatusBarHeight, ob.Max.X, ob.Min.Y)
-}
-
-func (b *StatusBar) SetTitle(title wlr.Texture) {
-	if b.title.Valid() {
-		b.title.Destroy()
+func NewStatusBar(server *Server) *StatusBar {
+	title := NewLabel(server.renderer, image.White, "")
+	return &StatusBar{
+		title: title,
+		tpad:  NewPadding(geom.Pt[float64](WindowBorder, WindowBorder), title),
 	}
-	b.title = title
+}
+
+func (sb *StatusBar) SetTitle(title string) {
+	sb.title.SetText(title)
+}
+
+func (sb *StatusBar) Layout(lc LayoutConstraints) geom.Point[float64] {
+	sb.tsize = sb.tpad.Layout(lc)
+	return geom.Pt(lc.MaxSize.X, StatusBarHeight)
+}
+
+func (sb *StatusBar) Render(server *Server, out *Output, to geom.Rect[float64]) {
+	server.renderer.RenderRect(to.ImageRect(), ColorMenuBorder, out.Output.TransformMatrix())
+	sb.tpad.Render(server, out, geom.Rect[float64]{Max: sb.tsize}.Add(to.Min))
 }
