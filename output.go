@@ -64,7 +64,7 @@ func (server *Server) addOutput(out *Output) {
 
 	server.configureOutput(out, nil)
 
-	if server.statusBar.Bounds() == (geom.Rect[float64]{}) {
+	if server.statusBar.Bounds().IsZero() {
 		server.statusBar.MoveToOutput(server, out)
 	}
 }

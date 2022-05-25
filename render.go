@@ -141,7 +141,7 @@ func (server *Server) renderNewViews(out *Output, t time.Time) {
 }
 
 func (server *Server) renderStatusBar(out *Output, t time.Time) {
-	if server.statusBar.Bounds() == (geom.Rect[float64]{}) {
+	if server.statusBar.Bounds().IsZero() {
 		return
 	}
 
