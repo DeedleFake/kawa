@@ -10,21 +10,6 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-type Viewer struct{}
-
-func NewViewer() *Viewer {
-	// TODO
-	return new(Viewer)
-}
-
-func (v *Viewer) Layout(lc LayoutConstraints) geom.Point[float64] {
-	return lc.MaxSize
-}
-
-func (v *Viewer) Render(server *Server, out *Output, to geom.Rect[float64]) {
-	// TODO
-}
-
 type ViewTargeter interface {
 	TargetView() *View
 }
@@ -618,4 +603,30 @@ func (server *Server) updateTitles() {
 		focusedTitle = fv.Title()
 	}
 	server.statusBar.SetTitle(focusedTitle)
+}
+
+type Viewer struct{}
+
+func NewViewer() *Viewer {
+	return new(Viewer)
+}
+
+func (v *Viewer) Layout(lc LayoutConstraints) geom.Point[float64] {
+	return lc.MaxSize
+}
+
+func (v *Viewer) Render(server *Server, out *Output, to geom.Rect[float64]) {
+	if !server.bg.Valid() {
+		return
+	}
+
+	r := geom.RConv[float64](geom.Rt(0, 0, server.bg.Width(), server.bg.Height()))
+
+	m := wlr.ProjectBoxMatrix(
+		server.bgScale(to, r).ImageRect(),
+		wlr.OutputTransformNormal,
+		0,
+		out.Output.TransformMatrix(),
+	)
+	server.renderer.RenderTextureWithMatrix(server.bg, m, 1)
 }

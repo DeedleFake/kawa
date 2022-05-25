@@ -28,7 +28,10 @@ func (server *Server) onFrame(out *Output) {
 
 	server.renderer.Clear(ColorBackground)
 
-	server.renderBG(out, t)
+	b := server.outputBounds(out)
+	size := out.Child.Layout(LayoutConstraints{MaxSize: b.Size()})
+	out.Child.Render(server, out, geom.Rect[float64]{Max: size}.Align(b.Center()))
+
 	server.renderLayer(out, wlr.LayerShellV1LayerBackground, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerBottom, t)
 	server.renderViews(out, t)
@@ -37,27 +40,6 @@ func (server *Server) onFrame(out *Output) {
 	server.renderMode(out, t)
 	server.renderLayer(out, wlr.LayerShellV1LayerOverlay, t)
 	server.renderCursor(out, t)
-
-	b := server.outputBounds(out)
-	size := out.Child.Layout(LayoutConstraints{MaxSize: b.Size()})
-	out.Child.Render(server, out, geom.Rect[float64]{Max: size}.Align(b.Center()))
-}
-
-func (server *Server) renderBG(out *Output, t time.Time) {
-	if !server.bg.Valid() {
-		return
-	}
-
-	ob := server.outputBounds(out)
-	r := geom.RConv[float64](geom.Rt(0, 0, server.bg.Width(), server.bg.Height()))
-
-	m := wlr.ProjectBoxMatrix(
-		server.bgScale(ob, r).ImageRect(),
-		wlr.OutputTransformNormal,
-		0,
-		out.Output.TransformMatrix(),
-	)
-	server.renderer.RenderTextureWithMatrix(server.bg, m, 1)
 }
 
 func (server *Server) renderLayer(out *Output, layer wlr.LayerShellV1Layer, t time.Time) {
