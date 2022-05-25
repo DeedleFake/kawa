@@ -97,8 +97,9 @@ func (p *Padding) Child() Widget {
 }
 
 func (p *Padding) Layout(lc LayoutConstraints) geom.Point[float64] {
-	lc.MaxSize = lc.MaxSize.Add(p.amount.Mul(2))
-	return p.child.Layout(lc)
+	pad := p.amount.Mul(2)
+	lc.MaxSize = lc.MaxSize.Sub(pad)
+	return p.child.Layout(lc).Add(pad)
 }
 
 func (p *Padding) Render(server *Server, out *Output, to geom.Rect[float64]) {
