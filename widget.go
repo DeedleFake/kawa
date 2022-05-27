@@ -29,8 +29,11 @@ type Box struct {
 	vert     bool
 }
 
-func NewBox(vert bool) *Box {
-	return &Box{vert: vert}
+func NewBox(vert bool, children ...Widget) *Box {
+	return &Box{
+		children: children,
+		vert:     vert,
+	}
 }
 
 func (b *Box) Add(child Widget) {
@@ -76,6 +79,43 @@ func (b *Box) Render(server *Server, out *Output, to geom.Rect[float64]) {
 	for i, c := range b.children {
 		r := b.bounds[i]
 		c.Render(server, out, r.Add(to.Min))
+	}
+}
+
+type Stack struct {
+	children []Widget
+}
+
+func NewStack(children ...Widget) *Stack {
+	return &Stack{children: children}
+}
+
+func (s *Stack) Add(child Widget) {
+	s.children = append(s.children, child)
+}
+
+// TODO: Add methods for removing widgets.
+
+func (s *Stack) Children() []Widget {
+	return s.children
+}
+
+func (s *Stack) Layout(lc LayoutConstraints) (size geom.Point[float64]) {
+	for _, c := range s.children {
+		cs := c.Layout(lc)
+		if cs.X > size.X {
+			size.X = cs.X
+		}
+		if cs.Y > size.Y {
+			size.Y = cs.Y
+		}
+	}
+	return size
+}
+
+func (s *Stack) Render(server *Server, out *Output, to geom.Rect[float64]) {
+	for _, c := range s.children {
+		c.Render(server, out, to)
 	}
 }
 
@@ -125,6 +165,36 @@ func (c *Center) Render(server *Server, out *Output, to geom.Rect[float64]) {
 		server,
 		out,
 		geom.Rect[float64]{Max: c.size}.Align(to.Center()),
+	)
+}
+
+type Align struct {
+	child Widget
+	edges wlr.Edges
+	size  geom.Point[float64]
+}
+
+func NewAlign(edges wlr.Edges, child Widget) *Align {
+	return &Align{
+		child: child,
+		edges: edges,
+	}
+}
+
+func (a *Align) alignmentRect(to geom.Rect[float64]) geom.Rect[float64] {
+	panic("Not implemented.")
+}
+
+func (a *Align) Layout(lc LayoutConstraints) geom.Point[float64] {
+	a.size = a.child.Layout(lc)
+	return a.size
+}
+
+func (a *Align) Render(server *Server, out *Output, to geom.Rect[float64]) {
+	a.child.Render(
+		server,
+		out,
+		a.alignmentRect(to),
 	)
 }
 
