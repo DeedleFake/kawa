@@ -37,16 +37,18 @@ func (server *Server) outputBounds(out *Output) geom.Rect[float64] {
 }
 
 func (server *Server) onNewOutput(wout wlr.Output) {
-	box := NewBox(true)
+	root := Widget(NewViewer())
 	if server.statusBar == nil {
 		server.statusBar = NewStatusBar(server)
-		box.Add(server.statusBar)
+		root = NewStack(
+			NewPadding(WindowBorder, 0, 0, 0, root),
+			NewAlign(wlr.EdgeTop|wlr.EdgeLeft|wlr.EdgeRight, server.statusBar),
+		)
 	}
-	box.Add(NewViewer())
 
 	out := Output{
 		Output: wout,
-		Child:  box,
+		Child:  root,
 	}
 	out.onFrameListener = wout.OnFrame(func(wout wlr.Output) {
 		server.onFrame(&out)

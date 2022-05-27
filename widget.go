@@ -120,12 +120,28 @@ func (s *Stack) Render(server *Server, out *Output, to geom.Rect[float64]) {
 }
 
 type Padding struct {
-	child  Widget
-	amount geom.Point[float64]
+	child                    Widget
+	top, bottom, left, right float64
 }
 
-func NewPadding(amount geom.Point[float64], child Widget) *Padding {
-	return &Padding{child: child, amount: amount}
+func NewPadding(top, bottom, left, right float64, child Widget) *Padding {
+	return &Padding{
+		child:  child,
+		top:    top,
+		bottom: bottom,
+		left:   left,
+		right:  right,
+	}
+}
+
+func NewUniformPadding(amount float64, child Widget) *Padding {
+	return &Padding{
+		child:  child,
+		top:    amount,
+		bottom: amount,
+		left:   amount,
+		right:  amount,
+	}
 }
 
 func (p *Padding) SetChild(child Widget) {
@@ -137,13 +153,13 @@ func (p *Padding) Child() Widget {
 }
 
 func (p *Padding) Layout(lc LayoutConstraints) geom.Point[float64] {
-	pad := p.amount.Mul(2)
+	pad := geom.Pt(p.top+p.bottom, p.left+p.right)
 	lc.MaxSize = lc.MaxSize.Sub(pad)
 	return p.child.Layout(lc).Add(pad)
 }
 
 func (p *Padding) Render(server *Server, out *Output, to geom.Rect[float64]) {
-	p.child.Render(server, out, to.Inset2(p.amount))
+	p.child.Render(server, out, to.Pad(p.top, p.bottom, p.left, p.right))
 }
 
 type Center struct {
@@ -182,7 +198,21 @@ func NewAlign(edges wlr.Edges, child Widget) *Align {
 }
 
 func (a *Align) alignmentRect(to geom.Rect[float64]) geom.Rect[float64] {
-	panic("Not implemented.")
+	r := geom.Rect[float64]{Max: a.size}.Align(to.Center())
+	if a.edges&wlr.EdgeTop != 0 {
+		r.Min.Y, r.Max.Y = to.Min.Y, to.Min.Y+r.Dy()
+	}
+	if a.edges&wlr.EdgeBottom != 0 {
+		r.Min.Y, r.Max.Y = to.Max.Y-r.Dy(), to.Max.Y
+	}
+	if a.edges&wlr.EdgeLeft != 0 {
+		r.Min.X, r.Max.X = to.Min.X, to.Min.X+r.Dx()
+	}
+	if a.edges&wlr.EdgeRight != 0 {
+		r.Min.X, r.Max.X = to.Max.X-r.Dx(), to.Max.X
+	}
+
+	return r
 }
 
 func (a *Align) Layout(lc LayoutConstraints) geom.Point[float64] {

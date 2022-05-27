@@ -16,7 +16,7 @@ func NewStatusBar(server *Server) *StatusBar {
 	title := NewLabel(server.renderer, image.White, "")
 	return &StatusBar{
 		title: title,
-		tpad:  NewCenter(NewPadding(geom.Pt[float64](WindowBorder, WindowBorder), title)), // TODO: Bottom align this?
+		tpad:  NewCenter(NewUniformPadding(WindowBorder, title)), // TODO: Bottom align this?
 	}
 }
 
