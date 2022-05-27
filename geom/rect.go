@@ -93,6 +93,21 @@ func (r Rect[T]) Inset2(n Point[T]) Rect[T] {
 	return r
 }
 
+func (r Rect[T]) Pad(top, bottom, left, right T) Rect[T] {
+	r = r.Canon()
+	r.Min.X += left
+	r.Max.X -= right
+	r.Min.Y += top
+	r.Max.Y -= bottom
+	if r.Dx() < 0 {
+		r.Max.X = r.Min.X
+	}
+	if r.Dy() < 0 {
+		r.Max.Y = r.Min.Y
+	}
+	return r
+}
+
 func (r Rect[T]) Intersect(s Rect[T]) Rect[T] {
 	if r.Min.X < s.Min.X {
 		r.Min.X = s.Min.X
