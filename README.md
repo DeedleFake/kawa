@@ -22,6 +22,33 @@ Wishful Thinking
 - [ ] Theming support.
 - [X] When a window is maximized, maybe it automatically enters a tiled mode and is always underneath non-maximized windows. ~~I'm not sure how feasible this is.~~ Quite feasible indeed, it turns out, thanks to Wayland giving 100% of final say on positioning and sizing to the compositor.
 
+Building and Installing
+-----------------------
+
+**Warning**: This project is _not_ ready for production usage. In particular, there is currently an issue with the initialization that causes a machine attempting to run it as a proper compositor to completely lock up all input. **Do not use this as a regular compositor yet.** It should be fine to run it as a Wayland client inside of another compositor, however, if you'd like to test it.
+
+### Dependencies
+
+* wlroots v0.15
+
+### Installation
+
+Installing kawa can be done via [the `go` tool](https://pkg.go.dev/cmd/go):
+
+```bash
+$ go install deedles.dev/kawa@latest
+```
+
+### Compilation
+
+If you would like to compile kawa without installing the resulting binary, use the following commands:
+
+```bash
+$ git clone https://github.com/DeedleFake/kawa
+$ cd kawa
+$ go build
+```
+
 Prior Art
 ---------
 
