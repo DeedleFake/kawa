@@ -11,116 +11,143 @@ import (
 
 // Widget is a piece of the compositor's UI.
 type Widget interface {
-	// Layout returns the size that the widget wants given the provided
+	// Size returns the size that the widget wants given the provided
 	// constraints.
-	Layout(LayoutConstraints) (size geom.Point[float64])
+	Size(min, max geom.Point[float64]) (size geom.Point[float64])
+
+	// Position instructs the widget to position itself on the screen,
+	// using the provided base as a guide. It is entirely the widget's
+	// decision on how to use the provided base, and some might even
+	// ignore it completely.
+	//
+	// The returned rectangle are the bounds that the widget should draw
+	// itself into the next time that Render is called.
+	Position(base geom.Rect[float64]) (actual geom.Rect[float64])
 
 	// Render renders the widget onto the screen.
-	Render(server *Server, out *Output, to geom.Rect[float64])
+	Render(server *Server, out *Output)
 }
 
-type LayoutConstraints struct {
-	MinSize, MaxSize geom.Point[float64]
-}
-
-type Box struct {
-	bounds   []geom.Rect[float64]
+type Container struct {
 	children []Widget
-	vert     bool
+	sizes    []geom.Rect[float64]
+	bounds   []geom.Rect[float64]
+	layout   ContainerLayout
 }
 
-func NewBox(vert bool, children ...Widget) *Box {
-	return &Box{
+func NewContainer(layout ContainerLayout, children ...Widget) *Container {
+	return &Container{
 		children: children,
-		vert:     vert,
+		layout:   layout,
 	}
 }
 
-func (b *Box) Add(child Widget) {
-	b.children = append(b.children, child)
+func (c *Container) Add(child Widget) {
+	c.children = append(c.children, child)
 }
 
-func (b *Box) Remove(child Widget) {
-	i := slices.IndexFunc(b.children, util.Match(child))
-	b.RemoveIndex(i)
+func (c *Container) Remove(child Widget) {
+	i := slices.IndexFunc(c.children, util.Match(child))
+	c.RemoveIndex(i)
 }
 
-func (b *Box) RemoveIndex(i int) {
-	b.children = slices.Delete(b.children, i, i+1)
+func (c *Container) RemoveIndex(i int) {
+	c.children = slices.Delete(c.children, i, i+1)
 }
 
-func (b *Box) Children() []Widget {
-	return b.children
+func (c *Container) Children() []Widget {
+	return c.children
 }
 
-func (b *Box) Layout(lc LayoutConstraints) (size geom.Point[float64]) {
+func (c *Container) Size(min, max geom.Point[float64]) geom.Point[float64] {
+	c.sizes = c.layout.LayoutChildren(c, min, max)
+
 	var bounds geom.Rect[float64]
-	cbounds := b.bounds[:0]
-	for _, c := range b.children {
-		off := geom.Pt(bounds.Dx(), 0)
-		if b.vert {
-			off = geom.Pt(0, bounds.Dy())
-		}
-
-		clc := lc
-		clc.MaxSize = clc.MaxSize.Sub(off)
-		csize := c.Layout(clc)
-		r := geom.Rect[float64]{Max: csize}.Add(off)
-
-		bounds = bounds.Union(r)
-		cbounds = append(cbounds, r)
+	for _, b := range c.sizes {
+		bounds = bounds.Union(b)
 	}
-
-	b.bounds = cbounds
 	return bounds.Size()
 }
 
-func (b *Box) Render(server *Server, out *Output, to geom.Rect[float64]) {
-	for i, c := range b.children {
-		r := b.bounds[i]
-		c.Render(server, out, r.Add(to.Min))
+func (c *Container) Position(base geom.Rect[float64]) (bounds geom.Rect[float64]) {
+	c.bounds = c.bounds[:0]
+	for i, child := range c.Children() {
+		cb := child.Position(c.layout.Position(base, c.sizes[i]))
+		c.bounds = append(c.bounds, cb)
+		bounds = bounds.Union(cb)
+	}
+
+	return bounds
+}
+
+func (c *Container) Render(server *Server, out *Output) {
+	for _, c := range c.children {
+		c.Render(server, out)
 	}
 }
 
-type Stack struct {
-	children []Widget
+type ContainerLayout interface {
+	LayoutChildren(c *Container, min, max geom.Point[float64]) []geom.Rect[float64]
+	Position(base, layout geom.Rect[float64]) geom.Rect[float64]
 }
 
-func NewStack(children ...Widget) *Stack {
-	return &Stack{children: children}
+var (
+	VBoxLayout  ContainerLayout = boxLayout{vert: true}
+	HBoxLayout  ContainerLayout = boxLayout{vert: false}
+	StackLayout ContainerLayout = stackLayout{}
+)
+
+type boxLayout struct {
+	vert bool
 }
 
-func (s *Stack) Add(child Widget) {
-	s.children = append(s.children, child)
-}
-
-// TODO: Add methods for removing widgets.
-
-func (s *Stack) Children() []Widget {
-	return s.children
-}
-
-func (s *Stack) Layout(lc LayoutConstraints) (size geom.Point[float64]) {
-	for _, c := range s.children {
-		cs := c.Layout(lc)
-		if cs.X > size.X {
-			size.X = cs.X
-		}
-		if cs.Y > size.Y {
-			size.Y = cs.Y
-		}
+func (b boxLayout) addOffset(base geom.Rect[float64], off geom.Point[float64]) geom.Rect[float64] {
+	if b.vert {
+		return base.Add(geom.Pt(0, off.Y))
 	}
-	return size
+	return base.Add(geom.Pt(off.X, 0))
 }
 
-func (s *Stack) Render(server *Server, out *Output, to geom.Rect[float64]) {
-	for _, c := range s.children {
-		c.Render(server, out, to)
+func (b boxLayout) childMax(base, layout geom.Rect[float64]) geom.Point[float64] {
+	if b.vert {
+		return geom.Pt(base.Max.X, layout.Max.Y)
 	}
+	return geom.Pt(layout.Max.X, base.Max.Y)
+}
+
+func (b boxLayout) LayoutChildren(c *Container, min, max geom.Point[float64]) (sizes []geom.Rect[float64]) {
+	var bounds geom.Rect[float64]
+	for _, c := range c.Children() {
+		off := b.addOffset(geom.Rect[float64]{}, bounds.Max)
+
+		cmax := max.Sub(off.Min)
+		csize := c.Size(min, cmax)
+		sizes = append(sizes, off.Resize(csize))
+	}
+
+	return sizes
+}
+
+func (b boxLayout) Position(base, layout geom.Rect[float64]) geom.Rect[float64] {
+	return geom.Rect[float64]{Min: base.Min.Add(layout.Min), Max: b.childMax(base, layout)}
+}
+
+type stackLayout struct{}
+
+func (s stackLayout) LayoutChildren(c *Container, min, max geom.Point[float64]) (sizes []geom.Rect[float64]) {
+	for _, c := range c.Children() {
+		sizes = append(sizes, geom.Rect[float64]{Max: c.Size(min, max)})
+	}
+	return sizes
+}
+
+func (s stackLayout) Position(base, layout geom.Rect[float64]) geom.Rect[float64] {
+	return geom.Rect[float64]{Min: base.Min, Max: layout.Max}
 }
 
 type Padding struct {
 	child                    Widget
+	bounds                   geom.Rect[float64]
 	top, bottom, left, right float64
 }
 
@@ -152,42 +179,50 @@ func (p *Padding) Child() Widget {
 	return p.child
 }
 
-func (p *Padding) Layout(lc LayoutConstraints) geom.Point[float64] {
+func (p *Padding) Size(min, max geom.Point[float64]) geom.Point[float64] {
 	pad := geom.Pt(p.top+p.bottom, p.left+p.right)
-	lc.MaxSize = lc.MaxSize.Sub(pad)
-	return p.child.Layout(lc).Add(pad)
+	max = max.Sub(pad)
+	return p.child.Size(min, max).Add(pad)
 }
 
-func (p *Padding) Render(server *Server, out *Output, to geom.Rect[float64]) {
-	p.child.Render(server, out, to.Pad(p.top, p.bottom, p.left, p.right))
+func (p *Padding) Position(base geom.Rect[float64]) geom.Rect[float64] {
+	p.bounds = p.child.Position(base.Pad(p.top, p.bottom, p.left, p.right))
+	return p.bounds
+}
+
+func (p *Padding) Render(server *Server, out *Output) {
+	p.child.Render(server, out)
 }
 
 type Center struct {
-	child Widget
-	size  geom.Point[float64]
+	child  Widget
+	size   geom.Point[float64]
+	bounds geom.Rect[float64]
 }
 
 func NewCenter(child Widget) *Center {
 	return &Center{child: child}
 }
 
-func (c *Center) Layout(lc LayoutConstraints) geom.Point[float64] {
-	c.size = c.child.Layout(lc)
+func (c *Center) Size(min, max geom.Point[float64]) geom.Point[float64] {
+	c.size = c.child.Size(min, max)
 	return c.size
 }
 
-func (c *Center) Render(server *Server, out *Output, to geom.Rect[float64]) {
-	c.child.Render(
-		server,
-		out,
-		geom.Rect[float64]{Max: c.size}.Align(to.Center()),
-	)
+func (c *Center) Position(base geom.Rect[float64]) geom.Rect[float64] {
+	c.bounds = c.child.Position(geom.Rect[float64]{Max: c.size}.Align(base.Center()))
+	return c.bounds
+}
+
+func (c *Center) Render(server *Server, out *Output) {
+	c.child.Render(server, out)
 }
 
 type Align struct {
-	child Widget
-	edges wlr.Edges
-	size  geom.Point[float64]
+	child  Widget
+	edges  wlr.Edges
+	size   geom.Point[float64]
+	bounds geom.Rect[float64]
 }
 
 func NewAlign(edges wlr.Edges, child Widget) *Align {
@@ -215,24 +250,26 @@ func (a *Align) alignmentRect(to geom.Rect[float64]) geom.Rect[float64] {
 	return r
 }
 
-func (a *Align) Layout(lc LayoutConstraints) geom.Point[float64] {
-	a.size = a.child.Layout(lc)
+func (a *Align) Size(min, max geom.Point[float64]) geom.Point[float64] {
+	a.size = a.child.Size(min, max)
 	return a.size
 }
 
-func (a *Align) Render(server *Server, out *Output, to geom.Rect[float64]) {
-	a.child.Render(
-		server,
-		out,
-		a.alignmentRect(to),
-	)
+func (a *Align) Position(base geom.Rect[float64]) geom.Rect[float64] {
+	a.bounds = a.child.Position(a.alignmentRect(base))
+	return a.bounds
+}
+
+func (a *Align) Render(server *Server, out *Output) {
+	a.child.Render(server, out)
 }
 
 type Label struct {
-	r   wlr.Renderer
-	src image.Image
-	s   string
-	t   wlr.Texture
+	r      wlr.Renderer
+	src    image.Image
+	s      string
+	t      wlr.Texture
+	bounds geom.Rect[float64]
 }
 
 func NewLabel(r wlr.Renderer, src image.Image, text string) *Label {
@@ -263,7 +300,7 @@ func (label *Label) SetText(text string) {
 	label.t = CreateTextTexture(label.r, label.src, text)
 }
 
-func (label *Label) Layout(lc LayoutConstraints) geom.Point[float64] {
+func (label *Label) Size(min, max geom.Point[float64]) geom.Point[float64] {
 	if !label.t.Valid() {
 		return geom.Point[float64]{}
 	}
@@ -274,11 +311,16 @@ func (label *Label) Layout(lc LayoutConstraints) geom.Point[float64] {
 	)
 }
 
-func (label *Label) Render(server *Server, out *Output, to geom.Rect[float64]) {
+func (label *Label) Position(base geom.Rect[float64]) geom.Rect[float64] {
+	label.bounds = base
+	return label.bounds
+}
+
+func (label *Label) Render(server *Server, out *Output) {
 	if !label.t.Valid() {
 		return
 	}
 
-	m := wlr.ProjectBoxMatrix(to.ImageRect(), wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
+	m := wlr.ProjectBoxMatrix(label.bounds.ImageRect(), wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
 	server.renderer.RenderTextureWithMatrix(label.t, m, 1)
 }

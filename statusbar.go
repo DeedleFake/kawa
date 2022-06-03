@@ -7,9 +7,12 @@ import (
 )
 
 type StatusBar struct {
-	title *Label
-	tpad  Widget
-	tsize geom.Point[float64]
+	bounds geom.Rect[float64]
+
+	title   *Label
+	tpad    Widget
+	tsize   geom.Point[float64]
+	tbounds geom.Rect[float64]
 }
 
 func NewStatusBar(server *Server) *StatusBar {
@@ -24,12 +27,19 @@ func (sb *StatusBar) SetTitle(title string) {
 	sb.title.SetText(title)
 }
 
-func (sb *StatusBar) Layout(lc LayoutConstraints) geom.Point[float64] {
-	sb.tsize = sb.tpad.Layout(lc)
-	return geom.Pt(lc.MaxSize.X, StatusBarHeight)
+func (sb *StatusBar) Size(min, max geom.Point[float64]) geom.Point[float64] {
+	sb.tsize = sb.tpad.Size(min, max)
+	return geom.Pt(max.X, StatusBarHeight)
 }
 
-func (sb *StatusBar) Render(server *Server, out *Output, to geom.Rect[float64]) {
-	server.renderer.RenderRect(to.ImageRect(), ColorMenuBorder, out.Output.TransformMatrix())
-	sb.tpad.Render(server, out, geom.Rect[float64]{Max: sb.tsize}.Add(to.Min))
+func (sb *StatusBar) Position(base geom.Rect[float64]) geom.Rect[float64] {
+	sb.tbounds = sb.tpad.Position(geom.Rect[float64]{Max: sb.tsize}.Add(base.Min))
+
+	sb.bounds = base
+	return base
+}
+
+func (sb *StatusBar) Render(server *Server, out *Output) {
+	server.renderer.RenderRect(sb.bounds.ImageRect(), ColorMenuBorder, out.Output.TransformMatrix())
+	sb.tpad.Render(server, out)
 }

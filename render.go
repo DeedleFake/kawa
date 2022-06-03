@@ -27,8 +27,9 @@ func (server *Server) onFrame(out *Output) {
 	server.renderer.Clear(ColorBackground)
 
 	b := server.outputBounds(out)
-	size := out.Child.Layout(LayoutConstraints{MaxSize: b.Size()})
-	out.Child.Render(server, out, geom.Rect[float64]{Max: size}.Align(b.Center()))
+	size := out.Child.Size(geom.Point[float64]{}, b.Size())
+	out.Child.Position(geom.Rect[float64]{Max: size}.Align(b.Center()))
+	out.Child.Render(server, out)
 
 	server.renderMode(out)
 	server.renderCursor(out)

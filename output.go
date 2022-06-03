@@ -40,7 +40,8 @@ func (server *Server) onNewOutput(wout wlr.Output) {
 	root := Widget(NewViewer())
 	if server.statusBar == nil {
 		server.statusBar = NewStatusBar(server)
-		root = NewStack(
+		root = NewContainer(
+			StackLayout,
 			NewPadding(WindowBorder, 0, 0, 0, root),
 			NewAlign(wlr.EdgeTop|wlr.EdgeLeft|wlr.EdgeRight, server.statusBar),
 		)

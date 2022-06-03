@@ -605,14 +605,21 @@ func (server *Server) updateTitles() {
 	server.statusBar.SetTitle(focusedTitle)
 }
 
-type Viewer struct{}
+type Viewer struct {
+	bounds geom.Rect[float64]
+}
 
 func NewViewer() *Viewer {
 	return new(Viewer)
 }
 
-func (v *Viewer) Layout(lc LayoutConstraints) geom.Point[float64] {
-	return lc.MaxSize
+func (v *Viewer) Size(min, max geom.Point[float64]) geom.Point[float64] {
+	return max
+}
+
+func (v *Viewer) Position(base geom.Rect[float64]) geom.Rect[float64] {
+	v.bounds = base
+	return v.bounds
 }
 
 func (v *Viewer) renderBG(server *Server, out *Output, to geom.Rect[float64]) {
@@ -682,8 +689,8 @@ func (v *Viewer) renderNewViews(server *Server, out *Output) {
 	}
 }
 
-func (v *Viewer) Render(server *Server, out *Output, to geom.Rect[float64]) {
-	v.renderBG(server, out, to)
+func (v *Viewer) Render(server *Server, out *Output) {
+	v.renderBG(server, out, v.bounds)
 	server.renderLayer(out, wlr.LayerShellV1LayerBackground)
 	server.renderLayer(out, wlr.LayerShellV1LayerBottom)
 	v.renderViews(server, out)
