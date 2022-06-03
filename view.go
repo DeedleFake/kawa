@@ -525,7 +525,7 @@ func (server *Server) layoutTiles(out *Output) {
 		out = server.outputs[0]
 	}
 
-	or := server.outputBounds(out)
+	or := server.outputBounds(out) // TODO: Use the Viewer's bounds, not the entire output.
 	tiles := tile.TwoThirdsSidebar(or, len(server.tiled))
 	for i, tile := range tiles {
 		tile = tile.Inset(3 * WindowBorder)
