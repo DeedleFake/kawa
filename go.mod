@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	deedles.dev/wlr v0.0.0-20220523203022-0f87b53a5e31
-	golang.org/x/exp v0.0.0-20220518171630-0b5c67f07fdf
-	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9
+	golang.org/x/exp v0.0.0-20221031165847-c99f073a8326
+	golang.org/x/image v0.1.0
 )
 
-require golang.org/x/text v0.3.8-0.20220509174342-b4bca84b0361 // indirect
+require golang.org/x/text v0.4.0 // indirect
