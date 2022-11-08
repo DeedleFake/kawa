@@ -8,8 +8,8 @@ import (
 )
 
 type Padding struct {
-	Child                    Widget
 	Top, Bottom, Left, Right float64
+	Child                    Widget
 }
 
 func (p Padding) toChild(con Constraints) Constraints {
@@ -54,8 +54,8 @@ func (c Center) Layout(con Constraints) LayoutContext {
 }
 
 type Align struct {
-	Child Widget
 	Edges wlr.Edges
+	Child Widget
 }
 
 func (a Align) alignmentRect(lc LayoutContext, into geom.Rect[float64]) geom.Rect[float64] {
@@ -144,4 +144,57 @@ func (ls *LabelState) Text() string {
 func (ls *LabelState) SetText(rc RenderContext, src image.Image, str string) {
 	ls.str = str
 	ls.update(rc, src)
+}
+
+type Box struct {
+	Vertical bool
+	Children []Widget
+}
+
+func (b Box) addSize(total, size geom.Point[float64]) geom.Point[float64] {
+	if b.Vertical {
+		return geom.Pt(max(total.X, size.X), total.Y+size.Y)
+	}
+	return geom.Pt(total.X+size.X, max(total.Y, size.Y))
+}
+
+func (b Box) div(amount int) geom.Point[float64] {
+	if b.Vertical {
+		return geom.Pt(1, float64(amount))
+	}
+	return geom.Pt(float64(amount), 1)
+}
+
+func (b Box) Layout(con Constraints) LayoutContext {
+	div := b.div(len(b.Children))
+	con.MaxSize.X /= div.X
+	con.MaxSize.Y /= div.Y
+
+	lc := make([]LayoutContext, 0, len(b.Children))
+	var size geom.Point[float64]
+	for _, c := range b.Children {
+		clc := c.Layout(con)
+		lc = append(lc, clc)
+		size = b.addSize(size, clc.Size)
+	}
+
+	return LayoutContext{
+		Size: size,
+		Render: func(rc RenderContext, into geom.Rect[float64]) {
+			size := into.Size()
+			size.X /= div.X
+			size.Y /= div.Y
+			into = into.Resize(size)
+
+			off := geom.Pt(size.X, 0)
+			if b.Vertical {
+				off = geom.Pt(0, size.Y)
+			}
+
+			for _, lc := range lc {
+				lc.Render(rc, into)
+				into = into.Add(off)
+			}
+		},
+	}
 }

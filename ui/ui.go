@@ -3,6 +3,7 @@ package ui
 import (
 	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
+	"golang.org/x/exp/constraints"
 )
 
 // Widget is a piece of a UI hierarchy.
@@ -39,4 +40,11 @@ type LayoutContext struct {
 type RenderContext struct {
 	R   wlr.Renderer
 	Out wlr.Output
+}
+
+func max[T constraints.Ordered](v1, v2 T) T {
+	if v1 >= v2 {
+		return v1
+	}
+	return v2
 }
