@@ -198,3 +198,26 @@ func (b Box) Layout(con Constraints) LayoutContext {
 		},
 	}
 }
+
+type Stack struct {
+	Children []Widget
+}
+
+func (s Stack) Layout(con Constraints) LayoutContext {
+	lc := make([]LayoutContext, 0, len(s.Children))
+	var size geom.Point[float64]
+	for _, c := range s.Children {
+		clc := c.Layout(con)
+		lc = append(lc, clc)
+		size = geom.Pt(max(size.X, clc.Size.X), max(size.Y, clc.Size.Y))
+	}
+
+	return LayoutContext{
+		Size: size,
+		Render: func(rc RenderContext, into geom.Rect[float64]) {
+			for _, lc := range lc {
+				lc.Render(rc, into)
+			}
+		},
+	}
+}
