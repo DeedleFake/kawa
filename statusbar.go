@@ -4,42 +4,48 @@ import (
 	"image"
 
 	"deedles.dev/kawa/geom"
+	"deedles.dev/kawa/ui"
+	"deedles.dev/wlr"
 )
 
 type StatusBar struct {
-	bounds geom.Rect[float64]
-
-	title   *Label
-	tpad    Widget
-	tsize   geom.Point[float64]
-	tbounds geom.Rect[float64]
+	State *StatusBarState
 }
 
-func NewStatusBar(server *Server) *StatusBar {
-	title := NewLabel(server.renderer, image.White, "")
-	return &StatusBar{
-		title: title,
-		tpad:  NewCenter(NewUniformPadding(WindowBorder, title)), // TODO: Bottom align this?
+func (sb StatusBar) Layout(con ui.Constraints) ui.LayoutContext {
+	title := ui.Align{
+		Edges: wlr.EdgeLeft,
+		Child: ui.Padding{
+			Top:    WindowBorder,
+			Bottom: WindowBorder,
+			Left:   WindowBorder,
+			Right:  WindowBorder,
+			Child: ui.Label{
+				State: &sb.State.title,
+			},
+		},
+	}
+
+	con.MaxSize.Y = StatusBarHeight
+	lctitle := title.Layout(con)
+
+	return ui.LayoutContext{
+		Size: con.MaxSize,
+		Render: func(rc ui.RenderContext, into geom.Rect[float64]) {
+			rc.R.RenderRect(into.ImageRect(), ColorMenuBorder, rc.Out.TransformMatrix())
+			lctitle.Render(rc, into)
+		},
 	}
 }
 
-func (sb *StatusBar) SetTitle(title string) {
-	sb.title.SetText(title)
+type StatusBarState struct {
+	title ui.LabelState
 }
 
-func (sb *StatusBar) Size(min, max geom.Point[float64]) geom.Point[float64] {
-	sb.tsize = sb.tpad.Size(min, max)
-	return geom.Pt(max.X, StatusBarHeight)
+func (s *StatusBarState) Title() string {
+	return s.title.Text()
 }
 
-func (sb *StatusBar) Position(base geom.Rect[float64]) geom.Rect[float64] {
-	sb.tbounds = sb.tpad.Position(geom.Rect[float64]{Max: sb.tsize}.Add(base.Min))
-
-	sb.bounds = base
-	return base
-}
-
-func (sb *StatusBar) Render(server *Server, out *Output) {
-	server.renderer.RenderRect(sb.bounds.ImageRect(), ColorMenuBorder, out.Output.TransformMatrix())
-	sb.tpad.Render(server, out)
+func (s *StatusBarState) SetTitle(r wlr.Renderer, src image.Image, str string) {
+	s.title.SetText(r, src, str)
 }

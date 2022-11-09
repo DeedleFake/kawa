@@ -2,13 +2,14 @@ package main
 
 import (
 	"deedles.dev/kawa/geom"
+	"deedles.dev/kawa/ui"
 	"deedles.dev/wlr"
 )
 
 type Output struct {
 	Output wlr.Output
 	Layers [4][]LayerSurface
-	Child  Widget
+	Child  ui.Widget
 
 	onFrameListener wlr.Listener
 }
@@ -37,14 +38,23 @@ func (server *Server) outputBounds(out *Output) geom.Rect[float64] {
 }
 
 func (server *Server) onNewOutput(wout wlr.Output) {
-	root := Widget(NewViewer())
+	root := ui.Widget(Viewer{Server: server})
 	if server.statusBar == nil {
-		server.statusBar = NewStatusBar(server)
-		root = NewContainer(
-			StackLayout,
-			NewPadding(WindowBorder, 0, 0, 0, root),
-			NewAlign(wlr.EdgeTop|wlr.EdgeLeft|wlr.EdgeRight, server.statusBar),
-		)
+		server.statusBar = new(StatusBarState)
+		root = ui.Stack{
+			Children: []ui.Widget{
+				ui.Padding{
+					Top:   WindowBorder,
+					Child: root,
+				},
+				ui.Align{
+					Edges: wlr.EdgeTop | wlr.EdgeLeft | wlr.EdgeRight,
+					Child: StatusBar{
+						State: server.statusBar,
+					},
+				},
+			},
+		}
 	}
 
 	out := Output{
