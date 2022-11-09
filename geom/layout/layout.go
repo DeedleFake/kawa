@@ -96,7 +96,7 @@ func evenVertically[T constraints.Integer | constraints.Float](tiles []geom.Rect
 // corresponding edges of outer, stretching the rectangle as
 // necessary if opposite edges are specified.
 func Align[T constraints.Integer | constraints.Float](outer, inner geom.Rect[T], edges wlr.Edges) geom.Rect[T] {
-	outer = outer.Align(inner.Center())
+	inner = inner.Align(outer.Center())
 	switch {
 	case edges&wlr.EdgeTop != 0:
 		inner.Min.Y, inner.Max.Y = outer.Min.Y, outer.Min.Y+inner.Dy()
