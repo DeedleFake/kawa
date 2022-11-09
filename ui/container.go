@@ -128,22 +128,22 @@ type LabelState struct {
 	str string
 }
 
-func (ls *LabelState) update(rc RenderContext, src image.Image) {
+func (ls *LabelState) update(r wlr.Renderer, src image.Image) {
 	if ls.str == "" {
 		ls.tex = wlr.Texture{}
 		return
 	}
 
-	ls.tex = CreateTextTexture(rc, src, ls.str)
+	ls.tex = CreateTextTexture(r, src, ls.str)
 }
 
 func (ls *LabelState) Text() string {
 	return ls.str
 }
 
-func (ls *LabelState) SetText(rc RenderContext, src image.Image, str string) {
+func (ls *LabelState) SetText(r wlr.Renderer, src image.Image, str string) {
 	ls.str = str
-	ls.update(rc, src)
+	ls.update(r, src)
 }
 
 type Box struct {

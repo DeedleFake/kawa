@@ -35,7 +35,7 @@ func init() {
 	}
 }
 
-func CreateTextTexture(rc RenderContext, src image.Image, str string) wlr.Texture {
+func CreateTextTexture(r wlr.Renderer, src image.Image, str string) wlr.Texture {
 	fdraw := font.Drawer{
 		Src:  src,
 		Face: gomonoFace,
@@ -52,5 +52,5 @@ func CreateTextTexture(rc RenderContext, src image.Image, str string) wlr.Textur
 	fdraw.Dst = buf
 	fdraw.DrawString(str)
 
-	return wlr.TextureFromImage(rc.R, buf)
+	return wlr.TextureFromImage(r, buf)
 }
