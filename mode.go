@@ -360,7 +360,7 @@ func (m *inputModeResize) Frame(server *Server, out *Output) {
 
 	cc := server.cursorCoords()
 	r := geom.Rect[float64]{Min: m.s, Max: cc}
-	server.renderSelectionBox(out.Output, r)
+	server.renderSelectionBox(out, r)
 }
 
 func (m *inputModeResize) TargetView() *View {
@@ -423,5 +423,5 @@ func (m *inputModeNew) Frame(server *Server, out *Output) {
 		return
 	}
 
-	server.renderSelectionBox(out.Output, m.n)
+	server.renderSelectionBox(out, m.n)
 }

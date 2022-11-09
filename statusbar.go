@@ -3,58 +3,37 @@ package main
 import (
 	"image"
 
-	"deedles.dev/kawa/geom"
-	"deedles.dev/kawa/ui"
+	"deedles.dev/kawa/draw"
 	"deedles.dev/wlr"
 )
 
 type StatusBar struct {
-	State *StatusBarState
+	out   *Output
+	title wlr.Texture
 }
 
-func (sb StatusBar) Layout(con ui.Constraints) ui.LayoutContext {
-	title := ui.Align{
-		Edges: wlr.EdgeLeft,
-		Child: ui.Padding{
-			Top:    WindowBorder,
-			Bottom: WindowBorder,
-			Left:   WindowBorder,
-			Right:  WindowBorder,
-			Child: ui.Label{
-				State: &sb.State.title,
-			},
-		},
-	}
-
-	con.MaxSize.Y = StatusBarHeight
-	lctitle := title.Layout(con)
-
-	return ui.LayoutContext{
-		Size: con.MaxSize,
-		Render: func(rc ui.RenderContext, into geom.Rect[float64]) {
-			rc.R.RenderRect(into.ImageRect(), ColorMenuBorder, rc.Out.TransformMatrix())
-			lctitle.Render(rc, into)
-		},
+func NewStatusBar(out *Output) *StatusBar {
+	return &StatusBar{
+		out: out,
 	}
 }
 
-type StatusBarState struct {
-	output *Output
-	title  ui.LabelState
+func (s *StatusBar) SetTitle(r wlr.Renderer, str string) {
+	if s.title.Valid() {
+		s.title.Destroy()
+		s.title = wlr.Texture{}
+	}
+	if str == "" {
+		return
+	}
+
+	s.title = draw.CreateTextTexture(r, image.White, str)
 }
 
-func (s *StatusBarState) Output() *Output {
-	return s.output
+func (s *StatusBar) Title() wlr.Texture {
+	return s.title
 }
 
-func (s *StatusBarState) SetOutput(out *Output) {
-	s.output = out
-}
-
-func (s *StatusBarState) Title() string {
-	return s.title.Text()
-}
-
-func (s *StatusBarState) SetTitle(r wlr.Renderer, src image.Image, str string) {
-	s.title.SetText(r, src, str)
+func (s *StatusBar) Output() *Output {
+	return s.out
 }

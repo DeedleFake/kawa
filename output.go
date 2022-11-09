@@ -2,14 +2,12 @@ package main
 
 import (
 	"deedles.dev/kawa/geom"
-	"deedles.dev/kawa/ui"
 	"deedles.dev/wlr"
 )
 
 type Output struct {
 	Output wlr.Output
 	Layers [4][]LayerSurface
-	Child  ui.Widget
 
 	onFrameListener wlr.Listener
 }
@@ -37,45 +35,31 @@ func (server *Server) outputBounds(out *Output) geom.Rect[float64] {
 	return geom.Rt(0, 0, float64(out.Output.Width()), float64(out.Output.Height())).Add(geom.Pt(x, y))
 }
 
-func (server *Server) outputViewerBounds(out *Output) geom.Rect[float64] {
+func (server *Server) outputTilingBounds(out *Output) geom.Rect[float64] {
 	b := server.outputBounds(out)
-	if _, ok := out.Child.(Viewer); ok {
-		return b
+	if out == server.statusBar.Output() {
+		return b.Pad(StatusBarHeight, 0, 0, 0)
 	}
-	return b.Pad(StatusBarHeight, 0, 0, 0)
+	return b
+}
+
+func (server *Server) statusBarBounds() geom.Rect[float64] {
+	b := server.outputBounds(server.statusBar.Output())
+	b.Max.Y = b.Min.Y + StatusBarHeight
+	return b
 }
 
 func (server *Server) onNewOutput(wout wlr.Output) {
-	root := ui.Widget(Viewer{Server: server})
-	if server.statusBar == nil {
-		server.statusBar = new(StatusBarState)
-		root = ui.Stack{
-			Children: []ui.Widget{
-				ui.Padding{
-					Top:   WindowBorder,
-					Child: root,
-				},
-				ui.Align{
-					Edges: wlr.EdgeTop | wlr.EdgeLeft | wlr.EdgeRight,
-					Child: StatusBar{
-						State: server.statusBar,
-					},
-				},
-			},
-		}
-	}
-
 	out := Output{
 		Output: wout,
-		Child:  root,
 	}
 	out.onFrameListener = wout.OnFrame(func(wout wlr.Output) {
 		server.onFrame(&out)
 	})
 	server.addOutput(&out)
 
-	if server.statusBar.Output() == nil {
-		server.statusBar.SetOutput(&out)
+	if server.statusBar == nil {
+		server.statusBar = NewStatusBar(&out)
 	}
 
 	wout.InitRender(server.allocator, server.renderer)

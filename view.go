@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"image"
 
 	"deedles.dev/kawa/geom"
 	"deedles.dev/kawa/geom/layout"
 	"deedles.dev/kawa/internal/util"
-	"deedles.dev/kawa/ui"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 )
@@ -527,7 +525,7 @@ func (server *Server) layoutTiles(out *Output) {
 		out = server.outputs[0]
 	}
 
-	or := server.outputViewerBounds(out)
+	or := server.outputTilingBounds(out)
 	tiles := layout.TwoThirdsSidebar(or, len(server.tiled))
 	for i, tile := range tiles {
 		tile = tile.Inset(3 * WindowBorder)
@@ -604,91 +602,5 @@ func (server *Server) updateTitles() {
 	if fv := server.focusedView(); fv != nil {
 		focusedTitle = fv.Title()
 	}
-	server.statusBar.SetTitle(server.renderer, image.White, focusedTitle)
-}
-
-type Viewer struct {
-	Server *Server
-}
-
-func (v Viewer) Layout(con ui.Constraints) ui.LayoutContext {
-	return ui.LayoutContext{
-		Size: con.MaxSize,
-		Render: func(rc ui.RenderContext, into geom.Rect[float64]) {
-			v.renderBG(rc, into)
-			//v.Server.renderLayer(rc.Out, wlr.LayerShellV1LayerBackground)
-			//v.Server.renderLayer(rc.Out, wlr.LayerShellV1LayerBottom)
-			v.renderViews(rc)
-			v.renderNewViews(rc)
-			//v.Server.renderLayer(rc.Out, wlr.LayerShellV1LayerTop)
-			//v.Server.renderLayer(rc.Out, wlr.LayerShellV1LayerOverlay)
-		},
-	}
-}
-
-func (v Viewer) renderBG(rc ui.RenderContext, to geom.Rect[float64]) {
-	if !v.Server.bg.Valid() {
-		return
-	}
-
-	r := geom.RConv[float64](geom.Rt(0, 0, v.Server.bg.Width(), v.Server.bg.Height()))
-
-	m := wlr.ProjectBoxMatrix(
-		v.Server.bgScale(to, r).ImageRect(),
-		wlr.OutputTransformNormal,
-		0,
-		rc.Out.TransformMatrix(),
-	)
-	v.Server.renderer.RenderTextureWithMatrix(v.Server.bg, m, 1)
-}
-
-func (v Viewer) renderViews(rc ui.RenderContext) {
-	for _, view := range v.Server.tiled {
-		if !view.Mapped() {
-			continue
-		}
-
-		v.renderView(rc, view)
-	}
-
-	for _, view := range v.Server.views {
-		if !view.Mapped() {
-			continue
-		}
-
-		v.renderView(rc, view)
-	}
-}
-
-func (v Viewer) renderView(rc ui.RenderContext, view *View) {
-	if !view.CSD {
-		v.renderViewBorder(rc, view)
-	}
-	v.renderViewSurfaces(rc, view)
-}
-
-func (v Viewer) renderViewBorder(rc ui.RenderContext, view *View) {
-	color := ColorInactiveBorder
-	if view.Activated() {
-		color = ColorActiveBorder
-	}
-	if v.Server.targetView() == view {
-		color = ColorSelectionBox
-	}
-
-	r := view.Bounds().Inset(-WindowBorder)
-	v.Server.renderRectBorder(rc.Out, geom.RConv[float64](r), color)
-}
-
-func (v Viewer) renderViewSurfaces(rc ui.RenderContext, view *View) {
-	view.ForEachSurface(func(s wlr.Surface, x, y int) {
-		p := geom.Pt(x, y)
-		v.Server.renderSurface(rc.Out, s, geom.PConv[int](view.Coords).Add(p))
-	})
-}
-
-func (v Viewer) renderNewViews(rc ui.RenderContext) {
-	for _, nv := range v.Server.newViews {
-		v.Server.renderSelectionBox(rc.Out, *nv)
-	}
+	server.statusBar.SetTitle(server.renderer, focusedTitle)
 }

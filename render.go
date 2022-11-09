@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"deedles.dev/kawa/geom"
-	"deedles.dev/kawa/ui"
+	"deedles.dev/kawa/geom/layout"
 	"deedles.dev/wlr"
 )
 
@@ -26,36 +26,106 @@ func (server *Server) onFrame(out *Output) {
 	defer server.renderer.End()
 
 	server.renderer.Clear(ColorBackground)
-
-	b := server.outputBounds(out)
-	lc := out.Child.Layout(ui.Constraints{MaxSize: b.Size()})
-	lc.Render(ui.RenderContext{
-		R:   server.renderer,
-		Out: out.Output,
-	}, geom.Rect[float64]{Max: lc.Size}.Align(b.Center()))
-
+	server.renderBG(out)
+	server.renderLayer(out, wlr.LayerShellV1LayerBackground)
+	server.renderLayer(out, wlr.LayerShellV1LayerBottom)
+	server.renderViews(out)
+	server.renderNewViews(out)
+	server.renderLayer(out, wlr.LayerShellV1LayerTop)
+	server.renderLayer(out, wlr.LayerShellV1LayerOverlay)
+	if server.statusBar.Output() == out {
+		server.renderStatusBar()
+	}
 	server.renderMode(out)
 	server.renderCursor(out)
 }
 
-func (server *Server) renderLayer(out wlr.Output, layer wlr.LayerShellV1Layer) {
+func (server *Server) renderBG(out *Output) {
+	if !server.bg.Valid() {
+		return
+	}
+
+	to := server.outputTilingBounds(out)
+	r := geom.RConv[float64](geom.Rt(0, 0, server.bg.Width(), server.bg.Height()))
+
+	m := wlr.ProjectBoxMatrix(
+		server.bgScale(to, r).ImageRect(),
+		wlr.OutputTransformNormal,
+		0,
+		out.Output.TransformMatrix(),
+	)
+	server.renderer.RenderTextureWithMatrix(server.bg, m, 1)
+}
+
+func (server *Server) renderViews(out *Output) {
+	for _, view := range server.tiled {
+		if !view.Mapped() {
+			continue
+		}
+
+		server.renderView(out, view)
+	}
+
+	for _, view := range server.views {
+		if !view.Mapped() {
+			continue
+		}
+
+		server.renderView(out, view)
+	}
+}
+
+func (server *Server) renderView(out *Output, view *View) {
+	if !view.CSD {
+		server.renderViewBorder(out, view)
+	}
+	server.renderViewSurfaces(out, view)
+}
+
+func (server *Server) renderViewBorder(out *Output, view *View) {
+	color := ColorInactiveBorder
+	if view.Activated() {
+		color = ColorActiveBorder
+	}
+	if server.targetView() == view {
+		color = ColorSelectionBox
+	}
+
+	r := view.Bounds().Inset(-WindowBorder)
+	server.renderRectBorder(out, geom.RConv[float64](r), color)
+}
+
+func (server *Server) renderViewSurfaces(out *Output, view *View) {
+	view.ForEachSurface(func(s wlr.Surface, x, y int) {
+		p := geom.Pt(x, y)
+		server.renderSurface(out, s, geom.PConv[int](view.Coords).Add(p))
+	})
+}
+
+func (server *Server) renderNewViews(out *Output) {
+	for _, nv := range server.newViews {
+		server.renderSelectionBox(out, *nv)
+	}
+}
+
+func (server *Server) renderLayer(out *Output, layer wlr.LayerShellV1Layer) {
 	// TODO
 }
 
-func (server *Server) renderRectBorder(out wlr.Output, r geom.Rect[float64], color color.Color) {
-	server.renderer.RenderRect(geom.Rt(0, 0, WindowBorder, r.Dy()).Add(r.Min).ImageRect(), color, out.TransformMatrix())
-	server.renderer.RenderRect(geom.Rt(0, 0, WindowBorder, r.Dy()).Add(geom.Pt(r.Max.X-WindowBorder, r.Min.Y)).ImageRect(), color, out.TransformMatrix())
-	server.renderer.RenderRect(geom.Rt(0, 0, r.Dx(), WindowBorder).Add(r.Min).ImageRect(), color, out.TransformMatrix())
-	server.renderer.RenderRect(geom.Rt(0, 0, r.Dx(), WindowBorder).Add(geom.Pt(r.Min.X, r.Max.Y-WindowBorder)).ImageRect(), color, out.TransformMatrix())
+func (server *Server) renderRectBorder(out *Output, r geom.Rect[float64], color color.Color) {
+	server.renderer.RenderRect(geom.Rt(0, 0, WindowBorder, r.Dy()).Add(r.Min).ImageRect(), color, out.Output.TransformMatrix())
+	server.renderer.RenderRect(geom.Rt(0, 0, WindowBorder, r.Dy()).Add(geom.Pt(r.Max.X-WindowBorder, r.Min.Y)).ImageRect(), color, out.Output.TransformMatrix())
+	server.renderer.RenderRect(geom.Rt(0, 0, r.Dx(), WindowBorder).Add(r.Min).ImageRect(), color, out.Output.TransformMatrix())
+	server.renderer.RenderRect(geom.Rt(0, 0, r.Dx(), WindowBorder).Add(geom.Pt(r.Min.X, r.Max.Y-WindowBorder)).ImageRect(), color, out.Output.TransformMatrix())
 }
 
-func (server *Server) renderSelectionBox(out wlr.Output, r geom.Rect[float64]) {
+func (server *Server) renderSelectionBox(out *Output, r geom.Rect[float64]) {
 	r = r.Canon()
 	server.renderRectBorder(out, r, ColorSelectionBox)
-	server.renderer.RenderRect(r.Inset(WindowBorder).ImageRect(), ColorSelectionBackground, out.TransformMatrix())
+	server.renderer.RenderRect(r.Inset(WindowBorder).ImageRect(), ColorSelectionBackground, out.Output.TransformMatrix())
 }
 
-func (server *Server) renderSurface(out wlr.Output, s wlr.Surface, p geom.Point[int]) {
+func (server *Server) renderSurface(out *Output, s wlr.Surface, p geom.Point[int]) {
 	texture := s.GetTexture()
 	if !texture.Valid() {
 		wlr.Log(wlr.Error, "invalid texture for surface")
@@ -64,10 +134,26 @@ func (server *Server) renderSurface(out wlr.Output, s wlr.Surface, p geom.Point[
 
 	r := surfaceBounds(s).Add(geom.PConv[int](p))
 	tr := s.Current().Transform().Invert()
-	m := wlr.ProjectBoxMatrix(r.ImageRect(), tr, 0, out.TransformMatrix())
+	m := wlr.ProjectBoxMatrix(r.ImageRect(), tr, 0, out.Output.TransformMatrix())
 
 	server.renderer.RenderTextureWithMatrix(texture, m, 1)
 	s.SendFrameDone(time.Now())
+}
+
+func (server *Server) renderStatusBar() {
+	out := server.statusBar.Output()
+	tm := out.Output.TransformMatrix()
+
+	b := server.statusBarBounds()
+	server.renderer.RenderRect(b.ImageRect(), ColorMenuBorder, tm)
+
+	if title := server.statusBar.Title(); title.Valid() {
+		tb := geom.Rt(0, 0, float64(title.Width()), float64(title.Height()))
+		tb = layout.Align(b, tb, wlr.EdgeLeft)
+		tb = tb.Add(geom.Pt[float64](WindowBorder, 0))
+		m := wlr.ProjectBoxMatrix(tb.ImageRect(), wlr.OutputTransformNormal, 0, tm)
+		server.renderer.RenderTextureWithMatrix(title, m, 1)
+	}
 }
 
 func (server *Server) renderMode(out *Output) {

@@ -59,7 +59,7 @@ type Server struct {
 	mainMenu   *Menu
 	systemMenu *Menu
 
-	statusBar *StatusBarState
+	statusBar *StatusBar
 
 	inputMode InputMode
 
