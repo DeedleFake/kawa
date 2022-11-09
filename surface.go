@@ -42,12 +42,7 @@ func (s *viewSurfaceXDG) PID() int {
 }
 
 func (s *viewSurfaceXDG) HasSurface(surface wlr.Surface) (has bool) {
-	s.ForEachSurface(func(s wlr.Surface, x, y int) {
-		if s == surface {
-			has = true
-		}
-	})
-	return has
+	return s.s.HasSurface(surface)
 }
 
 func (s *viewSurfaceXDG) Close() error {
@@ -122,12 +117,7 @@ func (s *viewSurfaceXWayland) PID() int {
 }
 
 func (s *viewSurfaceXWayland) HasSurface(surface wlr.Surface) (has bool) {
-	s.ForEachSurface(func(s wlr.Surface, x, y int) {
-		if s == surface {
-			has = true
-		}
-	})
-	return has
+	return s.s.Surface().HasSurface(surface)
 }
 
 func (s *viewSurfaceXWayland) Close() error {
