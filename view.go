@@ -595,6 +595,7 @@ func (server *Server) updateTitles() {
 		n.OnSelect = item.OnSelect
 
 		server.mainMenu.Remove(item)
+		item.Release()
 		server.mainMenu.Add(n)
 	}
 
