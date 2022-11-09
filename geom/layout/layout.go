@@ -4,6 +4,7 @@ package layout
 
 import (
 	"deedles.dev/kawa/geom"
+	"deedles.dev/wlr"
 	"golang.org/x/exp/constraints"
 )
 
@@ -89,4 +90,31 @@ func evenVertically[T constraints.Integer | constraints.Float](tiles []geom.Rect
 		tiles[i] = c
 		c = c.Add(size)
 	}
+}
+
+// Align shifts the specified edges of inner to align with the
+// corresponding edges of outer, stretching the rectangle as
+// necessary if opposite edges are specified.
+func Align[T constraints.Integer | constraints.Float](outer, inner geom.Rect[T], edges wlr.Edges) geom.Rect[T] {
+	outer = outer.Align(inner.Center())
+	switch {
+	case edges&wlr.EdgeTop != 0:
+		inner.Min.Y, inner.Max.Y = outer.Min.Y, outer.Min.Y+inner.Dy()
+		if edges&wlr.EdgeBottom != 0 {
+			inner.Max.Y = outer.Max.Y
+		}
+	case edges&wlr.EdgeBottom != 0:
+		inner.Min.Y, inner.Max.Y = outer.Max.Y-inner.Dy(), outer.Max.Y
+	}
+	switch {
+	case edges&wlr.EdgeLeft != 0:
+		inner.Min.X, inner.Max.X = outer.Min.X, outer.Min.X+inner.Dx()
+		if edges&wlr.EdgeRight != 0 {
+			inner.Max.X = outer.Max.X
+		}
+	case edges&wlr.EdgeRight != 0:
+		inner.Min.X, inner.Max.X = outer.Max.X-inner.Dx(), outer.Max.X
+	}
+
+	return inner
 }
