@@ -5,7 +5,7 @@ import (
 	"image"
 
 	"deedles.dev/kawa/geom"
-	"deedles.dev/kawa/geom/tile"
+	"deedles.dev/kawa/geom/layout"
 	"deedles.dev/kawa/internal/util"
 	"deedles.dev/kawa/ui"
 	"deedles.dev/wlr"
@@ -528,7 +528,7 @@ func (server *Server) layoutTiles(out *Output) {
 	}
 
 	or := server.outputViewerBounds(out)
-	tiles := tile.TwoThirdsSidebar(or, len(server.tiled))
+	tiles := layout.TwoThirdsSidebar(or, len(server.tiled))
 	for i, tile := range tiles {
 		tile = tile.Inset(3 * WindowBorder)
 		server.resizeViewTo(out, server.tiled[i], tile)

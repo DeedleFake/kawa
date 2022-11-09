@@ -1,6 +1,6 @@
-// Package tile provides utilities to help with laying out tiles in an
-// area.
-package tile
+// Package layout provides utilities to help with laying out
+// rectangles inside of other rectangles.
+package layout
 
 import (
 	"deedles.dev/kawa/geom"
@@ -35,15 +35,15 @@ func vsplitHalf[T constraints.Integer | constraints.Float](r geom.Rect[T]) (top,
 // right-most and then the bottom-most rectangles in half recusrively.
 // In other words,
 //
-//    RightThenDown(r, 4)
+//	RightThenDown(r, 4)
 //
 // will produce
 //
-//    ------------
-//    |    |     |
-//    |    -------
-//    |    |  |  |
-//    ------------
+//	------------
+//	|    |     |
+//	|    -------
+//	|    |  |  |
+//	------------
 func RightThenDown[T constraints.Integer | constraints.Float](r geom.Rect[T], n int) []geom.Rect[T] {
 	tiles := make([]geom.Rect[T], n)
 	return tiles
