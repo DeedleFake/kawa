@@ -74,6 +74,10 @@ func (server *Server) onNewOutput(wout wlr.Output) {
 	})
 	server.addOutput(&out)
 
+	if server.statusBar.Output() == nil {
+		server.statusBar.SetOutput(&out)
+	}
+
 	wout.InitRender(server.allocator, server.renderer)
 	wout.Commit()
 	wout.CreateGlobal()

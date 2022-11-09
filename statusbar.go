@@ -39,7 +39,16 @@ func (sb StatusBar) Layout(con ui.Constraints) ui.LayoutContext {
 }
 
 type StatusBarState struct {
-	title ui.LabelState
+	output *Output
+	title  ui.LabelState
+}
+
+func (s *StatusBarState) Output() *Output {
+	return s.output
+}
+
+func (s *StatusBarState) SetOutput(out *Output) {
+	s.output = out
 }
 
 func (s *StatusBarState) Title() string {
