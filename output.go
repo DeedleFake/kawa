@@ -37,6 +37,14 @@ func (server *Server) outputBounds(out *Output) geom.Rect[float64] {
 	return geom.Rt(0, 0, float64(out.Output.Width()), float64(out.Output.Height())).Add(geom.Pt(x, y))
 }
 
+func (server *Server) outputViewerBounds(out *Output) geom.Rect[float64] {
+	b := server.outputBounds(out)
+	if _, ok := out.Child.(Viewer); ok {
+		return b
+	}
+	return b.Pad(StatusBarHeight, 0, 0, 0)
+}
+
 func (server *Server) onNewOutput(wout wlr.Output) {
 	root := ui.Widget(Viewer{Server: server})
 	if server.statusBar == nil {
