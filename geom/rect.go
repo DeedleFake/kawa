@@ -72,19 +72,38 @@ func (r Rect[T]) Sub(p Point[T]) Rect[T] {
 }
 
 func (r Rect[T]) Inset(n T) Rect[T] {
-	if r.Dx() < 2*n {
+	return r.Inset2(Pt(n, n))
+}
+
+func (r Rect[T]) Inset2(n Point[T]) Rect[T] {
+	if r.Dx() < 2*n.X {
 		r.Min.X = (r.Min.X + r.Max.X) / 2
 		r.Max.X = r.Min.X
 	} else {
-		r.Min.X += n
-		r.Max.X -= n
+		r.Min.X += n.X
+		r.Max.X -= n.X
 	}
-	if r.Dy() < 2*n {
+	if r.Dy() < 2*n.Y {
 		r.Min.Y = (r.Min.Y + r.Max.Y) / 2
 		r.Max.Y = r.Min.Y
 	} else {
-		r.Min.Y += n
-		r.Max.Y -= n
+		r.Min.Y += n.Y
+		r.Max.Y -= n.Y
+	}
+	return r
+}
+
+func (r Rect[T]) Pad(top, bottom, left, right T) Rect[T] {
+	r = r.Canon()
+	r.Min.X += left
+	r.Max.X -= right
+	r.Min.Y += top
+	r.Max.Y -= bottom
+	if r.Dx() < 0 {
+		r.Max.X = r.Min.X
+	}
+	if r.Dy() < 0 {
+		r.Max.Y = r.Min.Y
 	}
 	return r
 }

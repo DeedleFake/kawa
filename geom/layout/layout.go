@@ -1,9 +1,10 @@
-// Package tile provides utilities to help with laying out tiles in an
-// area.
-package tile
+// Package layout provides utilities to help with laying out
+// rectangles inside of other rectangles.
+package layout
 
 import (
 	"deedles.dev/kawa/geom"
+	"deedles.dev/wlr"
 	"golang.org/x/exp/constraints"
 )
 
@@ -35,15 +36,15 @@ func vsplitHalf[T constraints.Integer | constraints.Float](r geom.Rect[T]) (top,
 // right-most and then the bottom-most rectangles in half recusrively.
 // In other words,
 //
-//    RightThenDown(r, 4)
+//	RightThenDown(r, 4)
 //
 // will produce
 //
-//    ------------
-//    |    |     |
-//    |    -------
-//    |    |  |  |
-//    ------------
+//	------------
+//	|    |     |
+//	|    -------
+//	|    |  |  |
+//	------------
 func RightThenDown[T constraints.Integer | constraints.Float](r geom.Rect[T], n int) []geom.Rect[T] {
 	tiles := make([]geom.Rect[T], n)
 	return tiles
@@ -89,4 +90,31 @@ func evenVertically[T constraints.Integer | constraints.Float](tiles []geom.Rect
 		tiles[i] = c
 		c = c.Add(size)
 	}
+}
+
+// Align shifts the specified edges of inner to align with the
+// corresponding edges of outer, stretching the rectangle as
+// necessary if opposite edges are specified.
+func Align[T constraints.Integer | constraints.Float](outer, inner geom.Rect[T], edges wlr.Edges) geom.Rect[T] {
+	inner = inner.Align(outer.Center())
+	switch {
+	case edges&wlr.EdgeTop != 0:
+		inner.Min.Y, inner.Max.Y = outer.Min.Y, outer.Min.Y+inner.Dy()
+		if edges&wlr.EdgeBottom != 0 {
+			inner.Max.Y = outer.Max.Y
+		}
+	case edges&wlr.EdgeBottom != 0:
+		inner.Min.Y, inner.Max.Y = outer.Max.Y-inner.Dy(), outer.Max.Y
+	}
+	switch {
+	case edges&wlr.EdgeLeft != 0:
+		inner.Min.X, inner.Max.X = outer.Min.X, outer.Min.X+inner.Dx()
+		if edges&wlr.EdgeRight != 0 {
+			inner.Max.X = outer.Max.X
+		}
+	case edges&wlr.EdgeRight != 0:
+		inner.Min.X, inner.Max.X = outer.Max.X-inner.Dx(), outer.Max.X
+	}
+
+	return inner
 }

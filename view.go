@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
-	"image"
 
 	"deedles.dev/kawa/geom"
-	"deedles.dev/kawa/geom/tile"
+	"deedles.dev/kawa/geom/layout"
 	"deedles.dev/kawa/internal/util"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
@@ -526,8 +525,8 @@ func (server *Server) layoutTiles(out *Output) {
 		out = server.outputs[0]
 	}
 
-	or := server.outputBounds(out)
-	tiles := tile.TwoThirdsSidebar(or, len(server.tiled))
+	or := server.outputTilingBounds(out)
+	tiles := layout.TwoThirdsSidebar(or, len(server.tiled))
 	for i, tile := range tiles {
 		tile = tile.Inset(3 * WindowBorder)
 		server.resizeViewTo(out, server.tiled[i], tile)
@@ -596,12 +595,13 @@ func (server *Server) updateTitles() {
 		n.OnSelect = item.OnSelect
 
 		server.mainMenu.Remove(item)
+		item.Release()
 		server.mainMenu.Add(n)
 	}
 
-	var focusedTitle wlr.Texture
-	if fv := server.focusedView(); (fv != nil) && (fv.Title() != "") {
-		focusedTitle = CreateTextTexture(server.renderer, image.White, fv.Title())
+	var focusedTitle string
+	if fv := server.focusedView(); fv != nil {
+		focusedTitle = fv.Title()
 	}
-	server.statusBar.SetTitle(focusedTitle)
+	server.statusBar.SetTitle(server.renderer, focusedTitle)
 }

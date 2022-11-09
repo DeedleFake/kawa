@@ -12,3 +12,12 @@ func Last[T any](s ...[]T) (v T, ok bool) {
 	}
 	return v, false
 }
+
+// Match returns a function that returns true if passed v. T must be
+// a comparable type or the returned function will panic. T may be an
+// interface type.
+func Match[T any](v T) func(T) bool {
+	return func(v2 T) bool {
+		return any(v) == any(v2)
+	}
+}

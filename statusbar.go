@@ -1,33 +1,39 @@
 package main
 
 import (
-	"deedles.dev/kawa/geom"
+	"image"
+
+	"deedles.dev/kawa/draw"
 	"deedles.dev/wlr"
 )
 
 type StatusBar struct {
-	b     geom.Rect[float64]
+	out   *Output
 	title wlr.Texture
 }
 
-func NewStatusBar(server *Server, out *Output) *StatusBar {
-	var b StatusBar
-	b.MoveToOutput(server, out)
-	return &b
-}
-
-func (b *StatusBar) Bounds() geom.Rect[float64] {
-	return b.b
-}
-
-func (b *StatusBar) MoveToOutput(server *Server, out *Output) {
-	ob := server.outputBounds(out)
-	b.b = geom.Rt(ob.Min.X, ob.Min.Y-StatusBarHeight, ob.Max.X, ob.Min.Y)
-}
-
-func (b *StatusBar) SetTitle(title wlr.Texture) {
-	if b.title.Valid() {
-		b.title.Destroy()
+func NewStatusBar(out *Output) *StatusBar {
+	return &StatusBar{
+		out: out,
 	}
-	b.title = title
+}
+
+func (s *StatusBar) SetTitle(r wlr.Renderer, str string) {
+	if s.title.Valid() {
+		s.title.Destroy()
+		s.title = wlr.Texture{}
+	}
+	if str == "" {
+		return
+	}
+
+	s.title = draw.CreateTextTexture(r, image.White, str)
+}
+
+func (s *StatusBar) Title() wlr.Texture {
+	return s.title
+}
+
+func (s *StatusBar) Output() *Output {
+	return s.out
 }

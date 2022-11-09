@@ -46,16 +46,14 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevic
 	cc := server.cursorCoords()
 
 	out := server.outputAt(cc)
-	if out != nil {
-		if cc.In(server.statusBar.Bounds()) {
-			switch b {
-			case wlr.BtnLeft:
-				server.startMenu(server.systemMenu, b)
-			case wlr.BtnRight:
-				server.startMenu(server.mainMenu, b)
-			}
-			return
+	if (out == server.statusBar.Output()) && (cc.Y <= StatusBarHeight) {
+		switch b {
+		case wlr.BtnLeft:
+			server.startMenu(server.systemMenu, b)
+		case wlr.BtnRight:
+			server.startMenu(server.mainMenu, b)
 		}
+		return
 	}
 
 	view, edges, surface, _ := server.viewAt(nil, cc)
@@ -123,14 +121,14 @@ func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 
 	to := cc.Sub(m.off)
 
-	out := server.outputAt(cc)
-	if out != nil {
-		sbb := server.statusBar.Bounds()
-		sbb.Max.Y += WindowBorder
-		if cc.In(sbb) {
-			to.Y = m.view.Coords.Y
-		}
-	}
+	//out := server.outputAt(cc)
+	//if out != nil {
+	//	sbb := server.statusBar.Bounds()
+	//	sbb.Max.Y += WindowBorder
+	//	if cc.In(sbb) {
+	//		to.Y = m.view.Coords.Y
+	//	}
+	//}
 
 	server.moveViewTo(nil, m.view, to)
 }
@@ -271,7 +269,7 @@ func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice
 	m.m.Select(m.sel)
 }
 
-func (m *inputModeMenu) Frame(server *Server, out *Output, t time.Time) {
+func (m *inputModeMenu) Frame(server *Server, out *Output) {
 	server.renderMenu(out, m.m, m.p, m.sel)
 }
 
@@ -355,14 +353,14 @@ func (m *inputModeResize) CursorButtonReleased(server *Server, dev wlr.InputDevi
 	server.startNormal()
 }
 
-func (m *inputModeResize) Frame(server *Server, out *Output, t time.Time) {
+func (m *inputModeResize) Frame(server *Server, out *Output) {
 	if !m.resizing {
 		return
 	}
 
 	cc := server.cursorCoords()
 	r := geom.Rect[float64]{Min: m.s, Max: cc}
-	server.renderSelectionBox(out, r, t)
+	server.renderSelectionBox(out, r)
 }
 
 func (m *inputModeResize) TargetView() *View {
@@ -420,10 +418,10 @@ func (m *inputModeNew) CursorButtonReleased(server *Server, dev wlr.InputDevice,
 	server.startNormal()
 }
 
-func (m *inputModeNew) Frame(server *Server, out *Output, t time.Time) {
+func (m *inputModeNew) Frame(server *Server, out *Output) {
 	if !m.dragging || m.started {
 		return
 	}
 
-	server.renderSelectionBox(out, m.n, t)
+	server.renderSelectionBox(out, m.n)
 }

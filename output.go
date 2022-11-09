@@ -32,12 +32,24 @@ func (server *Server) outputAt(p geom.Point[float64]) *Output {
 
 func (server *Server) outputBounds(out *Output) geom.Rect[float64] {
 	x, y := server.outputLayout.OutputCoords(out.Output)
-	return geom.Rt(0, StatusBarHeight, float64(out.Output.Width()), float64(out.Output.Height())).Add(geom.Pt(x, y))
+	return geom.Rt(0, 0, float64(out.Output.Width()), float64(out.Output.Height())).Add(geom.Pt(x, y))
+}
+
+func (server *Server) outputTilingBounds(out *Output) geom.Rect[float64] {
+	b := server.outputBounds(out)
+	if out == server.statusBar.Output() {
+		return b.Pad(StatusBarHeight, 0, 0, 0)
+	}
+	return b
+}
+
+func (server *Server) statusBarBounds() geom.Rect[float64] {
+	b := server.outputBounds(server.statusBar.Output())
+	b.Max.Y = b.Min.Y + StatusBarHeight
+	return b
 }
 
 func (server *Server) onNewOutput(wout wlr.Output) {
-	wout.InitRender(server.allocator, server.renderer)
-
 	out := Output{
 		Output: wout,
 	}
@@ -46,6 +58,11 @@ func (server *Server) onNewOutput(wout wlr.Output) {
 	})
 	server.addOutput(&out)
 
+	if server.statusBar == nil {
+		server.statusBar = NewStatusBar(&out)
+	}
+
+	wout.InitRender(server.allocator, server.renderer)
 	wout.Commit()
 	wout.CreateGlobal()
 }
@@ -63,10 +80,6 @@ func (server *Server) addOutput(out *Output) {
 	}
 
 	server.configureOutput(out, nil)
-
-	if server.statusBar.Bounds() == (geom.Rect[float64]{}) {
-		server.statusBar.MoveToOutput(server, out)
-	}
 }
 
 func (server *Server) configureOutput(out *Output, config *OutputConfig) {
