@@ -45,8 +45,12 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
 	cc := server.cursorCoords()
 
-	out := server.outputAt(cc)
-	if (out == server.statusBar.Output()) && (cc.Y <= StatusBarHeight) {
+	forceMenu := server.seat.GetKeyboard().GetModifiers()&wlr.KeyboardModifierLogo != 0
+	if !forceMenu {
+		out := server.outputAt(cc)
+		forceMenu = (out == server.statusBar.Output()) && (cc.Y <= StatusBarHeight)
+	}
+	if forceMenu {
 		switch b {
 		case wlr.BtnLeft:
 			server.startMenu(server.systemMenu, b)
