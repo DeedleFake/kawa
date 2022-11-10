@@ -5,26 +5,27 @@ import (
 
 	"deedles.dev/kawa/draw"
 	"deedles.dev/kawa/geom"
+	"deedles.dev/kawa/geom/layout"
 	"deedles.dev/wlr"
-	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
 type Menu struct {
-	items    []*MenuItem
-	itemInfo map[*MenuItem]geom.Rect[float64]
-	bounds   geom.Rect[float64]
-	prev     *MenuItem
+	items     []*MenuItem
+	itemSizes []geom.Point[float64]
+	bounds    []geom.Rect[float64]
+	prev      *MenuItem
 }
 
 func NewMenu(items ...*MenuItem) *Menu {
 	m := Menu{
-		items:    make([]*MenuItem, 0, len(items)),
-		itemInfo: make(map[*MenuItem]geom.Rect[float64], len(items)),
+		items:     make([]*MenuItem, 0, len(items)),
+		itemSizes: make([]geom.Point[float64], 0, len(items)),
 	}
 	for _, item := range items {
-		m.Add(item)
+		m.items = append(m.items, item)
 	}
+	m.updateBounds()
 	return &m
 }
 
@@ -33,25 +34,14 @@ func (m *Menu) Len() int {
 }
 
 func (m *Menu) updateBounds() {
-	maps.Clear(m.itemInfo)
-
-	bounds := make([]geom.Rect[float64], 0, len(m.items))
-	r := geom.Rect[float64]{}
+	m.itemSizes = m.itemSizes[:0]
 	for _, item := range m.items {
-		tb := geom.Rt(0, 0, float64(item.active.Width())+WindowBorder, float64(item.active.Height())+WindowBorder)
-		if tb.Dx() < r.Dx() {
-			tb.Max.X = r.Max.X
-		}
-		tb = tb.Add(geom.Pt(0, r.Max.Y))
-		bounds = append(bounds, tb)
-		r = r.Union(tb)
+		m.itemSizes = append(m.itemSizes, geom.Pt(
+			float64(item.active.Width()+WindowBorder),
+			float64(item.active.Height()+WindowBorder),
+		))
 	}
-	m.bounds = r
-
-	for i, b := range bounds {
-		item := m.items[i]
-		m.itemInfo[item] = geom.Rt(0, 0, r.Dx(), b.Dy()).Add(b.Min)
-	}
+	m.bounds = layout.VerticalStack(geom.Point[float64]{}, m.itemSizes)
 }
 
 func (m *Menu) Item(i int) *MenuItem {
@@ -59,12 +49,15 @@ func (m *Menu) Item(i int) *MenuItem {
 }
 
 func (m *Menu) Bounds() (b geom.Rect[float64]) {
-	return m.bounds
+	return geom.Rect[float64]{
+		Min: m.bounds[0].Min,
+		Max: m.bounds[len(m.bounds)-1].Max,
+	}
 }
 
 func (m *Menu) Select(item *MenuItem) {
-	_, ok := m.itemInfo[item]
-	if !ok {
+	i := slices.Index(m.items, item)
+	if i < 0 {
 		return
 	}
 
@@ -73,24 +66,28 @@ func (m *Menu) Select(item *MenuItem) {
 }
 
 func (m *Menu) Prev() *MenuItem {
-	_, ok := m.itemInfo[m.prev]
-	if !ok {
+	i := slices.Index(m.items, m.prev)
+	if i < 0 {
 		return nil
 	}
 	return m.prev
 }
 
 func (m *Menu) ItemAt(p geom.Point[float64]) *MenuItem {
-	for item, ib := range m.itemInfo {
+	for i, ib := range m.bounds {
 		if p.In(ib) {
-			return item
+			return m.items[i]
 		}
 	}
 	return nil
 }
 
 func (m *Menu) ItemBounds(item *MenuItem) geom.Rect[float64] {
-	return m.itemInfo[item]
+	i := slices.Index(m.items, item)
+	if i < 0 {
+		return geom.Rect[float64]{}
+	}
+	return m.bounds[i]
 }
 
 func (m *Menu) Add(item *MenuItem) {
