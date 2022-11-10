@@ -92,6 +92,28 @@ func evenVertically[T constraints.Integer | constraints.Float](tiles []geom.Rect
 	}
 }
 
+// VerticalStack returns len(sizes) rectangles stacked vertically. Each
+// rectangles height can differ but they are all the same width, specifically
+// the width of the widest provided size. The top-left corner of the first
+// rectangle is positioned at start.
+func VerticalStack[T constraints.Integer | constraints.Float](start geom.Point[T], sizes []geom.Point[T]) []geom.Rect[T] {
+	rects := make([]geom.Rect[T], 0, len(sizes))
+
+	prev := geom.Rt(start.X, start.Y, start.X, start.Y)
+	for _, size := range sizes {
+		if size.X > prev.Dx() {
+			prev.Max.X = prev.Min.X + size.X
+		}
+	}
+
+	for i := range sizes {
+		prev = geom.Rt(prev.Min.X, prev.Max.Y, prev.Max.X, prev.Max.Y+sizes[i].Y)
+		rects = append(rects, prev)
+	}
+
+	return rects
+}
+
 // Align shifts the specified edges of inner to align with the
 // corresponding edges of outer, stretching the rectangle as
 // necessary if opposite edges are specified.
