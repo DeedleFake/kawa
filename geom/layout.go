@@ -43,6 +43,7 @@ func vsplitHalf[T Scalar](r Rect[T]) (top, bottom Rect[T]) {
 //	------------
 func RightThenDown[T Scalar](r Rect[T], n int) []Rect[T] {
 	tiles := make([]Rect[T], n)
+	rightThenDown(tiles, r)
 	return tiles
 }
 
