@@ -87,6 +87,49 @@ func TileEvenVertically[T Scalar](tiles []Rect[T], r Rect[T]) {
 	}
 }
 
+// TileEvenHorizontally arranges and resizes the elements of tiles so
+// that the result are a series of rectangles that comprise an even,
+// horizontal splitting of r. In other words,
+//
+//	tiles := make([]geom.Rect[float64], 3)
+//	TileEvenHorizontally(tiles, r)
+//
+// will produce
+//
+// ----------
+// |  |  |  |
+// ----------
+func TileEvenHorizontally[T Scalar](tiles []Rect[T], r Rect[T]) {
+	size := Pt(r.Dx()/T(len(tiles)), 0)
+	c, _ := hsplit(r, size.X)
+	for i := range tiles {
+		tiles[i] = c
+		c = c.Add(size)
+	}
+}
+
+// TileRows arranges and resizes the elements of tiles to produce a
+// series of rows and columns the union of which reproduces r. The
+// final row of the table is split evenly into at most cols columns.
+// When that number is exceeded, a new row is added below it instead.
+func TileRows[T Scalar](tiles []Rect[T], r Rect[T], cols int) {
+	rows := make([]Rect[T], len(tiles)/cols, len(tiles)/cols+1)
+	if len(tiles)%cols != 0 {
+		rows = rows[:len(tiles)/cols+1]
+	}
+	TileEvenVertically(rows, r)
+
+	for i, row := range rows {
+		start := i * cols
+		end := (i + 1) * cols
+		if end > len(tiles) {
+			end = len(tiles)
+		}
+
+		TileEvenHorizontally(tiles[start:end], row)
+	}
+}
+
 // ArrangeVerticalStack arranges the subsequent rectangles of rects
 // underneath the first vertically, expanding all for which it is
 // necessary so that they are all the same width including the first.
