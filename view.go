@@ -525,7 +525,8 @@ func (server *Server) layoutTiles(out *Output) {
 	}
 
 	or := server.outputTilingBounds(out)
-	tiles := geom.TwoThirdsSidebar(or, len(server.tiled))
+	tiles := make([]geom.Rect[float64], len(server.tiled)) // TODO: Don't allocate this every time.
+	geom.TileTwoThirdsSidebar(tiles, or)
 	for i, tile := range tiles {
 		tile = tile.Inset(3 * WindowBorder)
 		server.resizeViewTo(out, server.tiled[i], tile)
