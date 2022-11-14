@@ -27,12 +27,13 @@ func vsplitHalf[T Scalar](r Rect[T]) (top, bottom Rect[T]) {
 	return vsplit(r, r.Dy()/2)
 }
 
-// RightThenDown produces a series of n rectangles the union of which
-// recomposes r. The rectangles are produced by splitting the
-// right-most and then the bottom-most rectangles in half recusrively.
-// In other words,
+// TileRightThenDown arranges and resizes the elements of tiles in
+// order to split r into a series of rectangles that recursively split
+// each section halfway to the right and then downwards. In other
+// words,
 //
-//	RightThenDown(r, 4)
+//	tiles := make([]geom.Rect[float64], 4)
+//	TileRightThenDown(tiles, r)
 //
 // will produce
 //
@@ -41,13 +42,7 @@ func vsplitHalf[T Scalar](r Rect[T]) (top, bottom Rect[T]) {
 //	|    -------
 //	|    |  |  |
 //	------------
-func RightThenDown[T Scalar](r Rect[T], n int) []Rect[T] {
-	tiles := make([]Rect[T], n)
-	rightThenDown(tiles, r)
-	return tiles
-}
-
-func rightThenDown[T Scalar](tiles []Rect[T], r Rect[T]) {
+func TileRightThenDown[T Scalar](tiles []Rect[T], r Rect[T]) {
 	tiles[0] = r
 
 	split, next := hsplitHalf[T], vsplitHalf[T]
@@ -57,30 +52,33 @@ func rightThenDown[T Scalar](tiles []Rect[T], r Rect[T]) {
 	}
 }
 
-// TwoThirdsSidebar produces a layout where the first rectangle is
+// TileTwoThirdsSidebar arranges and resizes the elements of tiles so
+// that the result are a series of rectangles where the first is
 // two-thirds the width of r and the rest are arranged vertically in
 // an even split in the remaining space.
-func TwoThirdsSidebar[T Scalar](r Rect[T], n int) []Rect[T] {
-	tiles := make([]Rect[T], n)
-	twoThirdsSidebar(tiles, r)
-	return tiles
-}
-
-func twoThirdsSidebar[T Scalar](tiles []Rect[T], r Rect[T]) {
+func TileTwoThirdsSidebar[T Scalar](tiles []Rect[T], r Rect[T]) {
 	var rem Rect[T]
 	tiles[0], rem = hsplit(r, 2*r.Dx()/3)
-	evenVertically(tiles[1:], rem)
+	TileEvenVertically(tiles[1:], rem)
 }
 
-// EvenVertically splits r into n rectangles arranged vertically each
-// with the full width of r.
-func EvenVertically[T Scalar](r Rect[T], n int) []Rect[T] {
-	tiles := make([]Rect[T], n)
-	evenVertically(tiles, r)
-	return tiles
-}
-
-func evenVertically[T Scalar](tiles []Rect[T], r Rect[T]) {
+// TileEvenVertically arranges and resizes the elements of tiles so
+// that the result are a series of rectangles that comprise an even,
+// vertical splitting of r. In other words,
+//
+//	tiles := make([]geom.Rect[float64], 3)
+//	TileEvenVertically(tiles, r)
+//
+// will produce
+//
+//	----------
+//	|        |
+//	----------
+//	|        |
+//	----------
+//	|        |
+//	----------
+func TileEvenVertically[T Scalar](tiles []Rect[T], r Rect[T]) {
 	size := Pt(0, r.Dy()/T(len(tiles)))
 	c, _ := vsplit(r, size.Y)
 	for i := range tiles {
@@ -89,26 +87,31 @@ func evenVertically[T Scalar](tiles []Rect[T], r Rect[T]) {
 	}
 }
 
-// VerticalStack returns len(sizes) rectangles stacked vertically. Each
-// rectangles height can differ but they are all the same width, specifically
-// the width of the widest provided size. The top-left corner of the first
-// rectangle is positioned at start.
-func VerticalStack[T Scalar](start Point[T], sizes []Point[T]) []Rect[T] {
-	rects := make([]Rect[T], 0, len(sizes))
+// ArrangeVerticalStack arranges the subsequent rectangles of rects
+// underneath the first vertically, expanding all for which it is
+// necessary so that they are all the same width including the first.
+func ArrangeVerticalStack[T Scalar](rects []Rect[T]) {
+	if len(rects) <= 1 {
+		return
+	}
 
-	prev := Rt(start.X, start.Y, start.X, start.Y)
-	for _, size := range sizes {
-		if size.X > prev.Dx() {
-			prev.Max.X = prev.Min.X + size.X
+	prev := rects[0].Canon()
+	for _, rect := range rects {
+		if rect.Dx() > prev.Dx() {
+			prev.Max.X = prev.Min.X + rect.Dx()
 		}
 	}
+	rects[0] = prev
 
-	for i := range sizes {
-		prev = Rt(prev.Min.X, prev.Max.Y, prev.Max.X, prev.Max.Y+sizes[i].Y)
-		rects = append(rects, prev)
+	for i := 1; i < len(rects); i++ {
+		rects[i] = Rt(
+			prev.Min.X,
+			prev.Max.Y,
+			prev.Max.X,
+			prev.Max.Y+rects[i].Dy(),
+		)
+		prev = rects[i]
 	}
-
-	return rects
 }
 
 // Align shifts the specified edges of inner to align with the
