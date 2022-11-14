@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"deedles.dev/kawa/geom"
-	"deedles.dev/kawa/geom/layout"
 	"deedles.dev/kawa/internal/util"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
@@ -348,7 +347,7 @@ func (server *Server) addView(view *View) {
 func (server *Server) centerViewOnOutput(out *Output, view *View) {
 	ob := server.outputBounds(out)
 	vb := view.Bounds()
-	p := vb.Align(ob.Center())
+	p := vb.CenterAt(ob.Center())
 
 	server.moveViewTo(out, view, p.Min)
 }
@@ -526,7 +525,7 @@ func (server *Server) layoutTiles(out *Output) {
 	}
 
 	or := server.outputTilingBounds(out)
-	tiles := layout.TwoThirdsSidebar(or, len(server.tiled))
+	tiles := geom.TwoThirdsSidebar(or, len(server.tiled))
 	for i, tile := range tiles {
 		tile = tile.Inset(3 * WindowBorder)
 		server.resizeViewTo(out, server.tiled[i], tile)

@@ -1,33 +1,29 @@
-// Package layout provides utilities to help with laying out
-// rectangles inside of other rectangles.
-package layout
+package geom
 
 import (
-	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
-	"golang.org/x/exp/constraints"
 )
 
 // hsplit splits a rectangle into two rectangles arranged
 // horizontally.
-func hsplit[T constraints.Integer | constraints.Float](r geom.Rect[T], w T) (left, right geom.Rect[T]) {
-	left = r.Resize(geom.Pt(w, r.Dy()))
-	right = r.Resize(geom.Pt(r.Dx()-w, r.Dy())).Add(geom.Pt(w, 0))
+func hsplit[T Scalar](r Rect[T], w T) (left, right Rect[T]) {
+	left = r.Resize(Pt(w, r.Dy()))
+	right = r.Resize(Pt(r.Dx()-w, r.Dy())).Add(Pt(w, 0))
 	return left, right
 }
 
-func hsplitHalf[T constraints.Integer | constraints.Float](r geom.Rect[T]) (left, right geom.Rect[T]) {
+func hsplitHalf[T Scalar](r Rect[T]) (left, right Rect[T]) {
 	return hsplit(r, r.Dx()/2)
 }
 
 // vsplit splits a rectangle into two rectangles arranged vertically.
-func vsplit[T constraints.Integer | constraints.Float](r geom.Rect[T], h T) (top, bottom geom.Rect[T]) {
-	top = r.Resize(geom.Pt(r.Dx(), h))
-	bottom = r.Resize(geom.Pt(r.Dx(), r.Dy()-h)).Add(geom.Pt(0, h))
+func vsplit[T Scalar](r Rect[T], h T) (top, bottom Rect[T]) {
+	top = r.Resize(Pt(r.Dx(), h))
+	bottom = r.Resize(Pt(r.Dx(), r.Dy()-h)).Add(Pt(0, h))
 	return top, bottom
 }
 
-func vsplitHalf[T constraints.Integer | constraints.Float](r geom.Rect[T]) (top, bottom geom.Rect[T]) {
+func vsplitHalf[T Scalar](r Rect[T]) (top, bottom Rect[T]) {
 	return vsplit(r, r.Dy()/2)
 }
 
@@ -45,12 +41,12 @@ func vsplitHalf[T constraints.Integer | constraints.Float](r geom.Rect[T]) (top,
 //	|    -------
 //	|    |  |  |
 //	------------
-func RightThenDown[T constraints.Integer | constraints.Float](r geom.Rect[T], n int) []geom.Rect[T] {
-	tiles := make([]geom.Rect[T], n)
+func RightThenDown[T Scalar](r Rect[T], n int) []Rect[T] {
+	tiles := make([]Rect[T], n)
 	return tiles
 }
 
-func rightThenDown[T constraints.Integer | constraints.Float](tiles []geom.Rect[T], r geom.Rect[T]) {
+func rightThenDown[T Scalar](tiles []Rect[T], r Rect[T]) {
 	tiles[0] = r
 
 	split, next := hsplitHalf[T], vsplitHalf[T]
@@ -63,28 +59,28 @@ func rightThenDown[T constraints.Integer | constraints.Float](tiles []geom.Rect[
 // TwoThirdsSidebar produces a layout where the first rectangle is
 // two-thirds the width of r and the rest are arranged vertically in
 // an even split in the remaining space.
-func TwoThirdsSidebar[T constraints.Integer | constraints.Float](r geom.Rect[T], n int) []geom.Rect[T] {
-	tiles := make([]geom.Rect[T], n)
+func TwoThirdsSidebar[T Scalar](r Rect[T], n int) []Rect[T] {
+	tiles := make([]Rect[T], n)
 	twoThirdsSidebar(tiles, r)
 	return tiles
 }
 
-func twoThirdsSidebar[T constraints.Integer | constraints.Float](tiles []geom.Rect[T], r geom.Rect[T]) {
-	var rem geom.Rect[T]
+func twoThirdsSidebar[T Scalar](tiles []Rect[T], r Rect[T]) {
+	var rem Rect[T]
 	tiles[0], rem = hsplit(r, 2*r.Dx()/3)
 	evenVertically(tiles[1:], rem)
 }
 
 // EvenVertically splits r into n rectangles arranged vertically each
 // with the full width of r.
-func EvenVertically[T constraints.Integer | constraints.Float](r geom.Rect[T], n int) []geom.Rect[T] {
-	tiles := make([]geom.Rect[T], n)
+func EvenVertically[T Scalar](r Rect[T], n int) []Rect[T] {
+	tiles := make([]Rect[T], n)
 	evenVertically(tiles, r)
 	return tiles
 }
 
-func evenVertically[T constraints.Integer | constraints.Float](tiles []geom.Rect[T], r geom.Rect[T]) {
-	size := geom.Pt(0, r.Dy()/T(len(tiles)))
+func evenVertically[T Scalar](tiles []Rect[T], r Rect[T]) {
+	size := Pt(0, r.Dy()/T(len(tiles)))
 	c, _ := vsplit(r, size.Y)
 	for i := range tiles {
 		tiles[i] = c
@@ -96,10 +92,10 @@ func evenVertically[T constraints.Integer | constraints.Float](tiles []geom.Rect
 // rectangles height can differ but they are all the same width, specifically
 // the width of the widest provided size. The top-left corner of the first
 // rectangle is positioned at start.
-func VerticalStack[T constraints.Integer | constraints.Float](start geom.Point[T], sizes []geom.Point[T]) []geom.Rect[T] {
-	rects := make([]geom.Rect[T], 0, len(sizes))
+func VerticalStack[T Scalar](start Point[T], sizes []Point[T]) []Rect[T] {
+	rects := make([]Rect[T], 0, len(sizes))
 
-	prev := geom.Rt(start.X, start.Y, start.X, start.Y)
+	prev := Rt(start.X, start.Y, start.X, start.Y)
 	for _, size := range sizes {
 		if size.X > prev.Dx() {
 			prev.Max.X = prev.Min.X + size.X
@@ -107,7 +103,7 @@ func VerticalStack[T constraints.Integer | constraints.Float](start geom.Point[T
 	}
 
 	for i := range sizes {
-		prev = geom.Rt(prev.Min.X, prev.Max.Y, prev.Max.X, prev.Max.Y+sizes[i].Y)
+		prev = Rt(prev.Min.X, prev.Max.Y, prev.Max.X, prev.Max.Y+sizes[i].Y)
 		rects = append(rects, prev)
 	}
 
@@ -117,8 +113,8 @@ func VerticalStack[T constraints.Integer | constraints.Float](start geom.Point[T
 // Align shifts the specified edges of inner to align with the
 // corresponding edges of outer, stretching the rectangle as
 // necessary if opposite edges are specified.
-func Align[T constraints.Integer | constraints.Float](outer, inner geom.Rect[T], edges wlr.Edges) geom.Rect[T] {
-	inner = inner.Align(outer.Center())
+func Align[T Scalar](outer, inner Rect[T], edges wlr.Edges) Rect[T] {
+	inner = inner.CenterAt(outer.Center())
 	switch {
 	case edges&wlr.EdgeTop != 0:
 		inner.Min.Y, inner.Max.Y = outer.Min.Y, outer.Min.Y+inner.Dy()

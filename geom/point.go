@@ -6,11 +6,11 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-type Point[T constraints.Integer | constraints.Float] struct {
+type Point[T Scalar] struct {
 	X, Y T
 }
 
-func Pt[T constraints.Integer | constraints.Float](X, Y T) Point[T] {
+func Pt[T Scalar](X, Y T) Point[T] {
 	return Point[T]{X, Y}
 }
 
@@ -18,7 +18,7 @@ func FromImagePoint(p image.Point) Point[int] {
 	return Pt(p.X, p.Y)
 }
 
-func PConv[Out constraints.Integer | constraints.Float, In constraints.Integer | constraints.Float](p Point[In]) Point[Out] {
+func PConv[Out Scalar, In Scalar](p Point[In]) Point[Out] {
 	return Pt(Out(p.X), Out(p.Y))
 }
 
@@ -65,7 +65,7 @@ func (p Point[T]) ImagePoint() image.Point {
 	return image.Pt(int(p.X), int(p.Y))
 }
 
-func Min[T constraints.Integer | constraints.Float](points ...Point[T]) Point[T] {
+func Min[T Scalar](points ...Point[T]) Point[T] {
 	r := points[0]
 	for _, p := range points[1:] {
 		if p.X < r.X {
@@ -78,7 +78,7 @@ func Min[T constraints.Integer | constraints.Float](points ...Point[T]) Point[T]
 	return r
 }
 
-func Max[T constraints.Integer | constraints.Float](points ...Point[T]) Point[T] {
+func Max[T Scalar](points ...Point[T]) Point[T] {
 	r := points[0]
 	for _, p := range points[1:] {
 		if p.X > r.X {

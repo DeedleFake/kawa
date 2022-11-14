@@ -37,7 +37,7 @@ func scaleStretch(out, r geom.Rect[float64]) geom.Rect[float64] {
 }
 
 func scaleCenter(out, r geom.Rect[float64]) geom.Rect[float64] {
-	return r.Align(out.Center())
+	return r.CenterAt(out.Center())
 }
 
 func scaleFit(out, r geom.Rect[float64]) geom.Rect[float64] {

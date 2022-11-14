@@ -2,22 +2,20 @@ package geom
 
 import (
 	"image"
-
-	"golang.org/x/exp/constraints"
 )
 
 // A Rect contains the points with Min.X <= X < Max.X, Min.Y <= Y < Max.Y. It
 // is well-formed if Min.X <= Max.X and likewise for Y. Points are always
 // well-formed. A rectangle's methods always return well-formed outputs for
 // well-formed inputs.
-type Rect[T constraints.Integer | constraints.Float] struct {
+type Rect[T Scalar] struct {
 	Min, Max Point[T]
 }
 
 // Rt is shorthand for Rect{Pt(x0, y0), Pt(x1, y1)}. The returned
 // rectangle has minimum and maximum coordinates swapped if necessary
 // so that it is well-formed.
-func Rt[T constraints.Integer | constraints.Float](x0, y0, x1, y1 T) Rect[T] {
+func Rt[T Scalar](x0, y0, x1, y1 T) Rect[T] {
 	if x0 > x1 {
 		x0, x1 = x1, x0
 	}
@@ -35,7 +33,7 @@ func FromImageRect(r image.Rectangle) Rect[int] {
 }
 
 // RConv converts a Rect[In] to a Rect[Out] with possible loss of precision.
-func RConv[Out constraints.Integer | constraints.Float, In constraints.Integer | constraints.Float](r Rect[In]) Rect[Out] {
+func RConv[Out Scalar, In Scalar](r Rect[In]) Rect[Out] {
 	return Rect[Out]{
 		Min: PConv[Out](r.Min),
 		Max: PConv[Out](r.Max),
@@ -186,9 +184,9 @@ func (r Rect[T]) Center() Point[T] {
 	return r.Min.Add(r.Max).Div(2)
 }
 
-// Align returns a new rectangle with the same dimensions as r but
+// CenterAt returns a new rectangle with the same dimensions as r but
 // with a center point at p.
-func (r Rect[T]) Align(p Point[T]) Rect[T] {
+func (r Rect[T]) CenterAt(p Point[T]) Rect[T] {
 	hs := r.Size().Div(2)
 	return Rt(
 		p.X-hs.X,

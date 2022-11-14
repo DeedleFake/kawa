@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"deedles.dev/kawa/geom"
-	"deedles.dev/kawa/geom/layout"
 	"deedles.dev/wlr"
 )
 
@@ -149,7 +148,7 @@ func (server *Server) renderStatusBar() {
 
 	if title := server.statusBar.Title(); title.Valid() {
 		tb := geom.Rt(0, 0, float64(title.Width()), float64(title.Height()))
-		tb = layout.Align(b, tb, wlr.EdgeLeft)
+		tb = geom.Align(b, tb, wlr.EdgeLeft)
 		tb = tb.Add(geom.Pt[float64](WindowBorder, 0))
 		m := wlr.ProjectBoxMatrix(tb.ImageRect(), wlr.OutputTransformNormal, 0, tm)
 		server.renderer.RenderTextureWithMatrix(title, m, 1)
@@ -176,7 +175,7 @@ func (server *Server) renderMenu(out *Output, m *Menu, p geom.Point[float64], se
 
 	for _, item := range m.items {
 		ar := m.ItemBounds(item).Add(p)
-		tr := geom.Rt(0, 0, float64(item.active.Width()), float64(item.active.Height())).Align(ar.Center())
+		tr := geom.Rt(0, 0, float64(item.active.Width()), float64(item.active.Height())).CenterAt(ar.Center())
 
 		t := item.inactive
 		if item == sel {

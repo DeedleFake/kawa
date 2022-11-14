@@ -5,7 +5,6 @@ import (
 
 	"deedles.dev/kawa/draw"
 	"deedles.dev/kawa/geom"
-	"deedles.dev/kawa/geom/layout"
 	"deedles.dev/wlr"
 	"golang.org/x/exp/slices"
 )
@@ -41,7 +40,7 @@ func (m *Menu) updateBounds() {
 			float64(item.active.Height()+WindowBorder),
 		))
 	}
-	m.bounds = layout.VerticalStack(geom.Point[float64]{}, m.itemSizes)
+	m.bounds = geom.VerticalStack(geom.Point[float64]{}, m.itemSizes)
 }
 
 func (m *Menu) Item(i int) *MenuItem {
