@@ -83,8 +83,9 @@ func (server *Server) addOutput(out *Output) {
 }
 
 func (server *Server) configureOutput(out *Output, config *OutputConfig) {
-	server.layoutOutput(out, config)
 	server.setOutputMode(out, config)
+	server.layoutOutput(out, config)
+	out.Output.Enable(true)
 
 	if config == nil {
 		return
