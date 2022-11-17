@@ -249,6 +249,26 @@ func (r Rect[T]) WithAspect(aspect float64) Rect[T] {
 	return r.Resize(Pt(r.Dx(), T(float64(r.Dx())/aspect)))
 }
 
+func (r Rect[T]) PropShift(to, from Rect[T]) Rect[T] {
+	ratio := to.Size()
+	ratio.X /= from.Dx()
+	ratio.Y /= from.Dy()
+
+	off := Pt(
+		(r.Min.X-from.Min.X)*ratio.X,
+		(r.Min.Y-from.Min.Y)*ratio.Y,
+	)
+	size := Pt(
+		r.Dx()*ratio.X,
+		r.Dy()*ratio.Y,
+	)
+
+	return Rect[T]{
+		Min: to.Min.Add(off),
+		Max: to.Min.Add(off).Add(size),
+	}
+}
+
 func (r Rect[T]) IsZero() bool {
 	return r.Min.IsZero() && r.Max.IsZero()
 }
