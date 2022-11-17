@@ -88,9 +88,9 @@ func (view *View) isPopupSurface(surface wlr.Surface) (ok bool) {
 	return false
 }
 
-func surfaceBounds(s wlr.Surface) geom.Rect[int] {
+func surfaceBounds(at geom.Point[int], s wlr.Surface) geom.Rect[int] {
 	c := s.Current()
-	return geom.Rt(0, 0, c.Width(), c.Height())
+	return geom.Rt(0, 0, c.Width(), c.Height()).Add(at)
 }
 
 type Popup struct {
@@ -604,4 +604,8 @@ func (server *Server) updateTitles() {
 		focusedTitle = fv.Title()
 	}
 	server.statusBar.SetTitle(server.renderer, focusedTitle)
+}
+
+func (server *Server) numViews() int {
+	return len(server.views) + len(server.tiled) + len(server.hidden)
 }
