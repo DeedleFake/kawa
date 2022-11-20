@@ -15,6 +15,7 @@ import (
 	_ "image/png"
 
 	"deedles.dev/kawa/geom"
+	"deedles.dev/kawa/internal/util"
 	"deedles.dev/wlr"
 )
 
@@ -205,7 +206,7 @@ func profileCPU(path string) {
 func main() {
 	wlr.InitLog(wlr.Debug, nil)
 
-	term := flag.String("term", "alacritty", "terminal to use when creating a new window")
+	terms := util.StringsFlag("terms", []string{"sakura", "alacritty"}, "preferentially ordered list of terminals for new windows to use")
 	bg := flag.String("bg", "", "background image")
 	bgScale := flag.String("bgscale", "stretch", "background image scaling method (stretch, center, fit, fill)")
 	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
@@ -224,7 +225,7 @@ func main() {
 	}
 
 	server := Server{
-		Term:          strings.Fields(*term),
+		Terms:         *terms,
 		OutputConfigs: outputConfigsParsed,
 	}
 
