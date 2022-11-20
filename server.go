@@ -4,6 +4,7 @@ import (
 	"image"
 	"os"
 	"os/exec"
+	"strings"
 
 	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
@@ -26,7 +27,7 @@ var (
 )
 
 type Server struct {
-	Term          []string
+	Terms         []string
 	OutputConfigs []OutputConfig
 
 	display wlr.Display
@@ -120,14 +121,20 @@ func (server *Server) loadBG(path string) {
 }
 
 func (server *Server) exec(to *geom.Rect[float64]) {
-	cmd := exec.Command(server.Term[0], server.Term[1:]...) // TODO: Context support?
-	err := cmd.Start()
-	if err != nil {
-		wlr.Log(wlr.Error, "start new: %v", err)
+	for _, term := range server.Terms {
+		args := strings.Fields(term)
+		cmd := exec.Command(args[0], args[1:]...) // TODO: Context support?
+		err := cmd.Start()
+		if err != nil {
+			wlr.Log(wlr.Error, "start new with %q: %v", term, err)
+			continue
+		}
+
+		server.newViews[cmd.Process.Pid] = to
 		return
 	}
 
-	server.newViews[cmd.Process.Pid] = to
+	wlr.Log(wlr.Error, "no valid terminals found for new window")
 }
 
 func (server *Server) initUI() {
