@@ -4,8 +4,8 @@ import (
 	"image"
 
 	"deedles.dev/kawa/draw"
-	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
+	"deedles.dev/ximage/geom"
 	"golang.org/x/exp/slices"
 )
 

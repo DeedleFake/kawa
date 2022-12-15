@@ -1,5 +1,7 @@
 deedles.dev/wlr v0.0.0-20221115215220-f566962d72b9 h1:GXPPuz8fFW2DSmoEz8v2OPQxT0TXpaTUdseUKiu5/ro=
 deedles.dev/wlr v0.0.0-20221115215220-f566962d72b9/go.mod h1:K5d3yH0NPlMX6x9fdatCrLbH6xj9RcpDIdhebDFDAvs=
+deedles.dev/ximage v0.0.0-20221215045341-ded15920869b h1:or3lYHRMw1Pxqtd6KCr4spwgXedzA4Edc9/H5gvvw+Y=
+deedles.dev/ximage v0.0.0-20221215045341-ded15920869b/go.mod h1:L+pty+8xzHkc+kdS98tKtnSk7AlPpHbmnZjF2XK7ytU=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=

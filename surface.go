@@ -3,8 +3,8 @@ package main
 import (
 	"io"
 
-	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
+	"deedles.dev/ximage/geom"
 )
 
 type ViewSurface interface {

@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	deedles.dev/wlr v0.0.0-20221115215220-f566962d72b9
+	deedles.dev/ximage v0.0.0-20221215045341-ded15920869b
 	golang.org/x/exp v0.0.0-20221212164502-fae10dda9338
 	golang.org/x/image v0.2.0
 )

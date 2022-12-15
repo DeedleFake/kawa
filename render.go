@@ -5,8 +5,8 @@ import (
 	"image/color"
 	"time"
 
-	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
+	"deedles.dev/ximage/geom"
 )
 
 type Framer interface {
@@ -173,7 +173,7 @@ func (server *Server) renderStatusBar() {
 
 	if title := server.statusBar.Title(); title.Valid() {
 		tb := geom.Rt(0, 0, float64(title.Width()), float64(title.Height()))
-		tb = geom.Align(b, tb, wlr.EdgeLeft)
+		tb = geom.Align(b, tb, geom.EdgeLeft)
 		tb = tb.Add(geom.Pt[float64](WindowBorder, 0))
 		m := wlr.ProjectBoxMatrix(tb.ImageRect(), wlr.OutputTransformNormal, 0, tm)
 		server.renderer.RenderTextureWithMatrix(title, m, 1)

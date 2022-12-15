@@ -4,8 +4,8 @@ import (
 	"math"
 	"time"
 
-	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
+	"deedles.dev/ximage/geom"
 	"golang.org/x/exp/slices"
 )
 

@@ -14,9 +14,9 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 
-	"deedles.dev/kawa/geom"
 	"deedles.dev/kawa/internal/util"
 	"deedles.dev/wlr"
+	"deedles.dev/ximage/geom"
 )
 
 // parseTransform parses an OutputTransform from a string.

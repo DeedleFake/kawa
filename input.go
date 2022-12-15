@@ -4,9 +4,9 @@ import (
 	"os"
 	"time"
 
-	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
 	"deedles.dev/wlr/xkb"
+	"deedles.dev/ximage/geom"
 )
 
 type CursorMover interface {

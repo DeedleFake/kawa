@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"deedles.dev/kawa/geom"
 	"deedles.dev/kawa/internal/util"
 	"deedles.dev/wlr"
+	"deedles.dev/ximage/geom"
 	"golang.org/x/exp/slices"
 )
 
