@@ -3,7 +3,7 @@ package main
 import (
 	"image/color"
 
-	"deedles.dev/kawa/geom"
+	"deedles.dev/ximage/geom"
 )
 
 const (

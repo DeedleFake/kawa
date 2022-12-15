@@ -1,8 +1,8 @@
 package main
 
 import (
-	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
+	"deedles.dev/ximage/geom"
 )
 
 type Output struct {

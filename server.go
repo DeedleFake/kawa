@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"deedles.dev/kawa/geom"
 	"deedles.dev/wlr"
+	"deedles.dev/ximage/geom"
 )
 
 var (
