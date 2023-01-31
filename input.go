@@ -14,11 +14,11 @@ type CursorMover interface {
 }
 
 type CursorButtonPresser interface {
-	CursorButtonPressed(*Server, wlr.InputDevice, wlr.CursorButton, time.Time)
+	CursorButtonPressed(*Server, wlr.Pointer, wlr.CursorButton, time.Time)
 }
 
 type CursorButtonReleaser interface {
-	CursorButtonReleased(*Server, wlr.InputDevice, wlr.CursorButton, time.Time)
+	CursorButtonReleased(*Server, wlr.Pointer, wlr.CursorButton, time.Time)
 }
 
 type CursorRequester interface {
@@ -26,7 +26,7 @@ type CursorRequester interface {
 }
 
 type Keyboard struct {
-	Device wlr.InputDevice
+	Device wlr.Keyboard
 
 	onModifiersListener wlr.Listener
 	onKeyListener       wlr.Listener
@@ -35,15 +35,15 @@ type Keyboard struct {
 func (server *Server) onNewInput(device wlr.InputDevice) {
 	switch device.Type() {
 	case wlr.InputDeviceTypeKeyboard:
-		server.addKeyboard(device)
+		server.addKeyboard(device.Keyboard())
 	case wlr.InputDeviceTypePointer:
-		server.addPointer(device)
+		server.addPointer(device.Pointer())
 	}
 }
 
 func (server *Server) onKeyboardModifiers(kb *Keyboard) {
 	server.seat.SetKeyboard(kb.Device)
-	server.seat.KeyboardNotifyModifiers(kb.Device.Keyboard().Modifiers())
+	server.seat.KeyboardNotifyModifiers(kb.Device.Modifiers())
 }
 
 func (server *Server) onKeyboardKey(kb *Keyboard, code uint32, update bool, state wlr.KeyState, t time.Time) {
@@ -69,8 +69,8 @@ func (server *Server) onKeyboardKeyReleased(kb *Keyboard, code uint32, update bo
 	server.seat.KeyboardNotifyKey(t, code, wlr.KeyStateReleased)
 }
 
-func (server *Server) onCursorMotion(dev wlr.InputDevice, t time.Time, dx, dy float64) {
-	server.cursor.Move(dev, dx, dy)
+func (server *Server) onCursorMotion(dev wlr.Pointer, t time.Time, dx, dy float64) {
+	server.cursor.Move(dev.Base(), dx, dy)
 
 	m, ok := server.inputMode.(CursorMover)
 	if ok {
@@ -78,8 +78,8 @@ func (server *Server) onCursorMotion(dev wlr.InputDevice, t time.Time, dx, dy fl
 	}
 }
 
-func (server *Server) onCursorMotionAbsolute(dev wlr.InputDevice, t time.Time, x, y float64) {
-	server.cursor.WarpAbsolute(dev, x, y)
+func (server *Server) onCursorMotionAbsolute(dev wlr.Pointer, t time.Time, x, y float64) {
+	server.cursor.WarpAbsolute(dev.Base(), x, y)
 
 	m, ok := server.inputMode.(CursorMover)
 	if ok {
@@ -87,7 +87,7 @@ func (server *Server) onCursorMotionAbsolute(dev wlr.InputDevice, t time.Time, x
 	}
 }
 
-func (server *Server) onCursorButton(dev wlr.InputDevice, t time.Time, b wlr.CursorButton, state wlr.ButtonState) {
+func (server *Server) onCursorButton(dev wlr.Pointer, t time.Time, b wlr.CursorButton, state wlr.ButtonState) {
 	switch state {
 	case wlr.ButtonPressed:
 		m, ok := server.inputMode.(CursorButtonPresser)
@@ -102,7 +102,7 @@ func (server *Server) onCursorButton(dev wlr.InputDevice, t time.Time, b wlr.Cur
 	}
 }
 
-func (server *Server) onCursorAxis(dev wlr.InputDevice, t time.Time, source wlr.AxisSource, orient wlr.AxisOrientation, delta float64, deltaDiscrete int32) {
+func (server *Server) onCursorAxis(dev wlr.Pointer, t time.Time, source wlr.AxisSource, orient wlr.AxisOrientation, delta float64, deltaDiscrete int32) {
 	server.seat.PointerNotifyAxis(t, orient, delta, deltaDiscrete, source)
 }
 
@@ -122,7 +122,7 @@ func (server *Server) onRequestCursor(client wlr.SeatClient, surface wlr.Surface
 	}
 }
 
-func (server *Server) addKeyboard(dev wlr.InputDevice) {
+func (server *Server) addKeyboard(dev wlr.Keyboard) {
 	kb := Keyboard{
 		Device: dev,
 	}
@@ -141,14 +141,13 @@ func (server *Server) addKeyboard(dev wlr.InputDevice) {
 	keymap := xkb.NewKeymapFromNames(ctx, &rules, xkb.KeymapCompileNoFlags)
 	defer keymap.Unref()
 
-	wkb := dev.Keyboard()
-	wkb.SetKeymap(keymap)
-	wkb.SetRepeatInfo(25, 600)
+	kb.Device.SetKeymap(keymap)
+	kb.Device.SetRepeatInfo(25, 600)
 
-	kb.onModifiersListener = wkb.OnModifiers(func(k wlr.Keyboard) {
+	kb.onModifiersListener = kb.Device.OnModifiers(func(k wlr.Keyboard) {
 		server.onKeyboardModifiers(&kb)
 	})
-	kb.onKeyListener = wkb.OnKey(func(k wlr.Keyboard, t time.Time, code uint32, update bool, state wlr.KeyState) {
+	kb.onKeyListener = kb.Device.OnKey(func(k wlr.Keyboard, t time.Time, code uint32, update bool, state wlr.KeyState) {
 		server.onKeyboardKey(&kb, code, update, state, t)
 	})
 
@@ -158,8 +157,8 @@ func (server *Server) addKeyboard(dev wlr.InputDevice) {
 	server.seat.SetCapabilities(server.seat.Capabilities() | wlr.SeatCapabilityKeyboard)
 }
 
-func (server *Server) addPointer(dev wlr.InputDevice) {
-	server.cursor.AttachInputDevice(dev)
+func (server *Server) addPointer(dev wlr.Pointer) {
+	server.cursor.AttachInputDevice(dev.Base())
 	server.seat.SetCapabilities(server.seat.Capabilities() | wlr.SeatCapabilityPointer)
 	server.setCursor("left_ptr")
 
