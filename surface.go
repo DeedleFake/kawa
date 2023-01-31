@@ -46,7 +46,7 @@ func (s *viewSurfaceXDG) HasSurface(surface wlr.Surface) (has bool) {
 }
 
 func (s *viewSurfaceXDG) Close() error {
-	s.s.SendClose()
+	s.s.TopLevel().SendClose()
 	return nil
 }
 
@@ -55,11 +55,11 @@ func (s *viewSurfaceXDG) Title() string {
 }
 
 func (s *viewSurfaceXDG) Resize(w, h int) {
-	s.s.TopLevelSetSize(uint32(w), uint32(h))
+	s.s.TopLevel().SetSize(int32(w), int32(h))
 }
 
 func (s *viewSurfaceXDG) SetResizing(resizing bool) {
-	s.s.TopLevelSetResizing(resizing)
+	s.s.TopLevel().SetResizing(resizing)
 }
 
 func (s *viewSurfaceXDG) SetMinimized(m bool) {
@@ -67,7 +67,7 @@ func (s *viewSurfaceXDG) SetMinimized(m bool) {
 }
 
 func (s *viewSurfaceXDG) SetMaximized(m bool) {
-	s.s.TopLevelSetMaximized(m)
+	s.s.TopLevel().SetMaximized(m)
 }
 
 func (s *viewSurfaceXDG) Geometry() geom.Rect[int] {
@@ -91,7 +91,7 @@ func (s *viewSurfaceXDG) Mapped() bool {
 }
 
 func (s *viewSurfaceXDG) SetActivated(a bool) {
-	s.s.TopLevelSetActivated(a)
+	s.s.TopLevel().SetActivated(a)
 }
 
 func (s *viewSurfaceXDG) Activated() bool {

@@ -130,7 +130,7 @@ func (server *Server) init() error {
 	server.seat = wlr.CreateSeat(server.display, "seat0")
 	server.onRequestCursorListener = server.seat.OnRequestSetCursor(server.onRequestCursor)
 
-	server.xdgShell = wlr.CreateXDGShell(server.display)
+	server.xdgShell = wlr.CreateXDGShell(server.display, 3)
 	server.onNewXDGSurfaceListener = server.xdgShell.OnNewSurface(server.onNewXDGSurface)
 
 	server.layerShell = wlr.CreateLayerShellV1(server.display)
