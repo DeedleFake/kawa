@@ -42,7 +42,7 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 	server.seat.PointerNotifyMotion(t, sp.X, sp.Y)
 }
 
-func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	cc := server.cursorCoords()
 
 	forceMenu := server.seat.GetKeyboard().GetModifiers()&wlr.KeyboardModifierLogo != 0
@@ -86,7 +86,7 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.InputDevic
 	}
 }
 
-func (m *inputModeNormal) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+func (m *inputModeNormal) CursorButtonReleased(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	server.seat.PointerNotifyButton(t, b, wlr.ButtonReleased)
 }
 
@@ -137,7 +137,7 @@ func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 	server.moveViewTo(nil, m.view, to)
 }
 
-func (m *inputModeMove) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+func (m *inputModeMove) CursorButtonReleased(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	server.startNormal()
 }
 
@@ -223,7 +223,7 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 	server.resizeViewTo(nil, m.view, m.cur)
 }
 
-func (m *inputModeBorderResize) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+func (m *inputModeBorderResize) CursorButtonReleased(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	m.view.SetResizing(false)
 	server.startNormal()
 }
@@ -264,7 +264,7 @@ func (m *inputModeMenu) CursorMoved(server *Server, t time.Time) {
 	m.sel = m.m.ItemAt(cc)
 }
 
-func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	if b != m.btn {
 		return
 	}
@@ -290,7 +290,7 @@ func (server *Server) startSelectView(b wlr.CursorButton, then func(*View)) {
 	}
 }
 
-func (m *inputModeSelectView) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+func (m *inputModeSelectView) CursorButtonPressed(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	if b != m.startBtn {
 		server.startNormal()
 		return
@@ -339,7 +339,7 @@ func (m *inputModeResize) CursorMoved(server *Server, t time.Time) {
 	server.startBorderResizeFrom(m.view, wlr.EdgeNone, r)
 }
 
-func (m *inputModeResize) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+func (m *inputModeResize) CursorButtonPressed(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	if b != wlr.BtnRight {
 		server.startNormal()
 		return
@@ -349,7 +349,7 @@ func (m *inputModeResize) CursorButtonPressed(server *Server, dev wlr.InputDevic
 	m.resizing = true
 }
 
-func (m *inputModeResize) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+func (m *inputModeResize) CursorButtonReleased(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	if !m.resizing {
 		return
 	}
@@ -403,7 +403,7 @@ func (m *inputModeNew) CursorMoved(server *Server, t time.Time) {
 	}
 }
 
-func (m *inputModeNew) CursorButtonPressed(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+func (m *inputModeNew) CursorButtonPressed(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	if b != wlr.BtnRight {
 		server.startNormal()
 		return
@@ -414,7 +414,7 @@ func (m *inputModeNew) CursorButtonPressed(server *Server, dev wlr.InputDevice, 
 	m.dragging = true
 }
 
-func (m *inputModeNew) CursorButtonReleased(server *Server, dev wlr.InputDevice, b wlr.CursorButton, t time.Time) {
+func (m *inputModeNew) CursorButtonReleased(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	if !m.dragging {
 		return
 	}

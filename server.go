@@ -47,7 +47,7 @@ type Server struct {
 
 	outputs     []*Output
 	inputs      []wlr.InputDevice
-	pointers    []wlr.InputDevice
+	pointers    []wlr.Pointer
 	keyboards   []*Keyboard
 	views       []*View
 	tiled       []*View

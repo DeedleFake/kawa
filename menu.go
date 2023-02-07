@@ -27,7 +27,7 @@ func NewMenu(items ...*MenuItem) *Menu {
 	for _, item := range items {
 		m.add(item)
 	}
-	m.updateBounds()
+	m.updateBounds(false)
 	return &m
 }
 
@@ -35,7 +35,15 @@ func (m *Menu) Len() int {
 	return len(m.items)
 }
 
-func (m *Menu) updateBounds() {
+func (m *Menu) updateBounds(shrink bool) {
+	if shrink {
+		for i := range m.bounds {
+			m.bounds[i] = geom.Rect[float64]{
+				Max: geom.PConv[float64](m.items[i].Size().Add(menuItemInset)),
+			}
+		}
+	}
+
 	geom.ArrangeVerticalStack(m.bounds)
 }
 
@@ -94,14 +102,14 @@ func (m *Menu) add(item *MenuItem) {
 
 func (m *Menu) Add(item *MenuItem) {
 	m.add(item)
-	m.updateBounds()
+	m.updateBounds(false)
 }
 
 func (m *Menu) Remove(item *MenuItem) {
 	i := slices.Index(m.items, item)
 	m.items = slices.Delete(m.items, i, i+1)
 	m.bounds = slices.Delete(m.bounds, i, i+1)
-	m.updateBounds()
+	m.updateBounds(true)
 }
 
 type MenuItem struct {

@@ -4,9 +4,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
-	"os/signal"
-	"runtime/pprof"
 	"strconv"
 	"strings"
 
@@ -130,7 +131,7 @@ func (server *Server) init() error {
 	server.seat = wlr.CreateSeat(server.display, "seat0")
 	server.onRequestCursorListener = server.seat.OnRequestSetCursor(server.onRequestCursor)
 
-	server.xdgShell = wlr.CreateXDGShell(server.display)
+	server.xdgShell = wlr.CreateXDGShell(server.display, 3)
 	server.onNewXDGSurfaceListener = server.xdgShell.OnNewSurface(server.onNewXDGSurface)
 
 	server.layerShell = wlr.CreateLayerShellV1(server.display)
@@ -177,46 +178,18 @@ func (server *Server) run() error {
 	return nil
 }
 
-// profileCPU writes profiling information to the file at path. This
-// function intercepts SIGINT and will not return until that signal
-// intercepted.
-func profileCPU(path string) {
-	defer wlr.Log(wlr.Debug, "CPU profile written to: %q", path)
-
-	f, err := os.Create(path)
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-
-	err = pprof.StartCPUProfile(f)
-	if err != nil {
-		panic(err)
-	}
-	defer pprof.StopCPUProfile()
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	defer signal.Stop(c)
-	<-c
-
-	wlr.Log(wlr.Debug, "Writing CPU profile...")
-}
-
 func main() {
+	if addr, ok := os.LookupEnv("PPROF_ADDR"); ok {
+		go func() { log.Println(http.ListenAndServe(addr, nil)) }()
+	}
+
 	wlr.InitLog(wlr.Debug, nil)
 
 	terms := util.StringsFlag("terms", []string{"sakura", "alacritty"}, "preferentially ordered list of terminals for new windows to use")
 	bg := flag.String("bg", "", "background image")
 	bgScale := flag.String("bgscale", "stretch", "background image scaling method (stretch, center, fit, fill)")
 	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
-	cprof := flag.String("cprof", "", "cpu profile file")
 	flag.Parse()
-
-	if *cprof != "" {
-		wlr.Log(wlr.Debug, "CPU profiling enabled. Send SIGINT to write profile to: %q", *cprof)
-		go profileCPU(*cprof)
-	}
 
 	outputConfigsParsed, err := parseOutputConfigs(*outputConfigs)
 	if err != nil {
