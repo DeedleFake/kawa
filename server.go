@@ -63,8 +63,8 @@ type Server struct {
 
 	statusBar *StatusBar
 
-	inputMode InputMode
-	overview  bool
+	mode     Mode
+	overview bool
 
 	onNewOutputListener            wlr.Listener
 	onNewInputListener             wlr.Listener

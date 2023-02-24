@@ -116,7 +116,7 @@ func (d *Decoration) Release() {
 }
 
 func (server *Server) targetView() *View {
-	m, ok := server.inputMode.(ViewTargeter)
+	m, ok := server.mode.(ViewTargeter)
 	if !ok {
 		return nil
 	}

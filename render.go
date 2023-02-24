@@ -181,7 +181,7 @@ func (server *Server) renderStatusBar() {
 }
 
 func (server *Server) renderMode(out *Output) {
-	m, ok := server.inputMode.(Framer)
+	m, ok := server.mode.(Framer)
 	if !ok {
 		return
 	}
