@@ -42,7 +42,7 @@ type Server struct {
 	xdgShell          wlr.XDGShell
 	layerShell        wlr.LayerShellV1
 	xwayland          wlr.XWayland
-	decorationManager wlr.ServerDecorationManager
+	decorationManager wlr.XDGDecorationManagerV1
 
 	outputs     []*Output
 	inputs      []wlr.InputDevice
@@ -64,18 +64,18 @@ type Server struct {
 
 	inputMode InputMode
 
-	onNewOutputListener            wlr.Listener
-	onNewInputListener             wlr.Listener
-	onCursorMotionListener         wlr.Listener
-	onCursorMotionAbsoluteListener wlr.Listener
-	onCursorButtonListener         wlr.Listener
-	onCursorAxisListener           wlr.Listener
-	onCursorFrameListener          wlr.Listener
-	onRequestCursorListener        wlr.Listener
-	onNewXDGSurfaceListener        wlr.Listener
-	onNewXWaylandSurfaceListener   wlr.Listener
-	onNewLayerSurfaceListener      wlr.Listener
-	onNewDecorationListener        wlr.Listener
+	onNewOutputListener             wlr.Listener
+	onNewInputListener              wlr.Listener
+	onCursorMotionListener          wlr.Listener
+	onCursorMotionAbsoluteListener  wlr.Listener
+	onCursorButtonListener          wlr.Listener
+	onCursorAxisListener            wlr.Listener
+	onCursorFrameListener           wlr.Listener
+	onRequestCursorListener         wlr.Listener
+	onNewXDGSurfaceListener         wlr.Listener
+	onNewXWaylandSurfaceListener    wlr.Listener
+	onNewLayerSurfaceListener       wlr.Listener
+	onNewToplevelDecorationListener wlr.Listener
 }
 
 func (server *Server) Release() {
@@ -90,7 +90,7 @@ func (server *Server) Release() {
 	server.onNewXDGSurfaceListener.Destroy()
 	server.onNewXWaylandSurfaceListener.Destroy()
 	server.onNewLayerSurfaceListener.Destroy()
-	server.onNewDecorationListener.Destroy()
+	server.onNewToplevelDecorationListener.Destroy()
 }
 
 func (server *Server) Shutdown() {
