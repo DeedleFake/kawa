@@ -103,6 +103,7 @@ func (server *Server) init() error {
 	wlr.CreateScreencopyManagerV1(server.display)
 	wlr.CreateDataControlManagerV1(server.display)
 	wlr.CreatePrimarySelectionV1DeviceManager(server.display)
+	wlr.CreateSubcompositor(server.display)
 
 	wlr.CreateGammaControlManagerV1(server.display)
 
