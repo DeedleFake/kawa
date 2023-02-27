@@ -138,9 +138,8 @@ func (server *Server) init() error {
 	server.layerShell = wlr.CreateLayerShellV1(server.display)
 	server.onNewLayerSurfaceListener = server.layerShell.OnNewSurface(server.onNewLayerSurface)
 
-	server.decorationManager = wlr.CreateServerDecorationManager(server.display)
-	server.decorationManager.SetDefaultMode(wlr.ServerDecorationManagerModeServer)
-	server.onNewDecorationListener = server.decorationManager.OnNewDecoration(server.onNewDecoration)
+	server.decorationManager = wlr.CreateXDGDecorationManagerV1(server.display)
+	server.onNewToplevelDecorationListener = server.decorationManager.OnNewToplevelDecoration(server.onNewToplevelDecoration)
 
 	server.initUI()
 

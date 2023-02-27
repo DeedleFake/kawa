@@ -104,7 +104,8 @@ func (p *Popup) Release() {
 }
 
 type Decoration struct {
-	Decoration wlr.ServerDecoration
+	Decoration wlr.XDGToplevelDecorationV1
+	View       *View
 
 	onDestroyListener wlr.Listener
 	onModeListener    wlr.Listener
@@ -213,6 +214,7 @@ func (server *Server) isViewAt(out *Output, view *View, p geom.Point[float64]) (
 
 func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
 	view := View{
+		CSD:         false,
 		ViewSurface: &viewSurfaceXWayland{s: surface},
 	}
 	view.onDestroyListener = surface.OnDestroy(func(s wlr.XWaylandSurface) {
@@ -265,6 +267,7 @@ func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
 
 func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 	view := View{
+		CSD:         true,
 		ViewSurface: &viewSurfaceXDG{s: surface},
 	}
 	view.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
@@ -336,7 +339,6 @@ func (server *Server) onMapView(view *View) {
 
 func (server *Server) addView(view *View) {
 	server.views = append(server.views, view)
-	server.updateCSDs()
 
 	nv, ok := server.newViews[view.PID()]
 	if ok {
@@ -413,17 +415,17 @@ func (server *Server) focusedView() *View {
 
 func (server *Server) viewForSurface(s wlr.Surface) *View {
 	for _, view := range server.views {
-		if view.Mapped() && view.HasSurface(s) {
+		if view.HasSurface(s) {
 			return view
 		}
 	}
 	for _, view := range server.tiled {
-		if view.Mapped() && view.HasSurface(s) {
+		if view.HasSurface(s) {
 			return view
 		}
 	}
 	for _, view := range server.hidden {
-		if view.Mapped() && view.HasSurface(s) {
+		if view.HasSurface(s) {
 			return view
 		}
 	}
@@ -541,48 +543,31 @@ func (server *Server) closeView(view *View) {
 	view.Close()
 }
 
-func (server *Server) onNewDecoration(dm wlr.ServerDecorationManager, d wlr.ServerDecoration) {
+func (server *Server) onNewToplevelDecoration(dm wlr.XDGDecorationManagerV1, d wlr.XDGToplevelDecorationV1) {
 	deco := Decoration{
 		Decoration: d,
 	}
-	deco.onDestroyListener = d.OnDestroy(func(d wlr.ServerDecoration) {
-		server.onDestroyDecoration(&deco)
+	d.Surface().ForEachSurface(func(s wlr.Surface, x, y int) {
+		deco.View = server.viewForSurface(s)
 	})
-	deco.onModeListener = d.OnMode(func(d wlr.ServerDecoration) {
-		server.updateCSDs()
+	if deco.View == nil {
+		// If there's no view, there's probably no point.
+		return
+	}
+
+	deco.View.CSD = false
+	d.SetMode(wlr.XDGToplevelDecorationV1ModeServerSide)
+
+	deco.onDestroyListener = d.OnDestroy(func(d wlr.XDGToplevelDecorationV1) {
+		server.onDestroyDecoration(&deco)
 	})
 
 	server.decorations = append(server.decorations, &deco)
-	server.updateCSDs()
 }
 
 func (server *Server) onDestroyDecoration(d *Decoration) {
 	i := slices.Index(server.decorations, d)
 	server.decorations = slices.Delete(server.decorations, i, i+1)
-	server.updateCSDs()
-}
-
-func (server *Server) updateCSDs() {
-	for _, view := range server.views {
-		view.CSD = server.isCSDSurface(view.Surface())
-	}
-	for _, view := range server.tiled {
-		view.CSD = server.isCSDSurface(view.Surface())
-	}
-}
-
-func (server *Server) isCSDSurface(surface wlr.Surface) (ok bool) {
-	for _, d := range server.decorations {
-		d.Decoration.Surface().ForEachSurface(func(s wlr.Surface, sx, sy int) {
-			if s == surface {
-				ok = true
-			}
-		})
-		if ok {
-			return d.Decoration.Mode() == wlr.ServerDecorationManagerModeClient
-		}
-	}
-	return false
 }
 
 func (server *Server) updateTitles() {
