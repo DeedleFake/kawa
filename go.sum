@@ -1,5 +1,5 @@
-deedles.dev/wlr v0.0.0-20230228062954-4b1c537630a3 h1:xbf2aNlVMSWRu9SldovRrirsN/ewAPfzKMfL7kkd/GY=
-deedles.dev/wlr v0.0.0-20230228062954-4b1c537630a3/go.mod h1:ybQj+4D2gWrJ/sxcdJyU29omzQaraybFbnGW4cBlQWs=
+deedles.dev/wlr v0.0.0-20230228072032-de88d1d36ed8 h1:6QuJLxm0MfOOtrFPGDGUoMG/PgmRbY9xLXuEIFf2aKk=
+deedles.dev/wlr v0.0.0-20230228072032-de88d1d36ed8/go.mod h1:ybQj+4D2gWrJ/sxcdJyU29omzQaraybFbnGW4cBlQWs=
 deedles.dev/ximage v0.0.0-20230216200226-85a1bdca6dc7 h1:Thnq2EcYCa/KMEHfkHo9cZ+l/eVK67kr+l1sVF7Na/E=
 deedles.dev/ximage v0.0.0-20230216200226-85a1bdca6dc7/go.mod h1:3QyyOuBdi94l+fzA1RDPxJMyUQ2AwMCYEY3oHTrunfw=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=

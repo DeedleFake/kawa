@@ -41,7 +41,7 @@ type Server struct {
 	cursorMgr            wlr.XCursorManager
 	xdgShell             wlr.XDGShell
 	layerShell           wlr.LayerShellV1
-	xwayland             wlr.XWayland
+	xwayland             wlr.Xwayland
 	decorationManager    wlr.ServerDecorationManager
 	xdgDecorationManager wlr.XDGDecorationManagerV1
 
@@ -73,7 +73,7 @@ type Server struct {
 	onCursorFrameListener           wlr.Listener
 	onRequestCursorListener         wlr.Listener
 	onNewXDGSurfaceListener         wlr.Listener
-	onNewXWaylandSurfaceListener    wlr.Listener
+	onNewXwaylandSurfaceListener    wlr.Listener
 	onNewLayerSurfaceListener       wlr.Listener
 	onNewDecorationListener         wlr.Listener
 	onNewToplevelDecorationListener wlr.Listener
@@ -89,7 +89,7 @@ func (server *Server) Release() {
 	server.onCursorFrameListener.Destroy()
 	server.onRequestCursorListener.Destroy()
 	server.onNewXDGSurfaceListener.Destroy()
-	server.onNewXWaylandSurfaceListener.Destroy()
+	server.onNewXwaylandSurfaceListener.Destroy()
 	server.onNewLayerSurfaceListener.Destroy()
 	server.onNewDecorationListener.Destroy()
 	server.onNewToplevelDecorationListener.Destroy()

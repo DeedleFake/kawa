@@ -156,8 +156,8 @@ func (server *Server) init() error {
 func (server *Server) run() error {
 	defer server.Release()
 
-	server.xwayland = wlr.CreateXWayland(server.display, server.compositor, false)
-	server.onNewXWaylandSurfaceListener = server.xwayland.OnNewSurface(server.onNewXWaylandSurface)
+	server.xwayland = wlr.CreateXwayland(server.display, server.compositor, false)
+	server.onNewXwaylandSurfaceListener = server.xwayland.OnNewSurface(server.onNewXwaylandSurface)
 
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {
@@ -174,7 +174,7 @@ func (server *Server) run() error {
 
 	if server.xwayland.Valid() {
 		os.Setenv("DISPLAY", server.xwayland.Server().DisplayName())
-		wlr.Log(wlr.Info, "Running XWayland on DISPLAY=%v", server.xwayland.Server().DisplayName())
+		wlr.Log(wlr.Info, "Running Xwayland on DISPLAY=%v", server.xwayland.Server().DisplayName())
 	}
 
 	server.display.Run()
