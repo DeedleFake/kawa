@@ -25,6 +25,11 @@ var edgeCursors = [...]string{
 	wlr.EdgeBottom | wlr.EdgeRight: "bottom_right_corner",
 }
 
+const (
+	moveCursor     = "move"
+	interactCursor = "hand"
+)
+
 type View struct {
 	ViewSurface
 	Coords  geom.Point[float64]
@@ -101,19 +106,6 @@ type Popup struct {
 
 func (p *Popup) Release() {
 	p.onDestroyListener.Destroy()
-}
-
-type Decoration struct {
-	Decoration wlr.XDGToplevelDecorationV1
-	View       *View
-
-	onDestroyListener wlr.Listener
-	onModeListener    wlr.Listener
-}
-
-func (d *Decoration) Release() {
-	d.onDestroyListener.Destroy()
-	d.onModeListener.Destroy()
 }
 
 func (server *Server) targetView() *View {
@@ -543,31 +535,48 @@ func (server *Server) closeView(view *View) {
 	view.Close()
 }
 
-func (server *Server) onNewToplevelDecoration(dm wlr.XDGDecorationManagerV1, d wlr.XDGToplevelDecorationV1) {
-	deco := Decoration{
-		Decoration: d,
-	}
+func (server *Server) onNewDecoration(dm wlr.ServerDecorationManager, d wlr.ServerDecoration) {
+	var view *View
 	d.Surface().ForEachSurface(func(s wlr.Surface, x, y int) {
-		deco.View = server.viewForSurface(s)
+		if view == nil {
+			view = server.viewForSurface(s)
+		}
 	})
-	if deco.View == nil {
+	if view == nil {
+		return
+	}
+
+	view.CSD = d.Mode() != wlr.ServerDecorationManagerModeServer
+
+	var onModeListener, onDestroyListener wlr.Listener
+	onModeListener = d.OnMode(func(d wlr.ServerDecoration) {
+		view.CSD = d.Mode() != wlr.ServerDecorationManagerModeServer
+	})
+	onDestroyListener = d.OnDestroy(func(d wlr.ServerDecoration) {
+		onModeListener.Destroy()
+		onDestroyListener.Destroy()
+	})
+}
+
+func (server *Server) onNewToplevelDecoration(dm wlr.XDGDecorationManagerV1, d wlr.XDGToplevelDecorationV1) {
+	var view *View
+	d.Surface().ForEachSurface(func(s wlr.Surface, x, y int) {
+		if view == nil {
+			view = server.viewForSurface(s)
+		}
+	})
+	if view == nil {
 		// If there's no view, there's probably no point.
 		return
 	}
 
-	deco.View.CSD = false
+	view.CSD = false
 	d.SetMode(wlr.XDGToplevelDecorationV1ModeServerSide)
 
-	deco.onDestroyListener = d.OnDestroy(func(d wlr.XDGToplevelDecorationV1) {
-		server.onDestroyDecoration(&deco)
+	var onDestroyListener wlr.Listener
+	onDestroyListener = d.OnDestroy(func(d wlr.XDGToplevelDecorationV1) {
+		onDestroyListener.Destroy()
 	})
-
-	server.decorations = append(server.decorations, &deco)
-}
-
-func (server *Server) onDestroyDecoration(d *Decoration) {
-	i := slices.Index(server.decorations, d)
-	server.decorations = slices.Delete(server.decorations, i, i+1)
 }
 
 func (server *Server) updateTitles() {

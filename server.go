@@ -32,28 +32,28 @@ type Server struct {
 
 	display wlr.Display
 
-	allocator         wlr.Allocator
-	backend           wlr.Backend
-	compositor        wlr.Compositor
-	cursor            wlr.Cursor
-	outputLayout      wlr.OutputLayout
-	renderer          wlr.Renderer
-	seat              wlr.Seat
-	cursorMgr         wlr.XCursorManager
-	xdgShell          wlr.XDGShell
-	layerShell        wlr.LayerShellV1
-	xwayland          wlr.XWayland
-	decorationManager wlr.XDGDecorationManagerV1
+	allocator            wlr.Allocator
+	backend              wlr.Backend
+	compositor           wlr.Compositor
+	cursor               wlr.Cursor
+	outputLayout         wlr.OutputLayout
+	renderer             wlr.Renderer
+	seat                 wlr.Seat
+	cursorMgr            wlr.XCursorManager
+	xdgShell             wlr.XDGShell
+	layerShell           wlr.LayerShellV1
+	xwayland             wlr.XWayland
+	decorationManager    wlr.ServerDecorationManager
+	xdgDecorationManager wlr.XDGDecorationManagerV1
 
-	outputs     []*Output
-	inputs      []wlr.InputDevice
-	pointers    []wlr.Pointer
-	keyboards   []*Keyboard
-	views       []*View
-	tiled       []*View
-	hidden      []*View
-	newViews    map[int]*geom.Rect[float64]
-	decorations []*Decoration
+	outputs   []*Output
+	inputs    []wlr.InputDevice
+	pointers  []wlr.Pointer
+	keyboards []*Keyboard
+	views     []*View
+	tiled     []*View
+	hidden    []*View
+	newViews  map[int]*geom.Rect[float64]
 
 	bg      wlr.Texture
 	bgScale scaleFunc
@@ -77,6 +77,7 @@ type Server struct {
 	onNewXDGSurfaceListener         wlr.Listener
 	onNewXWaylandSurfaceListener    wlr.Listener
 	onNewLayerSurfaceListener       wlr.Listener
+	onNewDecorationListener         wlr.Listener
 	onNewToplevelDecorationListener wlr.Listener
 }
 
@@ -92,6 +93,7 @@ func (server *Server) Release() {
 	server.onNewXDGSurfaceListener.Destroy()
 	server.onNewXWaylandSurfaceListener.Destroy()
 	server.onNewLayerSurfaceListener.Destroy()
+	server.onNewDecorationListener.Destroy()
 	server.onNewToplevelDecorationListener.Destroy()
 }
 
