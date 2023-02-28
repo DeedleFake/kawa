@@ -25,9 +25,13 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 	cc := server.cursorCoords()
 
 	view, edges, surface, sp := server.viewAt(nil, cc)
-	if (edges != m.prevEdges) && !server.isViewTiled(view) {
-		server.setCursor(edgeCursors[edges])
-		m.prevEdges = edges
+	if edges != m.prevEdges {
+		cursor := interactCursor
+		if !server.isViewTiled(view) {
+			cursor = edgeCursors[edges]
+			m.prevEdges = edges
+		}
+		server.setCursor(cursor)
 	}
 	if (view == nil) && m.inView {
 		server.setCursor("left_ptr")

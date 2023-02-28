@@ -25,6 +25,11 @@ var edgeCursors = [...]string{
 	wlr.EdgeBottom | wlr.EdgeRight: "bottom_right_corner",
 }
 
+const (
+	moveCursor     = "move"
+	interactCursor = "hand"
+)
+
 type View struct {
 	ViewSurface
 	Coords  geom.Point[float64]
