@@ -204,32 +204,32 @@ func (server *Server) isViewAt(out *Output, view *View, p geom.Point[float64]) (
 	panic(fmt.Errorf("If you see this, there's a bug.\np = %+v\nr = %+v", p, r))
 }
 
-func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
+func (server *Server) onNewXwaylandSurface(surface wlr.XwaylandSurface) {
 	view := View{
 		CSD:         false,
-		ViewSurface: &viewSurfaceXWayland{s: surface},
+		ViewSurface: &viewSurfaceXwayland{s: surface},
 	}
-	view.onDestroyListener = surface.OnDestroy(func(s wlr.XWaylandSurface) {
+	view.onDestroyListener = surface.OnDestroy(func(s wlr.XwaylandSurface) {
 		server.onDestroyView(&view)
 	})
-	view.onMapListener = surface.OnMap(func(s wlr.XWaylandSurface) {
+	view.onMapListener = surface.OnMap(func(s wlr.XwaylandSurface) {
 		server.onMapView(&view)
 	})
-	view.onRequestMoveListener = surface.OnRequestMove(func(s wlr.XWaylandSurface) {
+	view.onRequestMoveListener = surface.OnRequestMove(func(s wlr.XwaylandSurface) {
 		server.startMove(&view)
 	})
-	view.onRequestResizeListener = surface.OnRequestResize(func(s wlr.XWaylandSurface, edges wlr.Edges) {
+	view.onRequestResizeListener = surface.OnRequestResize(func(s wlr.XwaylandSurface, edges wlr.Edges) {
 		if !server.isViewTiled(&view) {
 			server.startBorderResize(&view, edges)
 		}
 	})
-	view.onRequestMinimizeListener = surface.OnRequestMinimize(func(s wlr.XWaylandSurface) {
+	view.onRequestMinimizeListener = surface.OnRequestMinimize(func(s wlr.XwaylandSurface) {
 		server.hideView(&view)
 	})
-	view.onRequestMaximizeListener = surface.OnRequestMaximize(func(s wlr.XWaylandSurface) {
+	view.onRequestMaximizeListener = surface.OnRequestMaximize(func(s wlr.XwaylandSurface) {
 		server.toggleViewTiling(&view)
 	})
-	view.onSetTitleListener = surface.OnSetTitle(func(s wlr.XWaylandSurface, title string) {
+	view.onSetTitleListener = surface.OnSetTitle(func(s wlr.XwaylandSurface, title string) {
 		server.updateTitles()
 	})
 
@@ -238,8 +238,8 @@ func (server *Server) onNewXWaylandSurface(surface wlr.XWaylandSurface) {
 
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
 	switch surface.Role() {
-	case wlr.XDGSurfaceRoleTopLevel:
-		server.addXDGTopLevel(surface)
+	case wlr.XDGSurfaceRoleToplevel:
+		server.addXDGToplevel(surface)
 	case wlr.XDGSurfaceRolePopup:
 		server.addXDGPopup(surface)
 	case wlr.XDGSurfaceRoleNone:
@@ -257,7 +257,7 @@ func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
 	parent.addPopup(surface)
 }
 
-func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
+func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 	view := View{
 		CSD:         true,
 		ViewSurface: &viewSurfaceXDG{s: surface},
@@ -268,21 +268,21 @@ func (server *Server) addXDGTopLevel(surface wlr.XDGSurface) {
 	view.onMapListener = surface.OnMap(func(s wlr.XDGSurface) {
 		server.onMapView(&view)
 	})
-	view.onRequestMoveListener = surface.TopLevel().OnRequestMove(func(t wlr.XDGTopLevel, client wlr.SeatClient, serial uint32) {
+	view.onRequestMoveListener = surface.Toplevel().OnRequestMove(func(t wlr.XDGToplevel, client wlr.SeatClient, serial uint32) {
 		server.startMove(&view)
 	})
-	view.onRequestResizeListener = surface.TopLevel().OnRequestResize(func(t wlr.XDGTopLevel, client wlr.SeatClient, serial uint32, edges wlr.Edges) {
+	view.onRequestResizeListener = surface.Toplevel().OnRequestResize(func(t wlr.XDGToplevel, client wlr.SeatClient, serial uint32, edges wlr.Edges) {
 		if !server.isViewTiled(&view) {
 			server.startBorderResize(&view, edges)
 		}
 	})
-	view.onRequestMinimizeListener = surface.TopLevel().OnRequestMinimize(func(t wlr.XDGTopLevel) {
+	view.onRequestMinimizeListener = surface.Toplevel().OnRequestMinimize(func(t wlr.XDGToplevel) {
 		server.hideView(&view)
 	})
-	view.onRequestMaximizeListener = surface.TopLevel().OnRequestMaximize(func(t wlr.XDGTopLevel) {
+	view.onRequestMaximizeListener = surface.Toplevel().OnRequestMaximize(func(t wlr.XDGToplevel) {
 		server.toggleViewTiling(&view)
 	})
-	view.onSetTitleListener = surface.TopLevel().OnSetTitle(func(t wlr.XDGTopLevel, title string) {
+	view.onSetTitleListener = surface.Toplevel().OnSetTitle(func(t wlr.XDGToplevel, title string) {
 		server.updateTitles()
 	})
 
