@@ -3,10 +3,10 @@ module deedles.dev/kawa
 go 1.18
 
 require (
-	deedles.dev/wlr v0.0.0-20230228072032-de88d1d36ed8
-	deedles.dev/ximage v0.0.0-20230216200226-85a1bdca6dc7
-	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2
-	golang.org/x/image v0.5.0
+	deedles.dev/wlr v0.0.0-20230609170122-c83b1a7b6114
+	deedles.dev/ximage v0.0.0-20230609170106-f29200600f32
+	golang.org/x/exp v0.0.0-20230725093048-515e97ebf090
+	golang.org/x/image v0.9.0
 )
 
-require golang.org/x/text v0.7.0 // indirect
+require golang.org/x/text v0.11.0 // indirect
