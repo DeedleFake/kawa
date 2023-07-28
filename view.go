@@ -93,9 +93,9 @@ func (view *View) isPopupSurface(surface wlr.Surface) (ok bool) {
 	return false
 }
 
-func surfaceBounds(at geom.Point[int], s wlr.Surface) geom.Rect[int] {
+func surfaceBounds(s wlr.Surface) geom.Rect[int] {
 	c := s.Current()
-	return geom.Rt(0, 0, c.Width(), c.Height()).Add(at)
+	return geom.Rt(0, 0, c.Width(), c.Height())
 }
 
 type Popup struct {

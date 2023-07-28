@@ -121,7 +121,7 @@ func (server *Server) renderViewSurfaces(out *Output, view *View, r geom.Rect[fl
 
 	view.ForEachSurface(func(s wlr.Surface, x, y int) {
 		p := geom.Pt(x, y)
-		sb := geom.RConv[float64](surfaceBounds(p, s)).Add(bounds.Min)
+		sb := geom.RConv[float64](surfaceBounds(s).Add(p)).Add(bounds.Min)
 
 		server.renderSurface(out, s, geom.RConv[int](sb.PropShift(r, bounds)))
 	})
