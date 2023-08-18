@@ -72,7 +72,7 @@ func (server *Server) onKeyboardKeyReleased(kb *Keyboard, code uint32, update bo
 func (server *Server) onCursorMotion(dev wlr.Pointer, t time.Time, dx, dy float64) {
 	server.cursor.Move(dev.Base(), dx, dy)
 
-	m, ok := server.inputMode.(CursorMover)
+	m, ok := server.mode.(CursorMover)
 	if ok {
 		m.CursorMoved(server, t)
 	}
@@ -81,7 +81,7 @@ func (server *Server) onCursorMotion(dev wlr.Pointer, t time.Time, dx, dy float6
 func (server *Server) onCursorMotionAbsolute(dev wlr.Pointer, t time.Time, x, y float64) {
 	server.cursor.WarpAbsolute(dev.Base(), x, y)
 
-	m, ok := server.inputMode.(CursorMover)
+	m, ok := server.mode.(CursorMover)
 	if ok {
 		m.CursorMoved(server, t)
 	}
@@ -90,12 +90,12 @@ func (server *Server) onCursorMotionAbsolute(dev wlr.Pointer, t time.Time, x, y 
 func (server *Server) onCursorButton(dev wlr.Pointer, t time.Time, b wlr.CursorButton, state wlr.ButtonState) {
 	switch state {
 	case wlr.ButtonPressed:
-		m, ok := server.inputMode.(CursorButtonPresser)
+		m, ok := server.mode.(CursorButtonPresser)
 		if ok {
 			m.CursorButtonPressed(server, dev, b, t)
 		}
 	case wlr.ButtonReleased:
-		m, ok := server.inputMode.(CursorButtonReleaser)
+		m, ok := server.mode.(CursorButtonReleaser)
 		if ok {
 			m.CursorButtonReleased(server, dev, b, t)
 		}
@@ -111,7 +111,7 @@ func (server *Server) onCursorFrame() {
 }
 
 func (server *Server) onRequestCursor(client wlr.SeatClient, surface wlr.Surface, serial uint32, hotspotX, hotspotY int32) {
-	m, ok := server.inputMode.(CursorRequester)
+	m, ok := server.mode.(CursorRequester)
 	if !ok {
 		return
 	}

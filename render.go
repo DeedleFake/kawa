@@ -25,6 +25,12 @@ func (server *Server) onFrame(out *Output) {
 	defer server.renderer.End()
 
 	server.renderer.Clear(ColorBackground)
+
+	if server.overview {
+		server.renderOverview(out)
+		return
+	}
+
 	server.renderBG(out)
 	server.renderLayer(out, wlr.LayerShellV1LayerBackground)
 	server.renderLayer(out, wlr.LayerShellV1LayerBottom)
@@ -37,6 +43,18 @@ func (server *Server) onFrame(out *Output) {
 	}
 	server.renderMode(out)
 	server.renderCursor(out)
+}
+
+func (server *Server) renderOverview(out *Output) {
+	ob := server.outputTilingBounds(out).Inset(2 * WindowBorder)
+
+	tiles := make([]geom.Rect[float64], server.numViews())
+	geom.TileRows(tiles, ob, 4)
+
+	for i, view := range server.views {
+		b := view.Bounds().FitTo(tiles[i].Size()).CenterAt(tiles[i].Center()).Inset(2 * WindowBorder)
+		server.renderViewTo(out, view, b)
+	}
 }
 
 func (server *Server) renderBG(out *Output) {
@@ -75,13 +93,17 @@ func (server *Server) renderViews(out *Output) {
 }
 
 func (server *Server) renderView(out *Output, view *View) {
-	if !view.CSD {
-		server.renderViewBorder(out, view)
-	}
-	server.renderViewSurfaces(out, view)
+	server.renderViewTo(out, view, view.Bounds())
 }
 
-func (server *Server) renderViewBorder(out *Output, view *View) {
+func (server *Server) renderViewTo(out *Output, view *View, to geom.Rect[float64]) {
+	if !view.CSD {
+		server.renderViewBorder(out, view, to)
+	}
+	server.renderViewSurfaces(out, view, to)
+}
+
+func (server *Server) renderViewBorder(out *Output, view *View, bounds geom.Rect[float64]) {
 	color := ColorInactiveBorder
 	if view.Activated() {
 		color = ColorActiveBorder
@@ -90,14 +112,18 @@ func (server *Server) renderViewBorder(out *Output, view *View) {
 		color = ColorSelectionBox
 	}
 
-	r := view.Bounds().Inset(-WindowBorder)
+	r := bounds.Inset(-WindowBorder)
 	server.renderRectBorder(out, geom.RConv[float64](r), color)
 }
 
-func (server *Server) renderViewSurfaces(out *Output, view *View) {
+func (server *Server) renderViewSurfaces(out *Output, view *View, r geom.Rect[float64]) {
+	bounds := view.Bounds()
+
 	view.ForEachSurface(func(s wlr.Surface, x, y int) {
 		p := geom.Pt(x, y)
-		server.renderSurface(out, s, geom.PConv[int](view.Coords).Add(p))
+		sb := geom.RConv[float64](surfaceBounds(s).Add(p)).Add(bounds.Min)
+
+		server.renderSurface(out, s, geom.RConv[int](sb.PropShift(r, bounds)))
 	})
 }
 
@@ -124,14 +150,13 @@ func (server *Server) renderSelectionBox(out *Output, r geom.Rect[float64]) {
 	server.renderer.RenderRect(r.Inset(WindowBorder).ImageRect(), ColorSelectionBackground, out.Output.TransformMatrix())
 }
 
-func (server *Server) renderSurface(out *Output, s wlr.Surface, p geom.Point[int]) {
+func (server *Server) renderSurface(out *Output, s wlr.Surface, r geom.Rect[int]) {
 	texture := s.GetTexture()
 	if !texture.Valid() {
 		wlr.Log(wlr.Error, "invalid texture for surface")
 		return
 	}
 
-	r := surfaceBounds(s).Add(geom.PConv[int](p))
 	tr := s.Current().Transform().Invert()
 	m := wlr.ProjectBoxMatrix(r.ImageRect(), tr, 0, out.Output.TransformMatrix())
 
@@ -156,7 +181,7 @@ func (server *Server) renderStatusBar() {
 }
 
 func (server *Server) renderMode(out *Output) {
-	m, ok := server.inputMode.(Framer)
+	m, ok := server.mode.(Framer)
 	if !ok {
 		return
 	}

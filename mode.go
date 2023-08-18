@@ -9,7 +9,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-type InputMode interface{}
+type Mode interface{}
 
 type inputModeNormal struct {
 	inView    bool
@@ -18,7 +18,7 @@ type inputModeNormal struct {
 
 func (server *Server) startNormal() {
 	server.setCursor("left_ptr")
-	server.inputMode = &inputModeNormal{}
+	server.mode = &inputModeNormal{}
 }
 
 func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
@@ -108,7 +108,7 @@ func (server *Server) startMove(view *View) {
 	server.focusView(view, view.Surface())
 
 	cc := server.cursorCoords()
-	server.inputMode = &inputModeMove{
+	server.mode = &inputModeMove{
 		view: view,
 		off:  cc.Sub(view.Coords),
 	}
@@ -163,7 +163,7 @@ func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
 func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from geom.Rect[float64]) {
 	view.SetResizing(true)
 	server.focusView(view, view.Surface())
-	server.inputMode = &inputModeBorderResize{
+	server.mode = &inputModeBorderResize{
 		view:  view,
 		edges: edges,
 		cur:   from,
@@ -260,7 +260,7 @@ func (server *Server) startMenu(m *Menu, btn wlr.CursorButton) {
 		btn: btn,
 	}
 	mode.CursorMoved(server, time.Now())
-	server.inputMode = &mode
+	server.mode = &mode
 }
 
 func (m *inputModeMenu) CursorMoved(server *Server, t time.Time) {
@@ -288,7 +288,7 @@ type inputModeSelectView struct {
 
 func (server *Server) startSelectView(b wlr.CursorButton, then func(*View)) {
 	server.setCursor("hand1")
-	server.inputMode = &inputModeSelectView{
+	server.mode = &inputModeSelectView{
 		startBtn: b,
 		then:     then,
 	}
@@ -317,7 +317,7 @@ type inputModeResize struct {
 
 func (server *Server) startResize(view *View) {
 	server.setCursor("top_left_corner")
-	server.inputMode = &inputModeResize{
+	server.mode = &inputModeResize{
 		view: view,
 	}
 }
@@ -383,7 +383,7 @@ type inputModeNew struct {
 
 func (server *Server) startNew() {
 	server.setCursor("top_left_corner")
-	server.inputMode = &inputModeNew{}
+	server.mode = &inputModeNew{}
 }
 
 func (m *inputModeNew) CursorMoved(server *Server, t time.Time) {

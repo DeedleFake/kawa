@@ -109,7 +109,7 @@ func (p *Popup) Release() {
 }
 
 func (server *Server) targetView() *View {
-	m, ok := server.inputMode.(ViewTargeter)
+	m, ok := server.mode.(ViewTargeter)
 	if !ok {
 		return nil
 	}
@@ -598,4 +598,8 @@ func (server *Server) updateTitles() {
 		focusedTitle = fv.Title()
 	}
 	server.statusBar.SetTitle(server.renderer, focusedTitle)
+}
+
+func (server *Server) numViews() int {
+	return len(server.views) + len(server.tiled) + len(server.hidden)
 }

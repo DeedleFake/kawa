@@ -18,6 +18,7 @@ var (
 		"Move",
 		"Close",
 		"Hide",
+		"Overview",
 	}
 
 	systemMenuText = []string{
@@ -62,7 +63,8 @@ type Server struct {
 
 	statusBar *StatusBar
 
-	inputMode InputMode
+	mode     Mode
+	overview bool
 
 	onNewOutputListener             wlr.Listener
 	onNewInputListener              wlr.Listener
@@ -150,6 +152,9 @@ func (server *Server) initMainMenu() {
 		server.onMainMenuMove,
 		server.onMainMenuClose,
 		server.onMainMenuHide,
+		func() {
+			server.overview = !server.overview
+		},
 	}
 
 	items := make([]*MenuItem, 0, len(mainMenuText))
