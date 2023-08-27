@@ -1,6 +1,6 @@
 module deedles.dev/kawa
 
-go 1.18
+go 1.21
 
 require (
 	deedles.dev/wlr v0.0.0-20230609170122-c83b1a7b6114
