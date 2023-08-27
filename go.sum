@@ -2,6 +2,8 @@ deedles.dev/wlr v0.0.0-20230609170122-c83b1a7b6114 h1:DRpOvu+7+Zf3AQzX2CYXzEbeNa
 deedles.dev/wlr v0.0.0-20230609170122-c83b1a7b6114/go.mod h1:pA6qL+BxCynfZl1H3rrFTt3NlQEBmu9nxK2ir5nrf+c=
 deedles.dev/ximage v0.0.0-20230609170106-f29200600f32 h1:qDSP61SgPWwGKWruipYQuYLVGEv5EQmDzV2vlk7O/KE=
 deedles.dev/ximage v0.0.0-20230609170106-f29200600f32/go.mod h1:1avHO+eEHmPAahfDKhaxtGhJHdEHPpPTW+qHjv1wWKk=
+deedles.dev/xiter v0.0.0-20230827195742-5de72fbdd38f h1:+JMaGZzPH1W/soKFuIux/+AxxPnz8YNaLyxBJ27J8Fo=
+deedles.dev/xiter v0.0.0-20230827195742-5de72fbdd38f/go.mod h1:Mu30hAcR8t/9Be92uLQx2oxc+/svIXUWtygWiCMH8cU=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
