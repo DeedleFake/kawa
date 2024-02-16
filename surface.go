@@ -87,7 +87,7 @@ func (s *viewSurfaceXDG) Surface() wlr.Surface {
 }
 
 func (s *viewSurfaceXDG) Mapped() bool {
-	return s.s.Mapped()
+	return s.s.Surface().Mapped()
 }
 
 func (s *viewSurfaceXDG) SetActivated(a bool) {
@@ -162,7 +162,7 @@ func (s *viewSurfaceXwayland) Surface() wlr.Surface {
 }
 
 func (s *viewSurfaceXwayland) Mapped() bool {
-	return s.s.Mapped()
+	return s.s.Surface().Mapped()
 }
 
 func (s *viewSurfaceXwayland) SetActivated(a bool) {

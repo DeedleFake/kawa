@@ -173,7 +173,7 @@ func (server *Server) setCursor(name string) {
 	if server.xwayland.Valid() {
 		server.xwayland.SetCursor(server.cursorMgr.GetXCursor(name, 1).Image(0))
 	}
-	server.cursorMgr.SetCursorImage(name, server.cursor)
+	server.cursor.SetXCursor(server.cursorMgr, name)
 }
 
 func (server *Server) handleKeyboardShortcut(kb *Keyboard, code uint32, t time.Time) bool {

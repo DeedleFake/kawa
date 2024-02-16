@@ -212,7 +212,7 @@ func (server *Server) onNewXwaylandSurface(surface wlr.XwaylandSurface) {
 	view.onDestroyListener = surface.OnDestroy(func(s wlr.XwaylandSurface) {
 		server.onDestroyView(&view)
 	})
-	view.onMapListener = surface.OnMap(func(s wlr.XwaylandSurface) {
+	view.onMapListener = surface.Surface().OnMap(func(s wlr.Surface) {
 		server.onMapView(&view)
 	})
 	view.onRequestMoveListener = surface.OnRequestMove(func(s wlr.XwaylandSurface) {
@@ -265,7 +265,7 @@ func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 	view.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
 		server.onDestroyView(&view)
 	})
-	view.onMapListener = surface.OnMap(func(s wlr.XDGSurface) {
+	view.onMapListener = surface.Surface().OnMap(func(s wlr.Surface) {
 		server.onMapView(&view)
 	})
 	view.onRequestMoveListener = surface.Toplevel().OnRequestMove(func(t wlr.XDGToplevel, client wlr.SeatClient, serial uint32) {
@@ -560,7 +560,7 @@ func (server *Server) onNewDecoration(dm wlr.ServerDecorationManager, d wlr.Serv
 
 func (server *Server) onNewToplevelDecoration(dm wlr.XDGDecorationManagerV1, d wlr.XDGToplevelDecorationV1) {
 	var view *View
-	d.Surface().ForEachSurface(func(s wlr.Surface, x, y int) {
+	d.Toplevel().Base().ForEachSurface(func(s wlr.Surface, x, y int) {
 		if view == nil {
 			view = server.viewForSurface(s)
 		}
