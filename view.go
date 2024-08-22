@@ -81,13 +81,10 @@ func (view *View) onDestroyPopup(p *Popup) {
 
 func (view *View) isPopupSurface(surface wlr.Surface) (ok bool) {
 	for _, p := range view.popups {
-		p.Surface.ForEachSurface(func(s wlr.Surface, sx, sy int) {
-			if s == surface {
-				ok = true
+		for s := range p.Surface.Surfaces() {
+			if s.Surface == surface {
+				return true
 			}
-		})
-		if ok {
-			return true
 		}
 	}
 	return false
@@ -537,11 +534,11 @@ func (server *Server) closeView(view *View) {
 
 func (server *Server) onNewDecoration(dm wlr.ServerDecorationManager, d wlr.ServerDecoration) {
 	var view *View
-	d.Surface().ForEachSurface(func(s wlr.Surface, x, y int) {
+	for s := range d.Surface().Surfaces() {
 		if view == nil {
-			view = server.viewForSurface(s)
+			view = server.viewForSurface(s.Surface)
 		}
-	})
+	}
 	if view == nil {
 		return
 	}
@@ -560,11 +557,11 @@ func (server *Server) onNewDecoration(dm wlr.ServerDecorationManager, d wlr.Serv
 
 func (server *Server) onNewToplevelDecoration(dm wlr.XDGDecorationManagerV1, d wlr.XDGToplevelDecorationV1) {
 	var view *View
-	d.Toplevel().Base().ForEachSurface(func(s wlr.Surface, x, y int) {
+	for s := range d.Toplevel().Base().Surfaces() {
 		if view == nil {
-			view = server.viewForSurface(s)
+			view = server.viewForSurface(s.Surface)
 		}
-	})
+	}
 	if view == nil {
 		// If there's no view, there's probably no point.
 		return

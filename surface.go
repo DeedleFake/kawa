@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"iter"
 
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
@@ -26,7 +27,7 @@ type ViewSurface interface {
 	Activated() bool
 	SetActivated(bool)
 
-	ForEachSurface(func(wlr.Surface, int, int))
+	Surfaces() iter.Seq[wlr.IterSurface]
 	SurfaceAt(geom.Point[float64]) (s wlr.Surface, sp geom.Point[float64], ok bool)
 	HasSurface(wlr.Surface) bool
 }
@@ -98,8 +99,8 @@ func (s *viewSurfaceXDG) Activated() bool {
 	return s.s.Toplevel().Current().Activated()
 }
 
-func (s *viewSurfaceXDG) ForEachSurface(cb func(wlr.Surface, int, int)) {
-	s.s.ForEachSurface(cb)
+func (s *viewSurfaceXDG) Surfaces() iter.Seq[wlr.IterSurface] {
+	return s.s.Surfaces()
 }
 
 func (s *viewSurfaceXDG) SurfaceAt(p geom.Point[float64]) (surface wlr.Surface, sp geom.Point[float64], ok bool) {
@@ -174,8 +175,8 @@ func (s *viewSurfaceXwayland) Activated() bool {
 	return s.activated
 }
 
-func (s *viewSurfaceXwayland) ForEachSurface(cb func(wlr.Surface, int, int)) {
-	s.s.Surface().ForEachSurface(cb)
+func (s *viewSurfaceXwayland) Surfaces() iter.Seq[wlr.IterSurface] {
+	return s.s.Surface().Surfaces()
 }
 
 func (s *viewSurfaceXwayland) SurfaceAt(p geom.Point[float64]) (surface wlr.Surface, sp geom.Point[float64], ok bool) {
