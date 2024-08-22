@@ -110,26 +110,20 @@ func (server *Server) layoutOutput(out *Output, config *OutputConfig) {
 }
 
 func (server *Server) setOutputMode(out *Output, config *OutputConfig) {
-	var set bool
-	defer func() {
-		if !set {
-			mode := out.Output.PreferredMode()
-			if mode.Valid() {
-				out.Output.SetMode(mode)
-			}
-		}
-	}()
-
-	modes := out.Output.Modes()
 	if (config == nil) || (config.Width == 0) || (config.Height == 0) {
 		return
 	}
 
+	modes := out.Output.Modes()
 	for mode := range modes {
 		if (mode.Width() == int32(config.Width)) && (mode.Height() == int32(config.Height)) {
 			out.Output.SetMode(mode)
-			set = true
 			return
 		}
+	}
+
+	mode := out.Output.PreferredMode()
+	if mode.Valid() {
+		out.Output.SetMode(mode)
 	}
 }
