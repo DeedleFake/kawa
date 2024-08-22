@@ -4,8 +4,8 @@ go 1.23.0
 
 require (
 	deedles.dev/wlr v0.0.0-20240822155953-ffb495883fe5
-	deedles.dev/ximage v0.0.0-20240822165513-d20588ebce98
-	deedles.dev/xiter v0.0.0-20240815221547-ba5e081b01e3
+	deedles.dev/ximage v0.0.0-20240822204332-810acd4cf757
+	deedles.dev/xiter v0.0.0-20240822204023-08c7a1ac35d6
 	golang.org/x/image v0.19.0
 )
 
