@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"slices"
 
-	"deedles.dev/kawa/internal/util"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
+	"deedles.dev/xiter"
 )
 
 type ViewTargeter interface {
@@ -300,7 +300,8 @@ func (server *Server) onDestroyView(view *View) {
 	}
 
 	server.updateTitles()
-	if n, ok := util.Last(server.tiled, server.views); ok {
+	allviews := xiter.Concat(xiter.OfSlice(server.tiled), xiter.OfSlice(server.views))
+	if n, ok := xiter.Drain(allviews); ok {
 		server.focusView(n, n.Surface())
 	}
 }
