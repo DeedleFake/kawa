@@ -152,14 +152,17 @@ func (server *Server) initMainMenu() {
 		server.onMainMenuHide,
 	}
 
-	items := make([]*MenuItem, 0, len(mainMenuText))
-	for i, text := range mainMenuText {
-		item := NewTextMenuItem(server.renderer, text)
-		item.OnSelect = cbs[i]
-		items = append(items, item)
+	items := func(yield func(*MenuItem) bool) {
+		for i, text := range mainMenuText {
+			item := NewTextMenuItem(server.renderer, text)
+			item.OnSelect = cbs[i]
+			if !yield(item) {
+				return
+			}
+		}
 	}
 
-	server.mainMenu = NewMenu(items...)
+	server.mainMenu = NewMenuFromSeq(items, len(mainMenuText))
 }
 
 func (server *Server) onMainMenuNew() {
@@ -204,14 +207,17 @@ func (server *Server) initSystemMenu() {
 		server.onSystemMenuLogOut,
 	}
 
-	items := make([]*MenuItem, 0, len(systemMenuText))
-	for i, text := range systemMenuText {
-		item := NewTextMenuItem(server.renderer, text)
-		item.OnSelect = cbs[i]
-		items = append(items, item)
+	items := func(yield func(*MenuItem) bool) {
+		for i, text := range systemMenuText {
+			item := NewTextMenuItem(server.renderer, text)
+			item.OnSelect = cbs[i]
+			if !yield(item) {
+				return
+			}
+		}
 	}
 
-	server.systemMenu = NewMenu(items...)
+	server.systemMenu = NewMenuFromSeq(items, len(systemMenuText))
 }
 
 func (server *Server) onSystemMenuLogOut() {

@@ -95,11 +95,11 @@ func (server *Server) init() error {
 		return errors.New("failed to create allocator")
 	}
 
-	server.compositor = wlr.CreateCompositor(server.display, server.renderer)
+	server.compositor = wlr.CreateCompositor(server.display, 5, server.renderer)
 
 	wlr.CreateDRM(server.display, server.renderer)
 	wlr.CreateDataDeviceManager(server.display)
-	wlr.CreateLinuxDMABufV1(server.display, server.renderer)
+	wlr.CreateLinuxDMABufV1WithRenderer(server.display, 1, server.renderer)
 	wlr.CreateExportDMABufV1(server.display)
 	wlr.CreateScreencopyManagerV1(server.display)
 	wlr.CreateDataControlManagerV1(server.display)
@@ -136,7 +136,7 @@ func (server *Server) init() error {
 	server.xdgShell = wlr.CreateXDGShell(server.display, 3)
 	server.onNewXDGSurfaceListener = server.xdgShell.OnNewSurface(server.onNewXDGSurface)
 
-	server.layerShell = wlr.CreateLayerShellV1(server.display)
+	server.layerShell = wlr.CreateLayerShellV1(server.display, 4)
 	server.onNewLayerSurfaceListener = server.layerShell.OnNewSurface(server.onNewLayerSurface)
 
 	server.decorationManager = wlr.CreateServerDecorationManager(server.display)

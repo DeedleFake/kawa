@@ -95,10 +95,10 @@ func (server *Server) renderViewBorder(out *Output, view *View) {
 }
 
 func (server *Server) renderViewSurfaces(out *Output, view *View) {
-	view.ForEachSurface(func(s wlr.Surface, x, y int) {
-		p := geom.Pt(x, y)
-		server.renderSurface(out, s, geom.PConv[int](view.Coords).Add(p))
-	})
+	for s := range view.Surfaces() {
+		p := geom.Pt(s.X, s.Y)
+		server.renderSurface(out, s.Surface, geom.PConv[int](view.Coords).Add(p))
+	}
 }
 
 func (server *Server) renderNewViews(out *Output) {

@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"slices"
 
 	"deedles.dev/kawa/internal/util"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
-	"golang.org/x/exp/slices"
 )
 
 type ViewTargeter interface {
@@ -81,13 +81,10 @@ func (view *View) onDestroyPopup(p *Popup) {
 
 func (view *View) isPopupSurface(surface wlr.Surface) (ok bool) {
 	for _, p := range view.popups {
-		p.Surface.ForEachSurface(func(s wlr.Surface, sx, sy int) {
-			if s == surface {
-				ok = true
+		for s := range p.Surface.Surfaces() {
+			if s.Surface == surface {
+				return true
 			}
-		})
-		if ok {
-			return true
 		}
 	}
 	return false
@@ -212,7 +209,7 @@ func (server *Server) onNewXwaylandSurface(surface wlr.XwaylandSurface) {
 	view.onDestroyListener = surface.OnDestroy(func(s wlr.XwaylandSurface) {
 		server.onDestroyView(&view)
 	})
-	view.onMapListener = surface.OnMap(func(s wlr.XwaylandSurface) {
+	view.onMapListener = surface.Surface().OnMap(func(s wlr.Surface) {
 		server.onMapView(&view)
 	})
 	view.onRequestMoveListener = surface.OnRequestMove(func(s wlr.XwaylandSurface) {
@@ -265,7 +262,7 @@ func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 	view.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
 		server.onDestroyView(&view)
 	})
-	view.onMapListener = surface.OnMap(func(s wlr.XDGSurface) {
+	view.onMapListener = surface.Surface().OnMap(func(s wlr.Surface) {
 		server.onMapView(&view)
 	})
 	view.onRequestMoveListener = surface.Toplevel().OnRequestMove(func(t wlr.XDGToplevel, client wlr.SeatClient, serial uint32) {
@@ -537,11 +534,11 @@ func (server *Server) closeView(view *View) {
 
 func (server *Server) onNewDecoration(dm wlr.ServerDecorationManager, d wlr.ServerDecoration) {
 	var view *View
-	d.Surface().ForEachSurface(func(s wlr.Surface, x, y int) {
+	for s := range d.Surface().Surfaces() {
 		if view == nil {
-			view = server.viewForSurface(s)
+			view = server.viewForSurface(s.Surface)
 		}
-	})
+	}
 	if view == nil {
 		return
 	}
@@ -560,11 +557,11 @@ func (server *Server) onNewDecoration(dm wlr.ServerDecorationManager, d wlr.Serv
 
 func (server *Server) onNewToplevelDecoration(dm wlr.XDGDecorationManagerV1, d wlr.XDGToplevelDecorationV1) {
 	var view *View
-	d.Surface().ForEachSurface(func(s wlr.Surface, x, y int) {
+	for s := range d.Toplevel().Base().Surfaces() {
 		if view == nil {
-			view = server.viewForSurface(s)
+			view = server.viewForSurface(s.Surface)
 		}
-	})
+	}
 	if view == nil {
 		// If there's no view, there's probably no point.
 		return
