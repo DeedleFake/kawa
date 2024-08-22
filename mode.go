@@ -2,11 +2,11 @@ package main
 
 import (
 	"math"
+	"slices"
 	"time"
 
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
-	"golang.org/x/exp/slices"
 )
 
 type InputMode interface{}

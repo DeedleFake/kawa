@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"slices"
 
 	"deedles.dev/kawa/internal/util"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
-	"golang.org/x/exp/slices"
 )
 
 type ViewTargeter interface {

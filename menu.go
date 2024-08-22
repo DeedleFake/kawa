@@ -2,11 +2,12 @@ package main
 
 import (
 	"image"
+	"iter"
+	"slices"
 
 	"deedles.dev/kawa/draw"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
-	"golang.org/x/exp/slices"
 )
 
 var (
@@ -20,11 +21,15 @@ type Menu struct {
 }
 
 func NewMenu(items ...*MenuItem) *Menu {
+	return NewMenuFromSeq(slices.Values(items), len(items))
+}
+
+func NewMenuFromSeq(items iter.Seq[*MenuItem], numitems int) *Menu {
 	m := Menu{
-		items:  make([]*MenuItem, 0, len(items)),
-		bounds: make([]geom.Rect[float64], 0, len(items)),
+		items:  make([]*MenuItem, 0, numitems),
+		bounds: make([]geom.Rect[float64], 0, numitems),
 	}
-	for _, item := range items {
+	for item := range items {
 		m.add(item)
 	}
 	m.updateBounds(false)
