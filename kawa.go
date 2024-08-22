@@ -4,10 +4,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"iter"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -46,33 +48,35 @@ func parseTransform(str string) (wlr.OutputTransform, error) {
 }
 
 // parseOutputConfigs parses an OutputConfig from a string.
-func parseOutputConfigs(outputConfigs string) (configs []OutputConfig, err error) {
-	if outputConfigs == "" {
-		return
+func parseOutputConfigs(outputConfigs string) iter.Seq[OutputConfig] {
+	return func(yield func(OutputConfig) bool) {
+		if outputConfigs == "" {
+			return
+		}
+
+		// TODO: Handle errors.
+		for config := range xiter.StringSplit(outputConfigs, ",") {
+			parts := strings.Split(config, ":")
+			c := OutputConfig{Name: parts[0]}
+			c.X, _ = strconv.Atoi(parts[1])
+			c.Y, _ = strconv.Atoi(parts[2])
+			if len(parts) >= 5 {
+				c.Width, _ = strconv.Atoi(parts[3])
+				c.Height, _ = strconv.Atoi(parts[4])
+			}
+			if len(parts) >= 6 {
+				scale, _ := strconv.ParseFloat(parts[5], 32)
+				c.Scale = float32(scale)
+			}
+			if len(parts) >= 7 {
+				c.Transform, _ = parseTransform(parts[6])
+			}
+
+			if !yield(c) {
+				return
+			}
+		}
 	}
-
-	// TODO: Handle errors.
-	for config := range xiter.StringSplit(outputConfigs, ",") {
-		parts := strings.Split(config, ":")
-		c := OutputConfig{Name: parts[0]}
-		c.X, _ = strconv.Atoi(parts[1])
-		c.Y, _ = strconv.Atoi(parts[2])
-		if len(parts) >= 5 {
-			c.Width, _ = strconv.Atoi(parts[3])
-			c.Height, _ = strconv.Atoi(parts[4])
-		}
-		if len(parts) >= 6 {
-			scale, _ := strconv.ParseFloat(parts[5], 32)
-			c.Scale = float32(scale)
-		}
-		if len(parts) >= 7 {
-			c.Transform, _ = parseTransform(parts[6])
-		}
-
-		configs = append(configs, c)
-	}
-
-	return configs, nil
 }
 
 // init initializes the boilerplate necessary to get wlroots up and
@@ -196,18 +200,13 @@ func main() {
 	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
 	flag.Parse()
 
-	outputConfigsParsed, err := parseOutputConfigs(*outputConfigs)
-	if err != nil {
-		wlr.Log(wlr.Error, "parse output configs: %v", err)
-		os.Exit(1)
-	}
-
+	outputConfigsParsed := parseOutputConfigs(*outputConfigs)
 	server := Server{
 		Terms:         *terms,
-		OutputConfigs: outputConfigsParsed,
+		OutputConfigs: slices.Collect(outputConfigsParsed),
 	}
 
-	err = server.init()
+	err := server.init()
 	if err != nil {
 		wlr.Log(wlr.Error, "init server: %v", err)
 		os.Exit(1)
