@@ -1,7 +1,7 @@
 deedles.dev/wlr v0.0.0-20240822155953-ffb495883fe5 h1:NkNbk8DATydqfND4jV8+lwziBk6JIQD4OTjl4LeUgOw=
 deedles.dev/wlr v0.0.0-20240822155953-ffb495883fe5/go.mod h1:WgJ5YXHgAamxyAs1Jwx3oAHRqvnVKzWeSD6sHzSVVpo=
-deedles.dev/ximage v0.0.0-20240823205045-e0b0524a62cb h1:vTEvt3kkVWG8eP7AWpnsRHLwd2rD3oepOHQbfZzK1lM=
-deedles.dev/ximage v0.0.0-20240823205045-e0b0524a62cb/go.mod h1:v/iFPKBcorw6xlR+xkKNv0knqSI4LsmJVCyUq/ozJuM=
+deedles.dev/ximage v0.0.0-20240823205855-142223523460 h1:O930vuOqHl/VDc8CDcaoiUxQrdU+V5VYsbvlgwuSuSU=
+deedles.dev/ximage v0.0.0-20240823205855-142223523460/go.mod h1:v/iFPKBcorw6xlR+xkKNv0knqSI4LsmJVCyUq/ozJuM=
 deedles.dev/xiter v0.0.0-20240823150837-dcf0352f0bda h1:KreIqbsSGRScMhHTl39A7c1RTMxD4kbiOORsIeX8WyA=
 deedles.dev/xiter v0.0.0-20240823150837-dcf0352f0bda/go.mod h1:59997UHUsKAy/8bHUClTfeXdyuLZ6z/+yF++vIpxfx8=
 golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 h1:kx6Ds3MlpiUHKj7syVnbp57++8WpuKPcR5yjLBjvLEA=
