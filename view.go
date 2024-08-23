@@ -517,9 +517,8 @@ func (server *Server) layoutTiles(out *Output) {
 	}
 
 	or := server.outputTilingBounds(out)
-	tiles := make([]geom.Rect[float64], len(server.tiled)) // TODO: Don't allocate this every time.
-	geom.TileRows(tiles, or, 4)
-	for i, tile := range tiles {
+	tiles := geom.TiledRows(len(server.tiled), or, 4)
+	for i, tile := range xiter.Enumerate(tiles) {
 		tile = tile.Inset(3 * WindowBorder)
 		server.resizeViewTo(out, server.tiled[i], tile)
 	}
