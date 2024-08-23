@@ -300,7 +300,7 @@ func (server *Server) onDestroyView(view *View) {
 	}
 
 	server.updateTitles()
-	allviews := xiter.Concat(xiter.OfSlice(server.tiled), xiter.OfSlice(server.views))
+	allviews := xiter.Concat(slices.Values(server.tiled), slices.Values(server.views))
 	if n, ok := xiter.Drain(allviews); ok {
 		server.focusView(n, n.Surface())
 	}
