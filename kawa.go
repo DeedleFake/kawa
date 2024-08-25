@@ -17,7 +17,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 
-	"deedles.dev/kawa/internal/util"
+	"deedles.dev/kawa/internal/xflag"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
 	"deedles.dev/xiter"
@@ -194,7 +194,7 @@ func main() {
 
 	wlr.InitLog(wlr.Debug, nil)
 
-	terms := util.StringsFlag("terms", []string{"sakura", "alacritty"}, "preferentially ordered list of terminals for new windows to use")
+	terms := xflag.StringsFlag("terms", []string{"sakura", "alacritty"}, "preferentially ordered list of terminals for new windows to use")
 	bg := flag.String("bg", "", "background image")
 	bgScale := flag.String("bgscale", "stretch", "background image scaling method (stretch, center, fit, fill)")
 	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
