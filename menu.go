@@ -36,6 +36,16 @@ func NewMenuFromSeq(items iter.Seq[*MenuItem], numitems int) *Menu {
 	return &m
 }
 
+func (m *Menu) Items() iter.Seq2[*MenuItem, geom.Rect[float64]] {
+	return func(yield func(*MenuItem, geom.Rect[float64]) bool) {
+		for i, item := range m.items {
+			if !yield(item, m.bounds[i]) {
+				return
+			}
+		}
+	}
+}
+
 func (m *Menu) Len() int {
 	return len(m.items)
 }

@@ -173,8 +173,8 @@ func (server *Server) renderMenu(out *Output, m *Menu, p geom.Point[float64], se
 	server.renderer.RenderRect(r.Inset(-WindowBorder/2).ImageRect(), ColorMenuBorder, out.Output.TransformMatrix())
 	server.renderer.RenderRect(r.ImageRect(), ColorMenuUnselected, out.Output.TransformMatrix())
 
-	for _, item := range m.items {
-		ar := m.ItemBounds(item).Add(p)
+	for item, bounds := range m.Items() {
+		ar := bounds.Add(p)
 		tr := geom.Rt(0, 0, float64(item.active.Width()), float64(item.active.Height())).CenterAt(ar.Center())
 
 		t := item.inactive
