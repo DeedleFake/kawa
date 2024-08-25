@@ -165,7 +165,7 @@ func (server *Server) renderMode(out *Output) {
 }
 
 func (server *Server) renderCursor(out *Output) {
-	out.Output.RenderSoftwareCursors(image.ZR)
+	out.Output.RenderSoftwareCursors(image.Rectangle{})
 }
 
 func (server *Server) renderMenu(out *Output, m *Menu, p geom.Point[float64], sel *MenuItem) {

@@ -198,7 +198,7 @@ func (server *Server) isViewAt(out *Output, view *View, p geom.Point[float64]) (
 	}
 
 	// Where else could it possibly be if it gets to here?
-	panic(fmt.Errorf("If you see this, there's a bug.\np = %+v\nr = %+v", p, r))
+	panic(fmt.Errorf("this should not have happened\np = %+v\nr = %+v", p, r))
 }
 
 func (server *Server) onNewXwaylandSurface(surface wlr.XwaylandSurface) {

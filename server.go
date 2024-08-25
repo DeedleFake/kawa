@@ -45,8 +45,8 @@ type Server struct {
 	decorationManager    wlr.ServerDecorationManager
 	xdgDecorationManager wlr.XDGDecorationManagerV1
 
-	outputs   []*Output
-	inputs    []wlr.InputDevice
+	outputs []*Output
+	//inputs    []wlr.InputDevice
 	pointers  []wlr.Pointer
 	keyboards []*Keyboard
 	views     []*View
