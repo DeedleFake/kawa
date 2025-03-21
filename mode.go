@@ -9,7 +9,7 @@ import (
 	"deedles.dev/ximage/geom"
 )
 
-type InputMode interface{}
+type InputMode any
 
 type inputModeNormal struct {
 	inView    bool
