@@ -1,15 +1,12 @@
 module deedles.dev/kawa
 
-go 1.23.0
+go 1.24.1
 
 require (
-	deedles.dev/wlr v0.0.0-20240822155953-ffb495883fe5
-	deedles.dev/ximage v0.0.0-20240823205855-142223523460
-	deedles.dev/xiter v0.0.0-20240825023150-1849aa7a9329
-	golang.org/x/image v0.19.0
+	deedles.dev/wlr v0.0.0-20250321002055-d5699d447b5c
+	deedles.dev/ximage v0.0.0-20250321002604-9fc93f3c0d3c
+	deedles.dev/xiter v0.2.1
+	golang.org/x/image v0.25.0
 )
 
-require (
-	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
-	golang.org/x/text v0.17.0 // indirect
-)
+require golang.org/x/text v0.23.0 // indirect
