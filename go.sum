@@ -1,5 +1,5 @@
-deedles.dev/wlr v0.0.0-20260213024750-5be476cf7a5d h1:gGF+sMaOlpCd3GBvMinx+gr8k6w6Wo8CqhI2Qia0Paw=
-deedles.dev/wlr v0.0.0-20260213024750-5be476cf7a5d/go.mod h1:MtwAdJf47vQrRJi1h2Io+z8km13AR7VeMmVl6xxBZP8=
+deedles.dev/wlr v0.0.0-20260213032831-869dbe417baf h1:gOn5fNa3e3SVWuIAyduX10QAiP389+jMw8mT51UcKAU=
+deedles.dev/wlr v0.0.0-20260213032831-869dbe417baf/go.mod h1:MtwAdJf47vQrRJi1h2Io+z8km13AR7VeMmVl6xxBZP8=
 deedles.dev/ximage v0.0.0-20250321223218-e433919886dd h1:idpMQR6xGdQEyl1QshL2TRF8dp9jBJ3ndcn5CdV/YhE=
 deedles.dev/ximage v0.0.0-20250321223218-e433919886dd/go.mod h1:YnxyYpjiUD7yhS14uOWihIJ+GaB6wZFeOk3RwR8p4SM=
 deedles.dev/xiter v0.2.1 h1:yyyfo1sDwARp5lyMvILBJpEI28sIFN0TNYagAdBUa+s=
