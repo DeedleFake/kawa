@@ -20,7 +20,6 @@ import (
 	"deedles.dev/kawa/internal/xflag"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
-	"deedles.dev/xiter"
 )
 
 // parseTransform parses an OutputTransform from a string.
@@ -55,7 +54,7 @@ func parseOutputConfigs(outputConfigs string) iter.Seq[OutputConfig] {
 		}
 
 		// TODO: Handle errors.
-		for config := range xiter.StringSplit(outputConfigs, ",") {
+		for config := range strings.SplitSeq(outputConfigs, ",") {
 			parts := strings.Split(config, ":")
 			c := OutputConfig{Name: parts[0]}
 			c.X, _ = strconv.Atoi(parts[1])
