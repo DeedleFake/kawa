@@ -100,7 +100,7 @@ jobs:
           fi
           if ! pkg-config --exists 'xkbcommon >= 1.8.0'; then
             build_meson libxkbcommon \
-              https://github.com/xkbcommon/libxkbcommon.git xkbcommon-1.8.1 \
+              https://github.com/xkbcommon/libxkbcommon.git xkbcommon-1.13.2 \
               -Denable-tools=false -Denable-x11=false \
               -Denable-docs=false -Denable-xkbregistry=false
           fi
