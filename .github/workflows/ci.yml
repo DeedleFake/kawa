@@ -1,0 +1,166 @@
+name: ci
+
+on:
+  push:
+    branches: [master, ci, 'wlr-*']
+  pull_request:
+
+env:
+  GOTOOLCHAIN: auto
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ['1.26.x', '1.27.x']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build pkg-config cmake \
+            python3-pip python3-setuptools python3-wheel \
+            libwayland-dev wayland-protocols \
+            libpixman-1-dev \
+            libinput-dev \
+            libseat-dev \
+            libdrm-dev \
+            libxkbcommon-dev \
+            libvulkan-dev glslang-tools \
+            libegl-dev libgles-dev libgbm-dev \
+            libdisplay-info-dev \
+            libliftoff-dev \
+            libudev-dev \
+            libxcb1-dev \
+            libxcb-composite0-dev \
+            libxcb-dri3-dev \
+            libxcb-ewmh-dev \
+            libxcb-icccm4-dev \
+            libxcb-present-dev \
+            libxcb-render0-dev \
+            libxcb-render-util0-dev \
+            libxcb-res0-dev \
+            libxcb-shm0-dev \
+            libxcb-xfixes0-dev \
+            libxcb-xinput-dev \
+            libx11-xcb-dev \
+            hwdata \
+            xwayland
+          # Newer meson than ubuntu-latest's 1.3.x.
+          python3 -m pip install --user 'meson>=1.5'
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Read wlroots version pin
+        id: wlroots
+        run: echo "tag=$(tr -d '[:space:]' < .github/wlroots-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Build wlroots from pinned tag
+        run: |
+          set -euo pipefail
+          meson --version
+
+          deps="$HOME/deps"
+          mkdir -p "$deps"
+          # Prefer our staged deps over distro packages when both exist.
+          export PKG_CONFIG_PATH="$deps/lib/x86_64-linux-gnu/pkgconfig:$deps/lib/pkgconfig:$deps/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+          export LD_LIBRARY_PATH="$deps/lib/x86_64-linux-gnu:$deps/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          export PATH="$deps/bin:$PATH"
+
+          build_meson() {
+            local name="$1" url="$2" ref="$3"
+            shift 3
+            local src="$HOME/src/$name"
+            git clone --depth 1 --branch "$ref" "$url" "$src"
+            meson setup "$src/build" "$src" --prefix="$deps" "$@"
+            ninja -C "$src/build" install
+          }
+
+          # ubuntu-latest (24.04) is behind what wlroots 0.20 needs.
+          if ! pkg-config --exists 'wayland-server >= 1.24.0'; then
+            build_meson wayland \
+              https://gitlab.freedesktop.org/wayland/wayland.git 1.24.0 \
+              -Dtests=false -Ddocumentation=false
+          fi
+          if ! pkg-config --exists 'wayland-protocols >= 1.47'; then
+            build_meson wayland-protocols \
+              https://gitlab.freedesktop.org/wayland/wayland-protocols.git 1.47
+          fi
+          if ! pkg-config --exists 'libdrm >= 2.4.129'; then
+            build_meson libdrm \
+              https://gitlab.freedesktop.org/mesa/drm.git libdrm-2.4.129 \
+              -Dauto_features=disabled -Dtests=false \
+              -Dintel=enabled -Dradeon=enabled -Damdgpu=enabled \
+              -Dnouveau=enabled
+          fi
+          if ! pkg-config --exists 'xkbcommon >= 1.8.0'; then
+            build_meson libxkbcommon \
+              https://github.com/xkbcommon/libxkbcommon.git xkbcommon-1.8.1 \
+              -Denable-tools=false -Denable-x11=false \
+              -Denable-docs=false -Denable-xkbregistry=false
+          fi
+          # wlroots 0.20 render/pixman wants >=0.46.0.
+          if ! pkg-config --exists 'pixman-1 >= 0.46.0'; then
+            build_meson pixman \
+              https://gitlab.freedesktop.org/pixman/pixman.git pixman-0.46.0 \
+              -Dwerror=false
+          fi
+          if ! pkg-config --exists 'libdisplay-info >= 0.2.0'; then
+            build_meson libdisplay-info \
+              https://gitlab.freedesktop.org/emersion/libdisplay-info.git 0.2.0
+          fi
+
+          tag="${{ steps.wlroots.outputs.tag }}"
+          git clone --depth 1 --branch "$tag" \
+            https://gitlab.freedesktop.org/wlroots/wlroots.git "$HOME/wlroots-src"
+          meson setup "$HOME/wlroots-src/build" "$HOME/wlroots-src" \
+            --prefix="$HOME/wlroots" \
+            -Dwrap_mode=nodownload \
+            -Dexamples=false \
+            -Dwerror=false
+          ninja -C "$HOME/wlroots-src/build" install
+
+          # Generated wayland protocol headers are private build artifacts;
+          # public wlr/*.h includes them with quotes, so consumers need them
+          # on the wlroots include path. Meson does not install them.
+          # Tag is 0.20.2 -> versioned include dir is wlroots-0.20.
+          inc="$(dirname "$(find "$HOME/wlroots/include" -type d -name wlr | head -n1)")"
+          cp "$HOME/wlroots-src/build/protocol/"*-protocol.h "$inc/"
+          # client headers are optional; copy if present for completeness.
+          cp "$HOME/wlroots-src/build/protocol/"*-client-protocol.h "$inc/" 2>/dev/null || true
+
+          pc="$(find "$HOME/wlroots" -name 'wlroots*.pc' | head -n1)"
+          if [ -z "$pc" ]; then
+            echo "error: no wlroots*.pc under $HOME/wlroots" >&2
+            find "$HOME/wlroots" -type f | head -n50 >&2
+            exit 1
+          fi
+          pcdir="$(dirname "$pc")"
+          libdir="$(dirname "$pcdir")"
+          echo "PKG_CONFIG_PATH=$pcdir:$PKG_CONFIG_PATH" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$libdir:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
+          echo "$HOME/wlroots/bin" >> "$GITHUB_PATH"
+          echo "Built wlroots $tag; pc=$pc; protocols in $inc"
+          ls "$inc"/*layer-shell* || true
+          PKG_CONFIG_PATH="$pcdir:$PKG_CONFIG_PATH" pkg-config --modversion "$(basename "$pc" .pc)"
+          PKG_CONFIG_PATH="$pcdir:$PKG_CONFIG_PATH" pkg-config --cflags "$(basename "$pc" .pc)"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Build
+        env:
+          CGO_ENABLED: '1'
+        run: go build .
+
+      - name: Vet
+        env:
+          CGO_ENABLED: '1'
+        run: go vet ./...
