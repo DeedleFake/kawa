@@ -102,8 +102,8 @@ func (server *Server) onCursorButton(dev wlr.Pointer, t time.Time, b wlr.CursorB
 	}
 }
 
-func (server *Server) onCursorAxis(dev wlr.Pointer, t time.Time, source wlr.AxisSource, orient wlr.AxisOrientation, delta float64, deltaDiscrete int32) {
-	server.seat.PointerNotifyAxis(t, orient, delta, deltaDiscrete, source)
+func (server *Server) onCursorAxis(dev wlr.Pointer, t time.Time, source wlr.AxisSource, orient wlr.AxisOrientation, delta float64, deltaDiscrete int32, relativeDirection wlr.AxisRelativeDirection) {
+	server.seat.PointerNotifyAxis(t, orient, delta, deltaDiscrete, source, relativeDirection)
 }
 
 func (server *Server) onCursorFrame() {

@@ -56,15 +56,14 @@ func (server *Server) onNewOutput(wout wlr.Output) {
 	out.onFrameListener = wout.OnFrame(func(wout wlr.Output) {
 		server.onFrame(&out)
 	})
+
+	wout.InitRender(server.allocator, server.renderer)
 	server.addOutput(&out)
+	wout.CreateGlobal(server.display)
 
 	if server.statusBar == nil {
 		server.statusBar = NewStatusBar(&out)
 	}
-
-	wout.InitRender(server.allocator, server.renderer)
-	wout.Commit()
-	wout.CreateGlobal()
 }
 
 func (server *Server) addOutput(out *Output) {
@@ -83,21 +82,23 @@ func (server *Server) addOutput(out *Output) {
 }
 
 func (server *Server) configureOutput(out *Output, config *OutputConfig) {
-	server.setOutputMode(out, config)
+	state := wlr.NewOutputState()
+	defer state.Finish()
+	state.SetEnabled(true)
+
+	server.setOutputMode(state, out, config)
+
+	if config != nil {
+		if config.Scale != 0 {
+			state.SetScale(config.Scale)
+		}
+		if config.Transform != 0 {
+			state.SetTransform(config.Transform)
+		}
+	}
+
+	out.Output.CommitState(state)
 	server.layoutOutput(out, config)
-	out.Output.Enable(true)
-
-	if config == nil {
-		return
-	}
-
-	if config.Scale != 0 {
-		out.Output.SetScale(config.Scale)
-	}
-
-	if config.Transform != 0 {
-		out.Output.SetTransform(config.Transform)
-	}
 }
 
 func (server *Server) layoutOutput(out *Output, config *OutputConfig) {
@@ -109,21 +110,18 @@ func (server *Server) layoutOutput(out *Output, config *OutputConfig) {
 	server.outputLayout.Add(out.Output, config.X, config.Y)
 }
 
-func (server *Server) setOutputMode(out *Output, config *OutputConfig) {
-	if (config == nil) || (config.Width == 0) || (config.Height == 0) {
-		return
-	}
-
-	modes := out.Output.Modes()
-	for mode := range modes {
-		if (mode.Width() == int32(config.Width)) && (mode.Height() == int32(config.Height)) {
-			out.Output.SetMode(mode)
-			return
+func (server *Server) setOutputMode(state wlr.OutputState, out *Output, config *OutputConfig) {
+	if config != nil && config.Width != 0 && config.Height != 0 {
+		for mode := range out.Output.Modes() {
+			if (mode.Width() == int32(config.Width)) && (mode.Height() == int32(config.Height)) {
+				state.SetMode(mode)
+				return
+			}
 		}
 	}
 
 	mode := out.Output.PreferredMode()
 	if mode.Valid() {
-		out.Output.SetMode(mode)
+		state.SetMode(mode)
 	}
 }

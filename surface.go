@@ -16,7 +16,7 @@ type ViewSurface interface {
 	Surface() wlr.Surface
 	SetResizing(bool)
 	SetMinimized(bool)
-	SetMaximized(bool)
+	SetMaximized(horz, vert bool)
 
 	Resize(w, h int)
 	Geometry() geom.Rect[int]
@@ -67,8 +67,8 @@ func (s *viewSurfaceXDG) SetMinimized(m bool) {
 	// Apparently XDG clients can't be minimized. Huh.
 }
 
-func (s *viewSurfaceXDG) SetMaximized(m bool) {
-	s.s.Toplevel().SetMaximized(m)
+func (s *viewSurfaceXDG) SetMaximized(horz, vert bool) {
+	s.s.Toplevel().SetMaximized(horz && vert)
 }
 
 func (s *viewSurfaceXDG) Geometry() geom.Rect[int] {
@@ -142,8 +142,8 @@ func (s *viewSurfaceXwayland) SetMinimized(m bool) {
 	s.s.SetMinimized(m)
 }
 
-func (s *viewSurfaceXwayland) SetMaximized(m bool) {
-	s.s.SetMaximized(m)
+func (s *viewSurfaceXwayland) SetMaximized(horz, vert bool) {
+	s.s.SetMaximized(horz, vert)
 }
 
 func (s *viewSurfaceXwayland) Geometry() geom.Rect[int] {

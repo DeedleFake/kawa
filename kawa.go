@@ -85,7 +85,7 @@ func (server *Server) init() error {
 
 	server.display = wlr.CreateDisplay()
 
-	server.backend = wlr.AutocreateBackend(server.display)
+	server.backend = wlr.AutocreateBackend(server.display.EventLoop())
 	if !server.backend.Valid() {
 		return errors.New("failed to create backend")
 	}
@@ -113,7 +113,7 @@ func (server *Server) init() error {
 
 	server.onNewOutputListener = server.backend.OnNewOutput(server.onNewOutput)
 
-	server.outputLayout = wlr.CreateOutputLayout()
+	server.outputLayout = wlr.CreateOutputLayout(server.display)
 	wlr.CreateXDGOutputManagerV1(server.display, server.outputLayout)
 
 	server.cursor = wlr.CreateCursor()
@@ -137,6 +137,8 @@ func (server *Server) init() error {
 	server.onRequestCursorListener = server.seat.OnRequestSetCursor(server.onRequestCursor)
 
 	server.xdgShell = wlr.CreateXDGShell(server.display, 3)
+	server.onNewXDGToplevelListener = server.xdgShell.OnNewToplevel(server.onNewXDGToplevel)
+	// Prefer OnNewPopup once wlr.XDGPopup exposes Base(); Role() on new_surface can miss.
 	server.onNewXDGSurfaceListener = server.xdgShell.OnNewSurface(server.onNewXDGSurface)
 
 	server.layerShell = wlr.CreateLayerShellV1(server.display, 4)

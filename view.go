@@ -233,14 +233,14 @@ func (server *Server) onNewXwaylandSurface(surface wlr.XwaylandSurface) {
 	server.addView(&view)
 }
 
+func (server *Server) onNewXDGToplevel(toplevel wlr.XDGToplevel) {
+	server.addXDGToplevel(toplevel.Base())
+}
+
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
-	switch surface.Role() {
-	case wlr.XDGSurfaceRoleToplevel:
-		server.addXDGToplevel(surface)
-	case wlr.XDGSurfaceRolePopup:
+	// Popups only; toplevels come from OnNewToplevel.
+	if surface.Role() == wlr.XDGSurfaceRolePopup {
 		server.addXDGPopup(surface)
-	case wlr.XDGSurfaceRoleNone:
-		// TODO
 	}
 }
 
@@ -487,7 +487,7 @@ func (server *Server) tileView(view *View) {
 	if s := view.Surface(); s.Valid() {
 		view.Restore = view.Bounds()
 	}
-	view.SetMaximized(true) // TODO: Fix the race condition between this and resizing the view.
+	view.SetMaximized(true, true) // TODO: Fix the race condition between this and resizing the view.
 
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())
@@ -501,7 +501,7 @@ func (server *Server) untileView(view *View, restore bool) {
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())
 
-	view.SetMaximized(false)
+	view.SetMaximized(false, false)
 	if restore && !view.Restore.IsZero() {
 		server.resizeViewTo(nil, view, view.Restore)
 	}
