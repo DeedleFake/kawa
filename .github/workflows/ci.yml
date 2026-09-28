@@ -142,6 +142,11 @@ jobs:
           fi
           pcdir="$(dirname "$pc")"
           libdir="$(dirname "$pcdir")"
+          # Compat alias for older deedles.dev/wlr (#cgo pkg-config: wlroots).
+          # Newer wlr uses wlroots-0.20; master-era kawa still imports the old name.
+          if [ "$(basename "$pc")" != "wlroots.pc" ]; then
+            ln -sfn "$(basename "$pc")" "$pcdir/wlroots.pc"
+          fi
           echo "PKG_CONFIG_PATH=$pcdir:$PKG_CONFIG_PATH" >> "$GITHUB_ENV"
           echo "LD_LIBRARY_PATH=$libdir:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
           echo "$HOME/wlroots/bin" >> "$GITHUB_PATH"
@@ -149,6 +154,8 @@ jobs:
           ls "$inc"/*layer-shell* || true
           PKG_CONFIG_PATH="$pcdir:$PKG_CONFIG_PATH" pkg-config --modversion "$(basename "$pc" .pc)"
           PKG_CONFIG_PATH="$pcdir:$PKG_CONFIG_PATH" pkg-config --cflags "$(basename "$pc" .pc)"
+          PKG_CONFIG_PATH="$pcdir:$PKG_CONFIG_PATH" pkg-config --exists wlroots
+          PKG_CONFIG_PATH="$pcdir:$PKG_CONFIG_PATH" pkg-config --modversion wlroots
 
       - name: Setup Go
         uses: actions/setup-go@v5
