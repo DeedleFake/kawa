@@ -118,7 +118,8 @@ func (s *viewSurfaceXwayland) PID() int {
 }
 
 func (s *viewSurfaceXwayland) HasSurface(surface wlr.Surface) (has bool) {
-	return s.s.Surface().HasSurface(surface)
+	ws := s.s.Surface()
+	return ws.Valid() && ws.HasSurface(surface)
 }
 
 func (s *viewSurfaceXwayland) Close() error {
@@ -163,7 +164,8 @@ func (s *viewSurfaceXwayland) Surface() wlr.Surface {
 }
 
 func (s *viewSurfaceXwayland) Mapped() bool {
-	return s.s.Surface().Mapped()
+	ws := s.s.Surface()
+	return ws.Valid() && ws.Mapped()
 }
 
 func (s *viewSurfaceXwayland) SetActivated(a bool) {
@@ -176,10 +178,18 @@ func (s *viewSurfaceXwayland) Activated() bool {
 }
 
 func (s *viewSurfaceXwayland) Surfaces() iter.Seq[wlr.IterSurface] {
-	return s.s.Surface().Surfaces()
+	ws := s.s.Surface()
+	if !ws.Valid() {
+		return func(yield func(wlr.IterSurface) bool) {}
+	}
+	return ws.Surfaces()
 }
 
 func (s *viewSurfaceXwayland) SurfaceAt(p geom.Point[float64]) (surface wlr.Surface, sp geom.Point[float64], ok bool) {
-	surface, sx, sy, ok := s.s.Surface().SurfaceAt(p.X, p.Y)
+	ws := s.s.Surface()
+	if !ws.Valid() {
+		return wlr.Surface{}, geom.Point[float64]{}, false
+	}
+	surface, sx, sy, ok := ws.SurfaceAt(p.X, p.Y)
 	return surface, geom.Pt(sx, sy), ok
 }

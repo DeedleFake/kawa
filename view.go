@@ -40,6 +40,8 @@ type View struct {
 
 	onMapListener             wlr.Listener
 	onDestroyListener         wlr.Listener
+	onAssociateListener       wlr.Listener
+	onDissociateListener      wlr.Listener
 	onRequestMoveListener     wlr.Listener
 	onRequestResizeListener   wlr.Listener
 	onRequestMinimizeListener wlr.Listener
@@ -50,6 +52,8 @@ type View struct {
 func (view *View) Release() {
 	view.onDestroyListener.Destroy()
 	view.onMapListener.Destroy()
+	view.onAssociateListener.Destroy()
+	view.onDissociateListener.Destroy()
 	view.onRequestMoveListener.Destroy()
 	view.onRequestResizeListener.Destroy()
 	view.onRequestMinimizeListener.Destroy()
@@ -209,8 +213,17 @@ func (server *Server) onNewXwaylandSurface(surface wlr.XwaylandSurface) {
 	view.onDestroyListener = surface.OnDestroy(func(s wlr.XwaylandSurface) {
 		server.onDestroyView(&view)
 	})
-	view.onMapListener = surface.Surface().OnMap(func(s wlr.Surface) {
-		server.onMapView(&view)
+	// The wlr_surface doesn't exist until the X11 window is associated
+	// with one, and it can go away again before the Xwayland surface is
+	// destroyed.
+	view.onAssociateListener = surface.OnAssociate(func(s wlr.XwaylandSurface) {
+		view.onMapListener = s.Surface().OnMap(func(s wlr.Surface) {
+			server.onMapView(&view)
+		})
+	})
+	view.onDissociateListener = surface.OnDissociate(func(s wlr.XwaylandSurface) {
+		view.onMapListener.Destroy()
+		view.onMapListener = wlr.Listener{}
 	})
 	view.onRequestMoveListener = surface.OnRequestMove(func(s wlr.XwaylandSurface) {
 		server.startMove(&view)
@@ -351,8 +364,8 @@ func (server *Server) moveViewTo(out *Output, view *View, p geom.Point[float64])
 
 	view.Coords = p
 
-	if out != nil {
-		view.Surface().SendEnter(out.Output)
+	if s := view.Surface(); (out != nil) && s.Valid() {
+		s.SendEnter(out.Output)
 	}
 }
 
@@ -368,8 +381,8 @@ func (server *Server) resizeViewTo(out *Output, view *View, r geom.Rect[float64]
 	view.Coords = r.Min
 	view.Resize(int(r.Dx()), int(r.Dy()))
 
-	if out != nil {
-		view.Surface().SendEnter(out.Output)
+	if s := view.Surface(); (out != nil) && s.Valid() {
+		s.SendEnter(out.Output)
 	}
 }
 
