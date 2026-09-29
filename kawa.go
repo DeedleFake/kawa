@@ -154,7 +154,6 @@ func (server *Server) init() error {
 
 	server.xdgShell = wlr.CreateXDGShell(server.display, 3)
 	server.onNewXDGToplevelListener = server.xdgShell.OnNewToplevel(server.onNewXDGToplevel)
-	// Prefer OnNewPopup once wlr.XDGPopup exposes Base(); Role() on new_surface can miss.
 	server.onNewXDGSurfaceListener = server.xdgShell.OnNewSurface(server.onNewXDGSurface)
 
 	server.layerShell = wlr.CreateLayerShellV1(server.display, 4)

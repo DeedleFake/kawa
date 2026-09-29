@@ -262,13 +262,26 @@ func (server *Server) onNewXDGToplevel(toplevel wlr.XDGToplevel) {
 }
 
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
-	// Popups only; toplevels come from OnNewToplevel.
-	if surface.Role() == wlr.XDGSurfaceRolePopup {
-		server.addXDGPopup(surface)
-	}
+	// Popups only; toplevels come from OnNewToplevel. The role isn't
+	// assigned yet when new_surface fires, so check on the initial
+	// commit instead.
+	var onCommit, onDestroy wlr.Listener
+	onCommit = surface.Surface().OnCommit(func(wlr.Surface) {
+		if surface.InitialCommit() && (surface.Role() == wlr.XDGSurfaceRolePopup) {
+			server.addXDGPopup(surface)
+		}
+	})
+	onDestroy = surface.OnDestroy(func(wlr.XDGSurface) {
+		onCommit.Destroy()
+		onDestroy.Destroy()
+	})
 }
 
 func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
+	// wlroots leaves configuring popups to the compositor, and the
+	// client won't map one until it has been configured.
+	surface.ScheduleConfigure()
+
 	parent := server.viewForSurface(surface.Popup().Parent())
 	if parent == nil {
 		wlr.Log(wlr.Debug, "parent of popup could not be found")
