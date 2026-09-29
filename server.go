@@ -132,6 +132,8 @@ func (server *Server) exec(to *geom.Rect[float64]) {
 			continue
 		}
 
+		go cmd.Wait()
+
 		server.newViews[cmd.Process.Pid] = to
 		return
 	}

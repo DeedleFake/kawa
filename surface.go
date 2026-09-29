@@ -126,7 +126,7 @@ type viewSurfaceXwayland struct {
 }
 
 func (s *viewSurfaceXwayland) PID() int {
-	return -1 // There doesn't seem to be a way to get this...
+	return s.s.PID()
 }
 
 func (s *viewSurfaceXwayland) HasSurface(surface wlr.Surface) (has bool) {
