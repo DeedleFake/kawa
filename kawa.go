@@ -46,6 +46,22 @@ func parseTransform(str string) (wlr.OutputTransform, error) {
 	}
 }
 
+// parseScale parses a background scaling method from a string.
+func parseScale(str string) (scaleFunc, error) {
+	switch str {
+	case "stretch":
+		return scaleStretch, nil
+	case "center":
+		return scaleCenter, nil
+	case "fit":
+		return scaleFit, nil
+	case "fill":
+		return scaleFill, nil
+	default:
+		return nil, fmt.Errorf("unknown scaling method: %q", str)
+	}
+}
+
 // parseOutputConfigs parses an OutputConfig from a string.
 func parseOutputConfigs(outputConfigs string) iter.Seq[OutputConfig] {
 	return func(yield func(OutputConfig) bool) {
@@ -197,7 +213,11 @@ func main() {
 
 	terms := xflag.StringsFlag("terms", []string{"sakura", "alacritty"}, "preferentially ordered list of terminals for new windows to use")
 	bg := flag.String("bg", "", "background image")
-	bgScale := flag.String("bgscale", "stretch", "background image scaling method (stretch, center, fit, fill)")
+	bgScale := scaleStretch
+	flag.Func("bgscale", "background image scaling method (stretch, center, fit, fill) (default stretch)", func(str string) (err error) {
+		bgScale, err = parseScale(str)
+		return err
+	})
 	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
 	flag.Parse()
 
@@ -215,18 +235,7 @@ func main() {
 
 	if *bg != "" {
 		server.loadBG(*bg)
-		switch *bgScale {
-		case "stretch":
-			server.bgScale = scaleStretch
-		case "center":
-			server.bgScale = scaleCenter
-		case "fit":
-			server.bgScale = scaleFit
-		case "fill":
-			server.bgScale = scaleFill
-		default:
-			wlr.Log(wlr.Error, "unknown scaling method: %q", *bgScale)
-		}
+		server.bgScale = bgScale
 	}
 
 	err = server.run()
