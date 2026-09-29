@@ -291,9 +291,11 @@ func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 	view.onMapListener = surface.Surface().OnMap(func(s wlr.Surface) {
 		server.onMapView(&view)
 	})
-	// The toplevel can't be configured until the initial commit.
+	// The toplevel can't be configured until the initial commit, and it
+	// won't map until it is. A 0x0 size lets the client pick its own.
 	view.onCommitListener = surface.Surface().OnCommit(func(s wlr.Surface) {
 		if surface.InitialCommit() {
+			view.Resize(0, 0)
 			server.resizeNewView(&view)
 		}
 	})
