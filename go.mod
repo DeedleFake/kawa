@@ -3,7 +3,7 @@ module deedles.dev/kawa
 go 1.27.1
 
 require (
-	deedles.dev/wlr v0.0.0-20260929174526-f9b8047cee5e
+	deedles.dev/wlr v0.0.0-20260929175954-0470b6650a1a
 	deedles.dev/ximage v0.0.0-20260216031900-83cce02ab70f
 	deedles.dev/xiter v0.2.1
 	golang.org/x/image v0.46.0
