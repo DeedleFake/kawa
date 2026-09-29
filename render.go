@@ -133,9 +133,19 @@ func (server *Server) renderRectBorder(out *Output, pass wlr.RenderPass, r geom.
 }
 
 func (server *Server) renderSelectionBox(out *Output, pass wlr.RenderPass, r geom.Rect[float64]) {
+	// wlroots fills the whole output for an empty rect, so empty boxes
+	// have to be skipped instead of drawn.
 	r = r.Canon()
+	if server.toOutputLocal(out, r).Empty() {
+		return
+	}
 	server.renderRectBorder(out, pass, r, ColorSelectionBox)
-	pass.AddRect(server.toOutputLocal(out, r.Inset(WindowBorder)), ColorSelectionBackground, wlr.BlendModePremultiplied)
+
+	inner := server.toOutputLocal(out, r.Inset(WindowBorder))
+	if inner.Empty() {
+		return
+	}
+	pass.AddRect(inner, ColorSelectionBackground, wlr.BlendModePremultiplied)
 }
 
 func (server *Server) renderSurface(out *Output, pass wlr.RenderPass, s wlr.Surface, p geom.Point[int]) {
