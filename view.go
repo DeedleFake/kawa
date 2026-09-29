@@ -272,7 +272,9 @@ func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 		CSD:         true,
 		ViewSurface: &viewSurfaceXDG{s: surface},
 	}
-	view.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
+	// The toplevel is destroyed before the XDGSurface, and its listeners
+	// have to be removed by then.
+	view.onDestroyListener = surface.Toplevel().OnDestroy(func(t wlr.XDGToplevel) {
 		server.onDestroyView(&view)
 	})
 	view.onMapListener = surface.Surface().OnMap(func(s wlr.Surface) {
