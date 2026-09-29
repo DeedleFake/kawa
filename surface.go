@@ -56,10 +56,16 @@ func (s *viewSurfaceXDG) Title() string {
 }
 
 func (s *viewSurfaceXDG) Resize(w, h int) {
+	if !s.s.Initialized() {
+		return
+	}
 	s.s.Toplevel().SetSize(int32(w), int32(h))
 }
 
 func (s *viewSurfaceXDG) SetResizing(resizing bool) {
+	if !s.s.Initialized() {
+		return
+	}
 	s.s.Toplevel().SetResizing(resizing)
 }
 
@@ -68,6 +74,9 @@ func (s *viewSurfaceXDG) SetMinimized(m bool) {
 }
 
 func (s *viewSurfaceXDG) SetMaximized(horz, vert bool) {
+	if !s.s.Initialized() {
+		return
+	}
 	s.s.Toplevel().SetMaximized(horz && vert)
 }
 
@@ -92,6 +101,9 @@ func (s *viewSurfaceXDG) Mapped() bool {
 }
 
 func (s *viewSurfaceXDG) SetActivated(a bool) {
+	if !s.s.Initialized() {
+		return
+	}
 	s.s.Toplevel().SetActivated(a)
 }
 

@@ -39,6 +39,7 @@ type View struct {
 	popups []*Popup
 
 	onMapListener             wlr.Listener
+	onCommitListener          wlr.Listener
 	onDestroyListener         wlr.Listener
 	onAssociateListener       wlr.Listener
 	onDissociateListener      wlr.Listener
@@ -52,6 +53,7 @@ type View struct {
 func (view *View) Release() {
 	view.onDestroyListener.Destroy()
 	view.onMapListener.Destroy()
+	view.onCommitListener.Destroy()
 	view.onAssociateListener.Destroy()
 	view.onDissociateListener.Destroy()
 	view.onRequestMoveListener.Destroy()
@@ -280,6 +282,12 @@ func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 	view.onMapListener = surface.Surface().OnMap(func(s wlr.Surface) {
 		server.onMapView(&view)
 	})
+	// The toplevel can't be configured until the initial commit.
+	view.onCommitListener = surface.Surface().OnCommit(func(s wlr.Surface) {
+		if surface.InitialCommit() {
+			server.resizeNewView(&view)
+		}
+	})
 	view.onRequestMoveListener = surface.Toplevel().OnRequestMove(func(t wlr.XDGToplevel, client wlr.SeatClient, serial uint32) {
 		server.startMove(&view)
 	})
@@ -344,7 +352,10 @@ func (server *Server) onMapView(view *View) {
 
 func (server *Server) addView(view *View) {
 	server.views = append(server.views, view)
+	server.resizeNewView(view)
+}
 
+func (server *Server) resizeNewView(view *View) {
 	nv, ok := server.newViews[view.PID()]
 	if ok {
 		server.resizeViewTo(nil, view, *nv)
@@ -589,10 +600,28 @@ func (server *Server) onNewToplevelDecoration(dm wlr.XDGDecorationManagerV1, d w
 	}
 
 	view.CSD = false
-	d.SetMode(wlr.XDGToplevelDecorationV1ModeServerSide)
 
-	var onDestroyListener wlr.Listener
+	// The mode can't be sent until the toplevel's initial commit.
+	base := d.Toplevel().Base()
+	setMode := func() bool {
+		if !base.Initialized() {
+			return false
+		}
+		d.SetMode(wlr.XDGToplevelDecorationV1ModeServerSide)
+		return true
+	}
+
+	var onCommitListener, onDestroyListener wlr.Listener
+	if !setMode() {
+		onCommitListener = base.Surface().OnCommit(func(s wlr.Surface) {
+			if setMode() {
+				onCommitListener.Destroy()
+				onCommitListener = wlr.Listener{}
+			}
+		})
+	}
 	onDestroyListener = d.OnDestroy(func(d wlr.XDGToplevelDecorationV1) {
+		onCommitListener.Destroy()
 		onDestroyListener.Destroy()
 	})
 }
