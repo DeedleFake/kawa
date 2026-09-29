@@ -528,6 +528,9 @@ func (server *Server) layoutTiles(out *Output) {
 	}
 
 	if out == nil {
+		if len(server.outputs) == 0 {
+			return
+		}
 		out = server.outputs[0]
 	}
 

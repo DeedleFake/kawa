@@ -52,7 +52,7 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.Pointer, b
 	forceMenu := server.seat.GetKeyboard().GetModifiers()&wlr.KeyboardModifierLogo != 0
 	if !forceMenu {
 		out := server.outputAt(cc)
-		forceMenu = (out == server.statusBar.Output()) && (cc.Y <= StatusBarHeight)
+		forceMenu = (out != nil) && (out == server.statusBar.Output()) && (cc.Y <= StatusBarHeight)
 	}
 	if forceMenu {
 		switch b {

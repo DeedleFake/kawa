@@ -1,6 +1,8 @@
 package main
 
 import (
+	"slices"
+
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
 )
@@ -9,7 +11,8 @@ type Output struct {
 	Output wlr.Output
 	Layers [4][]LayerSurface
 
-	onFrameListener wlr.Listener
+	onFrameListener   wlr.Listener
+	onDestroyListener wlr.Listener
 }
 
 type OutputConfig struct {
@@ -56,13 +59,37 @@ func (server *Server) onNewOutput(wout wlr.Output) {
 	out.onFrameListener = wout.OnFrame(func(wout wlr.Output) {
 		server.onFrame(&out)
 	})
+	out.onDestroyListener = wout.OnDestroy(func(wout wlr.Output) {
+		server.onDestroyOutput(&out)
+	})
 
 	wout.InitRender(server.allocator, server.renderer)
 	server.addOutput(&out)
 	wout.CreateGlobal(server.display)
 
-	if server.statusBar == nil {
+	switch {
+	case server.statusBar == nil:
 		server.statusBar = NewStatusBar(&out)
+	case server.statusBar.Output() == nil:
+		server.statusBar.SetOutput(&out)
+	}
+}
+
+func (server *Server) onDestroyOutput(out *Output) {
+	out.onFrameListener.Destroy()
+	out.onDestroyListener.Destroy()
+
+	i := slices.Index(server.outputs, out)
+	if i >= 0 {
+		server.outputs = slices.Delete(server.outputs, i, i+1)
+	}
+
+	if server.statusBar.Output() == out {
+		var next *Output
+		if len(server.outputs) > 0 {
+			next = server.outputs[0]
+		}
+		server.statusBar.SetOutput(next)
 	}
 }
 

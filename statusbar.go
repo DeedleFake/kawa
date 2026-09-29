@@ -37,3 +37,7 @@ func (s *StatusBar) Title() wlr.Texture {
 func (s *StatusBar) Output() *Output {
 	return s.out
 }
+
+func (s *StatusBar) SetOutput(out *Output) {
+	s.out = out
+}
