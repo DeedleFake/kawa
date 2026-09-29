@@ -19,20 +19,21 @@ export RUN_ID="$(date +%Y%m%dT%H%M%S)-$$"
 export VERIFY_KAWA_HOME="/tmp/verify-kawa-$RUN_ID"
 export VERIFY_KAWA_EVIDENCE="${VERIFY_KAWA_EVIDENCE:-$VERIFY_KAWA_ROOT/.cursor/skills/verify-kawa/artifacts/$RUN_ID}"
 
+# wlroots must be on pkg-config: set PKG_CONFIG_PATH (e.g. source your wlroots build's env script),
+# or set VERIFY_KAWA_PKG_CONFIG_PATH to the directory containing wlroots-0.20.pc.
 # Or use the helper (preferred): builds binary + registry client, starts kawa, waits for ready.
+# Arguments are passed to kawa, e.g. launch.sh -terms weston-terminal -bg PATH -bgscale fit.
 .cursor/skills/verify-kawa/scripts/launch.sh
-# Optional kawa flags after -- are not used; pass flags by editing launch or:
-#   ... after sourcing env.sh, kill via cleanup and re-exec with flags (see Drive).
 source "$VERIFY_KAWA_HOME/env.sh"
 ```
 
 `launch.sh` does all of the following (do not skip):
 
-1. Sets `PKG_CONFIG_PATH` / `LD_LIBRARY_PATH` to `/opt/wlroots-0.20/...`, `CGO_ENABLED=1`, `GOTOOLCHAIN=auto`.
+1. Finds `wlroots-0.20` via the caller's `PKG_CONFIG_PATH` (prepending `VERIFY_KAWA_PKG_CONFIG_PATH` if set) and fails if it is missing; prepends its `libdir` to `LD_LIBRARY_PATH`; sets `CGO_ENABLED=1`, `GOTOOLCHAIN=auto`.
 2. Unsets `WAYLAND_DISPLAY` and keeps/chooses `DISPLAY` (on this box prefer `DISPLAY=:9`) so kawa uses the **X11 backend**, not another agent’s compositor.
 3. Creates `XDG_RUNTIME_DIR=$VERIFY_KAWA_HOME/run` with mode **0700**. Without this, kawa dies with `XDG_RUNTIME_DIR is invalid or not set` / `can't auto add wayland socket`. DRM FD / dmabuf messages on stderr are noisy but non-fatal until the socket fails.
 4. Builds `go build -o "$VERIFY_KAWA_HOME/bin/kawa" .` and compiles `.cursor/skills/verify-kawa/scripts/wayland-registry.c` → `$VERIFY_KAWA_HOME/bin/wayland-registry`.
-5. Starts kawa in the background; writes PID to `$VERIFY_KAWA_HOME/pids/kawa.pid`; captures stdout/stderr under `$VERIFY_KAWA_HOME/logs/`.
+5. Starts kawa in the background with `launch.sh`'s arguments; writes PID to `$VERIFY_KAWA_HOME/pids/kawa.pid`; captures stdout/stderr under `$VERIFY_KAWA_HOME/logs/`.
 6. Waits for ready log line: `Running Wayland compositor on WAYLAND_DISPLAY=...` (from `kawa.go`). May also log Xwayland `DISPLAY=...`.
 7. Exports `VERIFY_KAWA_WAYLAND_DISPLAY` (socket **name**, often under `$XDG_RUNTIME_DIR`) via `$VERIFY_KAWA_HOME/env.sh`.
 
@@ -61,12 +62,25 @@ Harness = process control + Wayland client against kawa’s socket. No Playwrigh
 | --- | --- |
 | Boot | ready line + PID alive |
 | Client connect | `WAYLAND_DISPLAY=$VERIFY_KAWA_WAYLAND_DISPLAY XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR timeout 5 wayland-registry` prints `wl_compositor` (and other globals) and `globals=N` with N>0, exit 0 |
-| Status bar | rendered in-compositor (focused title via `SetTitle`); clock/time as in README is planned — needs screenshot / input later |
-| Window menu / New | right-click → menu items `New`, `Resize`, `Tile`, `Move`, `Close`, `Hide`; system menu on status bar (`Log Out`). Needs pointer injection |
-| Maximize / tiling | menu `Tile` → `toggleViewTiling`. Needs pointer injection |
+| Status bar | screenshot shows the focused title; left-click on the bar → system menu (`Log Out`), right-click → main menu. Clock/time (README) is not implemented |
+| Window menu / New | right-click → menu items `New`, `Resize`, `Tile`, `Move`, `Close`, `Hide`; `New` + right-drag starts a `-terms` child and maps its window (screenshot) |
+| Maximize / tiling | menu `Tile` → right-click a window → it fills the area under the status bar (screenshot) |
 | Background | launch with `-bg PATH` (`-bgscale` stretch\|center\|fit\|fill); log `loaded ... as background` |
 
-**Must prove end-to-end now:** compositor boot + client connect (`compositor-boot`). Map the rest; mark input-driven features as requiring nested Wayland + an input tool.
+Pointer input: `xdotool` on the parent X display (`DISPLAY` from `env.sh`) drives kawa's X11 backend window. Screenshots: `screenshot.sh NAME` grabs that window with `xwd -id` and converts it with `ffmpeg` to `$VERIFY_KAWA_EVIDENCE/NAME.png`.
+
+```sh
+source "$VERIFY_KAWA_HOME/env.sh"
+wid=$(xwininfo -root -tree | sed -n 's/^ *\(0x[0-9a-f]*\) "wlroots - X11-1".*/\1/p' | head -n1)
+shot=.cursor/skills/verify-kawa/scripts/screenshot.sh
+```
+
+Menus open on button press with the last-chosen item (initially the first) under the pointer; releasing the same button selects the item under the pointer. Items are ~19 px apart. Release off the menu to cancel.
+
+- **Main menu:** `xdotool mousemove --window "$wid" 400 300 mousedown 3`, then `$shot window-menu-main`.
+- **New:** with the pointer still on `New`, `xdotool mouseup 3`; then `xdotool mousemove --window "$wid" 200 150 mousedown 3 sleep 0.2 mousemove --window "$wid" 260 200 sleep 0.2 mousemove --window "$wid" 700 520 sleep 0.3 mouseup 3`. After ~2 s, `ps -o pid,cmd --ppid "$(cat "$VERIFY_KAWA_HOME/pids/kawa.pid")"` lists the terminal; `$shot window-menu-new` shows it in the dragged rectangle and its title in the status bar.
+- **Tile:** press 3 on empty space (a press on a window edge starts a move instead), move down to `Tile` (+38 px if `New` was last chosen), release, then right-click the window: `xdotool mousemove --window "$wid" 950 300 mousedown 3 sleep 0.3 mousemove --window "$wid" 950 338 sleep 0.3 mouseup 3 sleep 0.3 mousemove --window "$wid" 480 380 click 3`; `$shot maximize-tiled`.
+- **Status bar:** `xdotool mousemove --window "$wid" 600 10 mousedown 3` → main menu (`$shot status-bar-right`); `mousedown 1` on the bar → `Log Out` (`$shot status-bar-left`). Move below the menu before `mouseup` unless you intend to log out; releasing button 1 in place selects `Log Out` and shuts kawa down.
 
 Capture every drive:
 
@@ -98,7 +112,7 @@ Proof standards:
 - Assert the ready line and a successful client registry dump (`wl_compositor` present), not only exit 0 on build.
 - Record PID and socket name.
 - Never treat DRM FD warnings alone as failure; socket failure / missing ready line is failure.
-- Screenshots optional if grim/X11 capture exists — not required for first prove.
+- Screenshot every visual feature with `screenshot.sh`. `xwd` grabs what is on screen, so windows overlapping kawa's appear in the image.
 - Mocks: none.
 
 ## Cleanup
@@ -118,6 +132,7 @@ All under `.cursor/skills/verify-kawa/scripts/`, executable (except the `.c` sou
 .cursor/skills/verify-kawa/scripts/launch.sh
 .cursor/skills/verify-kawa/scripts/doctor.sh
 .cursor/skills/verify-kawa/scripts/capture.sh compositor-boot-registry -- wayland-registry
+.cursor/skills/verify-kawa/scripts/screenshot.sh NAME
 .cursor/skills/verify-kawa/scripts/cleanup.sh
 ```
 

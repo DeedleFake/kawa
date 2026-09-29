@@ -17,14 +17,14 @@ This directory is the maintained source for verifying user-facing kawa composito
 ## Driving conventions
 
 - Start from baseline unless a feature lists extra preconditions.
-- Harness is process + Wayland client (`wayland-registry`). Pointer/menu features need an input injection tool on a nested session — document and skip rather than fake via internal hooks.
-- Capture via `capture.sh`. Keep PID, logs, and registry dump in evidence.
+- Harness is process + Wayland client (`wayland-registry`) + `xdotool` on the parent X display for pointer/menu features (see SKILL.md Drive). Never fake input via internal hooks.
+- Capture via `capture.sh` and `screenshot.sh`. Keep PID, logs, registry dump, and screenshots in evidence.
 - Restore nothing outside `$VERIFY_KAWA_HOME` and evidence.
 
 ## Proof and skip reporting
 
 - Boot proof: ready log line + live PID + client registry globals including `wl_compositor`.
-- Input-driven features: report unmet precondition (no pointer injector) — do not mark verified via `go test`.
+- Input-driven features: screenshot after driving with `xdotool` — do not mark verified via `go test`.
 - Record the feature ID in artifact names.
 
 ## Feature entry contract
@@ -34,7 +34,7 @@ Each feature file: H1, one paragraph, then exactly four H2s: `Sub-features`, `Ho
 ## Features
 
 - [Compositor boot + client connect](./compositor-boot.md) — launch, ready line, registry dump (**prove this**).
-- [Status bar](./status-bar.md) — bar chrome / focused title; time display deferred to visual proof.
+- [Status bar](./status-bar.md) — bar chrome / focused title / bar menus; time display not implemented.
 - [Window menu / new terminal](./window-menu.md) — right-click menu, `-terms`, `New`.
 - [Maximize / tiling](./maximize.md) — menu `Tile` / maximize paths.
 - [Background image](./background.md) — `-bg` / `-bgscale`.

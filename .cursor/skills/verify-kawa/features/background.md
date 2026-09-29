@@ -15,12 +15,10 @@ Optional wallpaper via `-bg PATH` and `-bgscale` (`stretch`, `center`, `fit`, `f
 
 Preconditions: baseline; a small PNG/JPEG under `$VERIFY_KAWA_HOME`.
 
-- Stop any prior instance (`cleanup.sh`), then start with background:
-  `VERIFY_KAWA_HOME=...` and run kawa with `-bg` (extend launch by starting manually after build, or re-run with flags after adjusting the launch command).
-- Proof: stderr contains `loaded "...\" as background` and compositor still reaches the ready line; optional screenshot later.
-- First skill run may skip after documenting the log assert — boot without `-bg` is enough for `compositor-boot`.
+- Stop any prior instance (`cleanup.sh`), then `launch.sh -bg "$VERIFY_KAWA_HOME/bg.png" -bgscale fit`.
+- Proof: stderr contains `loaded "..." as background`, the compositor reaches the ready line, and `screenshot.sh background` shows the image.
 
 ## Gotchas
 
 - Bad path/decode logs an error and continues without a background.
-- Unknown `-bgscale` logs `unknown scaling method` and may leave scale unset.
+- Unknown `-bgscale` logs `unknown scaling method` and, with a loaded `-bg`, kawa panics (nil pointer in `renderBG`) on the first frame.

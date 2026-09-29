@@ -5,7 +5,7 @@ Right-click opens the main menu (`New`, `Resize`, `Tile`, `Move`, `Close`, `Hide
 ## Sub-features
 
 - `main-menu` — right-click → main menu items from `mainMenuText`.
-- `system-menu` — right-click on status bar → `Log Out` (shuts down the compositor).
+- `system-menu` — left-click on status bar → `Log Out` (shuts down the compositor).
 - `new-terminal` — `New` spawns a terminal from `-terms`.
 
 ## How to get to it (user POV)
@@ -16,10 +16,10 @@ Right-click opens the main menu (`New`, `Resize`, `Tile`, `Move`, `Close`, `Hide
 
 ## Driving it with process + Wayland client
 
-Preconditions: `compositor-boot` proven; nested session with a pointer injection tool (ydotool/wtype/etc. or compositor-specific test input). **Not proved in the first skill run.**
+Preconditions: `compositor-boot` proven; `launch.sh -terms TERM` with an installed terminal when the defaults (`sakura`, `alacritty`) are not installed (e.g. `-terms weston-terminal`).
 
-- Map the path: boot → inject right-click → select `New` → confirm a child process from `-terms` and a new xdg/Xwayland surface.
-- Until an input tool is wired, report skip: requires nested Wayland + pointer injection.
+- Drive with `xdotool` per SKILL.md Drive: right-press → `screenshot.sh window-menu-main` → release on `New` → right-drag a rectangle.
+- Proof: the terminal is a child of the kawa PID, stderr logs `new xdg_surface`, and `screenshot.sh` shows it in the dragged rectangle.
 - Never mark verified by calling `onMainMenuNew` from Go tests alone.
 
 ## Gotchas

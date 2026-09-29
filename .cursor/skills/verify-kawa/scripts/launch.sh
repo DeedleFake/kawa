@@ -32,8 +32,15 @@ esac
 
 export VERIFY_KAWA_EVIDENCE="${VERIFY_KAWA_EVIDENCE:-$VERIFY_KAWA_ROOT/.cursor/skills/verify-kawa/artifacts/$RUN_ID}"
 
-export PKG_CONFIG_PATH="/opt/wlroots-0.20/lib/x86_64-linux-gnu/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
-export LD_LIBRARY_PATH="/opt/wlroots-0.20/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+# wlroots comes from the caller's pkg-config environment; VERIFY_KAWA_PKG_CONFIG_PATH is prepended if set.
+if [ -n "${VERIFY_KAWA_PKG_CONFIG_PATH:-}" ]; then
+	PKG_CONFIG_PATH="$VERIFY_KAWA_PKG_CONFIG_PATH${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+fi
+export PKG_CONFIG_PATH="${PKG_CONFIG_PATH:-}"
+pkg-config --exists wlroots-0.20 \
+	|| fail "pkg-config cannot find wlroots-0.20; set PKG_CONFIG_PATH (or VERIFY_KAWA_PKG_CONFIG_PATH) to the directory containing wlroots-0.20.pc"
+wlr_libdir=$(pkg-config --variable=libdir wlroots-0.20)
+export LD_LIBRARY_PATH="$wlr_libdir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export CGO_ENABLED=1
 export GOTOOLCHAIN=auto
 

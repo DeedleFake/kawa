@@ -14,9 +14,10 @@ Windows can be tiled/maximized under the status bar. The main menu item `Tile` r
 
 ## Driving it with process + Wayland client
 
-Preconditions: `compositor-boot` proven; pointer injection; a client window present. **Deferred** for the first skill run.
+Preconditions: `compositor-boot` proven; a client window present (window-menu `New`).
 
-- Proof would be: tiled geometry under the status bar (screenshot or layout query), not an internal `SetMaximized` call from a unit test.
+- Drive with `xdotool` per SKILL.md Drive: right-press on empty space → move to `Tile` → release → right-click the window.
+- Proof: `screenshot.sh maximize-tiled` shows the view filling the area under the status bar, not an internal `SetMaximized` call from a unit test.
 
 ## Gotchas
 

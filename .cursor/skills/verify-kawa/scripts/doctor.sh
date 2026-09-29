@@ -73,8 +73,15 @@ if [ -n "${VERIFY_KAWA_ROOT:-}" ]; then
 fi
 
 # wlroots 0.20 must be findable for any rebuild / CGO link checks.
+if [ -n "${VERIFY_KAWA_PKG_CONFIG_PATH:-}" ]; then
+	PKG_CONFIG_PATH="$VERIFY_KAWA_PKG_CONFIG_PATH${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+	export PKG_CONFIG_PATH
+fi
 if ! pkg-config --exists wlroots-0.20; then
-	fail "pkg-config cannot find wlroots-0.20 (set PKG_CONFIG_PATH to /opt/wlroots-0.20/.../pkgconfig)"
+	fail "pkg-config cannot find wlroots-0.20; set PKG_CONFIG_PATH (or VERIFY_KAWA_PKG_CONFIG_PATH) to the directory containing wlroots-0.20.pc and LD_LIBRARY_PATH to its libdir, or source \$VERIFY_KAWA_HOME/env.sh"
+fi
+if ldd "$VERIFY_KAWA_BIN" | grep -q 'not found'; then
+	fail "kawa cannot load its libraries; add $(pkg-config --variable=libdir wlroots-0.20) to LD_LIBRARY_PATH"
 fi
 ver=$(pkg-config --modversion wlroots-0.20)
 case "$ver" in
