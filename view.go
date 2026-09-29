@@ -32,6 +32,9 @@ const (
 
 type View struct {
 	ViewSurface
+	// Coords is the position of the view's window geometry, not of its
+	// surface, so that the view stays in place when a client changes
+	// its geometry offset, such as by dropping CSD shadows on maximize.
 	Coords  geom.Point[float64]
 	Restore geom.Rect[float64]
 	CSD     bool
@@ -64,7 +67,13 @@ func (view *View) Release() {
 }
 
 func (view *View) Bounds() geom.Rect[float64] {
-	return geom.RConv[float64](view.Geometry()).Add(view.Coords)
+	g := view.Geometry()
+	return geom.RConv[float64](g.Sub(g.Min)).Add(view.Coords)
+}
+
+// surfaceCoords returns the position of the view's main surface.
+func (view *View) surfaceCoords() geom.Point[float64] {
+	return view.Coords.Sub(geom.PConv[float64](view.Geometry().Min))
 }
 
 func (view *View) addPopup(surface wlr.XDGSurface) {
@@ -155,7 +164,7 @@ func (server *Server) viewIndexAt(out *Output, views []*View, p geom.Point[float
 }
 
 func (server *Server) isViewAt(out *Output, view *View, p geom.Point[float64]) (edges wlr.Edges, s wlr.Surface, sp geom.Point[float64], ok bool) {
-	surface, sp, ok := view.SurfaceAt(p.Sub(view.Coords))
+	surface, sp, ok := view.SurfaceAt(p.Sub(view.surfaceCoords()))
 	if ok {
 		return wlr.EdgeNone, surface, sp, true
 	}
@@ -387,9 +396,7 @@ func (server *Server) resizeViewTo(out *Output, view *View, r geom.Rect[float64]
 		out = server.outputAt(r.Min)
 	}
 
-	vb := view.Bounds()
-	off := view.Coords.Sub(vb.Min)
-	r = r.Add(off).Canon()
+	r = r.Canon()
 
 	view.Coords = r.Min
 	view.Resize(int(r.Dx()), int(r.Dy()))
@@ -516,7 +523,7 @@ func (server *Server) tileView(view *View) {
 	if s := view.Surface(); s.Valid() {
 		view.Restore = view.Bounds()
 	}
-	view.SetMaximized(true, true) // TODO: Fix the race condition between this and resizing the view.
+	view.SetMaximized(true, true)
 
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())

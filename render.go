@@ -111,7 +111,7 @@ func (server *Server) renderViewBorder(out *Output, pass wlr.RenderPass, view *V
 func (server *Server) renderViewSurfaces(out *Output, pass wlr.RenderPass, view *View) {
 	for s := range view.Surfaces() {
 		p := geom.Pt(s.X, s.Y)
-		server.renderSurface(out, pass, s.Surface, geom.PConv[int](view.Coords).Add(p))
+		server.renderSurface(out, pass, s.Surface, geom.PConv[int](view.surfaceCoords()).Add(p))
 	}
 }
 
