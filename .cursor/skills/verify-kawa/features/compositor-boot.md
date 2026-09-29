@@ -30,4 +30,3 @@ Preconditions: baseline; `launch.sh` succeeded; `doctor.sh` passed.
 - DRM FD / dmabuf errors on stderr can appear and still be OK if the ready line arrives.
 - Never `pkill kawa`; only the PID under `$VERIFY_KAWA_HOME/pids`.
 - Socket name is often a short string (not a full path); clients resolve it under `XDG_RUNTIME_DIR`.
-- On X11+pixman, Xwayland may panic shortly after ready (`Surface.OnMap` nil). `launch.sh` runs the registry probe immediately after the ready line; do not sleep before connecting.

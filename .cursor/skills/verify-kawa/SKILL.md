@@ -11,7 +11,7 @@ This skill is for agents. Commands are literal. Harness is **process + Wayland c
 
 ## Launch
 
-From the repo root (`deedles.dev/kawa`), on a branch with wlroots 0.20 bindings (`wlr-0.20` tip `9fa567c` or later):
+From the repo root (`deedles.dev/kawa`), on a branch with wlroots 0.20 bindings (`wlr-0.20` or a branch based on it):
 
 ```sh
 export VERIFY_KAWA_ROOT="$(pwd)"
@@ -67,8 +67,6 @@ Harness = process control + Wayland client against kawa’s socket. No Playwrigh
 | Background | launch with `-bg PATH` (`-bgscale` stretch\|center\|fit\|fill); log `loaded ... as background` |
 
 **Must prove end-to-end now:** compositor boot + client connect (`compositor-boot`). Map the rest; mark input-driven features as requiring nested Wayland + an input tool.
-
-On this box, Xwayland can panic kawa shortly after the ready line (`Surface.OnMap` nil in `onNewXwaylandSurface`). `launch.sh` runs `wayland-registry` immediately after ready; prefer that probe (copied into evidence) over a delayed reconnect.
 
 Capture every drive:
 

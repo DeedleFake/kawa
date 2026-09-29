@@ -96,8 +96,7 @@ stderr_log="$VERIFY_KAWA_HOME/logs/kawa.stderr"
 kawa_pid=$!
 printf '%s\n' "$kawa_pid" >"$VERIFY_KAWA_HOME/pids/kawa.pid"
 
-# Race: on X11/pixman, Xwayland can panic kawa ~300ms after ready (nil Surface.OnMap).
-# Poll socket + registry connect immediately; do not wait only for the log line then sleep.
+# Poll for the socket and a successful registry connect.
 ready=0
 sock=""
 probe_out="$VERIFY_KAWA_HOME/logs/registry-probe.stdout"
