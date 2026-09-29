@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"slices"
 	"time"
 
 	"deedles.dev/wlr"
@@ -30,6 +31,7 @@ type Keyboard struct {
 
 	onModifiersListener wlr.Listener
 	onKeyListener       wlr.Listener
+	onDestroyListener   wlr.Listener
 }
 
 func (server *Server) onNewInput(device wlr.InputDevice) {
@@ -150,11 +152,25 @@ func (server *Server) addKeyboard(dev wlr.Keyboard) {
 	kb.onKeyListener = kb.Device.OnKey(func(k wlr.Keyboard, t time.Time, code uint32, update bool, state wlr.KeyState) {
 		server.onKeyboardKey(&kb, code, update, state, t)
 	})
+	kb.onDestroyListener = kb.Device.Base().OnDestroy(func(d wlr.InputDevice) {
+		server.onDestroyKeyboard(&kb)
+	})
 
 	server.seat.SetKeyboard(dev)
 	server.keyboards = append(server.keyboards, &kb)
 
 	server.seat.SetCapabilities(server.seat.Capabilities() | wlr.SeatCapabilityKeyboard)
+}
+
+func (server *Server) onDestroyKeyboard(kb *Keyboard) {
+	kb.onModifiersListener.Destroy()
+	kb.onKeyListener.Destroy()
+	kb.onDestroyListener.Destroy()
+
+	i := slices.Index(server.keyboards, kb)
+	if i >= 0 {
+		server.keyboards = slices.Delete(server.keyboards, i, i+1)
+	}
 }
 
 func (server *Server) addPointer(dev wlr.Pointer) {

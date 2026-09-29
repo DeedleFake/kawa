@@ -49,7 +49,8 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	cc := server.cursorCoords()
 
-	forceMenu := server.seat.GetKeyboard().GetModifiers()&wlr.KeyboardModifierLogo != 0
+	k := server.seat.GetKeyboard()
+	forceMenu := k.Valid() && (k.GetModifiers()&wlr.KeyboardModifierLogo != 0)
 	if !forceMenu {
 		out := server.outputAt(cc)
 		forceMenu = (out != nil) && (out == server.statusBar.Output()) && (cc.Y <= StatusBarHeight)

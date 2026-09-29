@@ -404,8 +404,11 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 		pv.SetActivated(false)
 	}
 
-	k := server.seat.GetKeyboard()
-	server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
+	if k := server.seat.GetKeyboard(); k.Valid() {
+		server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
+	} else {
+		server.seat.KeyboardNotifyEnter(s, nil, wlr.KeyboardModifiers{})
+	}
 
 	view.SetActivated(true)
 	server.bringViewToFront(view)
