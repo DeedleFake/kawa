@@ -292,9 +292,10 @@ func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
 }
 
 func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
+	vs := &viewSurfaceXDG{s: surface}
 	view := View{
 		CSD:         true,
-		ViewSurface: &viewSurfaceXDG{s: surface},
+		ViewSurface: vs,
 	}
 	// The toplevel is destroyed before the XDGSurface, and its listeners
 	// have to be removed by then.
@@ -305,12 +306,19 @@ func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 		server.onMapView(&view)
 	})
 	// The toplevel can't be configured until the initial commit, and it
-	// won't map until it is. A 0x0 size lets the client pick its own.
+	// won't map until it is. A 0x0 size lets the client pick its own
+	// unless it was started from New.
 	view.onCommitListener = surface.Surface().OnCommit(func(s wlr.Surface) {
 		if surface.InitialCommit() {
-			view.Resize(0, 0)
-			server.resizeNewView(&view)
+			// A client that unmaps starts over, and a size it never
+			// acked must not hold back its first configure.
+			vs.sizeSerial, vs.hasPending = 0, false
+			if !server.resizeNewView(&view) {
+				view.Resize(0, 0)
+			}
+			return
 		}
+		vs.onCommit()
 	})
 	view.onRequestMoveListener = surface.Toplevel().OnRequestMove(func(t wlr.XDGToplevel, client wlr.SeatClient, serial uint32) {
 		server.startMove(&view)
@@ -389,11 +397,12 @@ func (server *Server) addView(view *View) {
 	server.resizeNewView(view)
 }
 
-func (server *Server) resizeNewView(view *View) {
+func (server *Server) resizeNewView(view *View) bool {
 	nv, ok := server.newViews[view.PID()]
 	if ok {
 		server.resizeViewTo(nil, view, *nv)
 	}
+	return ok
 }
 
 func (server *Server) centerViewOnOutput(out *Output, view *View) {
