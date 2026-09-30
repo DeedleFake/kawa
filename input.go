@@ -109,6 +109,11 @@ func (server *Server) onCursorAxis(dev wlr.Pointer, t time.Time, source wlr.Axis
 }
 
 func (server *Server) onCursorFrame() {
+	// Other modes send no pointer events to clients, and a frame for
+	// every motion can fill up a client's socket during a resize.
+	if _, ok := server.inputMode.(*inputModeNormal); !ok {
+		return
+	}
 	server.seat.PointerNotifyFrame()
 }
 
