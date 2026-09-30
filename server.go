@@ -63,6 +63,8 @@ type Server struct {
 	statusBar *StatusBar
 
 	inputMode InputMode
+	// pressed holds the pointer buttons that are currently down.
+	pressed map[wlr.CursorButton]struct{}
 
 	onNewOutputListener             wlr.Listener
 	onNewInputListener              wlr.Listener

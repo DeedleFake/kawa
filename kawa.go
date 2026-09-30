@@ -98,6 +98,7 @@ func parseOutputConfigs(outputConfigs string) iter.Seq[OutputConfig] {
 // running, as well as a few other pieces of initialization.
 func (server *Server) init() error {
 	server.newViews = make(map[int]*geom.Rect[float64])
+	server.pressed = make(map[wlr.CursorButton]struct{})
 
 	server.display = wlr.CreateDisplay()
 

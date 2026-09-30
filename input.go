@@ -92,11 +92,13 @@ func (server *Server) onCursorMotionAbsolute(dev wlr.Pointer, t time.Time, x, y 
 func (server *Server) onCursorButton(dev wlr.Pointer, t time.Time, b wlr.CursorButton, state wlr.ButtonState) {
 	switch state {
 	case wlr.ButtonPressed:
+		server.pressed[b] = struct{}{}
 		m, ok := server.inputMode.(CursorButtonPresser)
 		if ok {
 			m.CursorButtonPressed(server, dev, b, t)
 		}
 	case wlr.ButtonReleased:
+		delete(server.pressed, b)
 		m, ok := server.inputMode.(CursorButtonReleaser)
 		if ok {
 			m.CursorButtonReleased(server, dev, b, t)

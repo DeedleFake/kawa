@@ -320,11 +320,16 @@ func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 		}
 		vs.onCommit()
 	})
+	// A client asks for a move or resize after it gets a button press.
+	// If the button is already up by the time the request arrives, the
+	// drag is over and there would be no release to end it.
 	view.onRequestMoveListener = surface.Toplevel().OnRequestMove(func(t wlr.XDGToplevel, client wlr.SeatClient, serial uint32) {
-		server.startMove(&view)
+		if len(server.pressed) > 0 {
+			server.startMove(&view)
+		}
 	})
 	view.onRequestResizeListener = surface.Toplevel().OnRequestResize(func(t wlr.XDGToplevel, client wlr.SeatClient, serial uint32, edges wlr.Edges) {
-		if !server.isViewTiled(&view) {
+		if (len(server.pressed) > 0) && !server.isViewTiled(&view) {
 			server.startBorderResize(&view, edges)
 		}
 	})

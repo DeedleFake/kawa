@@ -143,6 +143,10 @@ func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 }
 
 func (m *inputModeMove) CursorButtonReleased(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
+	// The client got the press that started a move it asked for, and
+	// the seat won't send it any more of that button until it gets the
+	// release too.
+	server.seat.PointerNotifyButton(t, b, wlr.ButtonReleased)
 	server.startNormal()
 }
 
@@ -230,6 +234,7 @@ func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
 
 func (m *inputModeBorderResize) CursorButtonReleased(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	m.view.SetResizing(false)
+	server.seat.PointerNotifyButton(t, b, wlr.ButtonReleased)
 	server.startNormal()
 }
 
