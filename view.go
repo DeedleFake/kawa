@@ -342,6 +342,9 @@ func (server *Server) onDestroyView(view *View) {
 	if server.targetView() == view {
 		server.startNormal()
 	}
+	if i := slices.Index(server.hidden, view); i >= 0 {
+		server.removeHidden(i)
+	}
 
 	i := slices.Index(server.views, view)
 	if i >= 0 {
@@ -512,16 +515,21 @@ func (server *Server) hideView(view *View) {
 }
 
 func (server *Server) unhideView(view *View) {
-	i := slices.Index(server.hidden, view)
+	server.removeHidden(slices.Index(server.hidden, view))
+
+	server.views = append(server.views, view)
+	server.focusView(view, view.Surface())
+	view.SetMinimized(false)
+}
+
+// removeHidden removes the view at index i from the hidden list, along
+// with its main menu item.
+func (server *Server) removeHidden(i int) {
 	server.hidden = slices.Delete(server.hidden, i, i+1)
 
 	mi := server.mainMenu.Item(len(mainMenuText) + i)
 	server.mainMenu.Remove(mi)
 	mi.Release()
-
-	server.views = append(server.views, view)
-	server.focusView(view, view.Surface())
-	view.SetMinimized(false)
 }
 
 func (server *Server) toggleViewTiling(view *View) {
@@ -659,7 +667,6 @@ func (server *Server) updateTitles() {
 	// Not the best way to do this, perhaps...
 	for _, view := range server.hidden {
 		item := server.mainMenu.Item(len(mainMenuText))
-		item.Release()
 
 		n := NewTextMenuItem(server.renderer, view.Title())
 		n.OnSelect = item.OnSelect
