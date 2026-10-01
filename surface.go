@@ -16,7 +16,7 @@ type ViewSurface interface {
 	Surface() wlr.Surface
 	SetResizing(bool)
 	SetMinimized(bool)
-	SetMaximized(bool)
+	SetMaximized(horz, vert bool)
 
 	Resize(w, h int)
 	Geometry() geom.Rect[int]
@@ -56,10 +56,16 @@ func (s *viewSurfaceXDG) Title() string {
 }
 
 func (s *viewSurfaceXDG) Resize(w, h int) {
+	if !s.s.Initialized() {
+		return
+	}
 	s.s.Toplevel().SetSize(int32(w), int32(h))
 }
 
 func (s *viewSurfaceXDG) SetResizing(resizing bool) {
+	if !s.s.Initialized() {
+		return
+	}
 	s.s.Toplevel().SetResizing(resizing)
 }
 
@@ -67,8 +73,11 @@ func (s *viewSurfaceXDG) SetMinimized(m bool) {
 	// Apparently XDG clients can't be minimized. Huh.
 }
 
-func (s *viewSurfaceXDG) SetMaximized(m bool) {
-	s.s.Toplevel().SetMaximized(m)
+func (s *viewSurfaceXDG) SetMaximized(horz, vert bool) {
+	if !s.s.Initialized() {
+		return
+	}
+	s.s.Toplevel().SetMaximized(horz && vert)
 }
 
 func (s *viewSurfaceXDG) Geometry() geom.Rect[int] {
@@ -92,6 +101,9 @@ func (s *viewSurfaceXDG) Mapped() bool {
 }
 
 func (s *viewSurfaceXDG) SetActivated(a bool) {
+	if !s.s.Initialized() {
+		return
+	}
 	s.s.Toplevel().SetActivated(a)
 }
 
@@ -118,7 +130,8 @@ func (s *viewSurfaceXwayland) PID() int {
 }
 
 func (s *viewSurfaceXwayland) HasSurface(surface wlr.Surface) (has bool) {
-	return s.s.Surface().HasSurface(surface)
+	ws := s.s.Surface()
+	return ws.Valid() && ws.HasSurface(surface)
 }
 
 func (s *viewSurfaceXwayland) Close() error {
@@ -142,8 +155,8 @@ func (s *viewSurfaceXwayland) SetMinimized(m bool) {
 	s.s.SetMinimized(m)
 }
 
-func (s *viewSurfaceXwayland) SetMaximized(m bool) {
-	s.s.SetMaximized(m)
+func (s *viewSurfaceXwayland) SetMaximized(horz, vert bool) {
+	s.s.SetMaximized(horz, vert)
 }
 
 func (s *viewSurfaceXwayland) Geometry() geom.Rect[int] {
@@ -163,7 +176,8 @@ func (s *viewSurfaceXwayland) Surface() wlr.Surface {
 }
 
 func (s *viewSurfaceXwayland) Mapped() bool {
-	return s.s.Surface().Mapped()
+	ws := s.s.Surface()
+	return ws.Valid() && ws.Mapped()
 }
 
 func (s *viewSurfaceXwayland) SetActivated(a bool) {
@@ -176,10 +190,18 @@ func (s *viewSurfaceXwayland) Activated() bool {
 }
 
 func (s *viewSurfaceXwayland) Surfaces() iter.Seq[wlr.IterSurface] {
-	return s.s.Surface().Surfaces()
+	ws := s.s.Surface()
+	if !ws.Valid() {
+		return func(yield func(wlr.IterSurface) bool) {}
+	}
+	return ws.Surfaces()
 }
 
 func (s *viewSurfaceXwayland) SurfaceAt(p geom.Point[float64]) (surface wlr.Surface, sp geom.Point[float64], ok bool) {
-	surface, sx, sy, ok := s.s.Surface().SurfaceAt(p.X, p.Y)
+	ws := s.s.Surface()
+	if !ws.Valid() {
+		return wlr.Surface{}, geom.Point[float64]{}, false
+	}
+	surface, sx, sy, ok := ws.SurfaceAt(p.X, p.Y)
 	return surface, geom.Pt(sx, sy), ok
 }

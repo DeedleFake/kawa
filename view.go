@@ -39,7 +39,10 @@ type View struct {
 	popups []*Popup
 
 	onMapListener             wlr.Listener
+	onCommitListener          wlr.Listener
 	onDestroyListener         wlr.Listener
+	onAssociateListener       wlr.Listener
+	onDissociateListener      wlr.Listener
 	onRequestMoveListener     wlr.Listener
 	onRequestResizeListener   wlr.Listener
 	onRequestMinimizeListener wlr.Listener
@@ -50,6 +53,9 @@ type View struct {
 func (view *View) Release() {
 	view.onDestroyListener.Destroy()
 	view.onMapListener.Destroy()
+	view.onCommitListener.Destroy()
+	view.onAssociateListener.Destroy()
+	view.onDissociateListener.Destroy()
 	view.onRequestMoveListener.Destroy()
 	view.onRequestResizeListener.Destroy()
 	view.onRequestMinimizeListener.Destroy()
@@ -209,8 +215,17 @@ func (server *Server) onNewXwaylandSurface(surface wlr.XwaylandSurface) {
 	view.onDestroyListener = surface.OnDestroy(func(s wlr.XwaylandSurface) {
 		server.onDestroyView(&view)
 	})
-	view.onMapListener = surface.Surface().OnMap(func(s wlr.Surface) {
-		server.onMapView(&view)
+	// The wlr_surface doesn't exist until the X11 window is associated
+	// with one, and it can go away again before the Xwayland surface is
+	// destroyed.
+	view.onAssociateListener = surface.OnAssociate(func(s wlr.XwaylandSurface) {
+		view.onMapListener = s.Surface().OnMap(func(s wlr.Surface) {
+			server.onMapView(&view)
+		})
+	})
+	view.onDissociateListener = surface.OnDissociate(func(s wlr.XwaylandSurface) {
+		view.onMapListener.Destroy()
+		view.onMapListener = wlr.Listener{}
 	})
 	view.onRequestMoveListener = surface.OnRequestMove(func(s wlr.XwaylandSurface) {
 		server.startMove(&view)
@@ -233,14 +248,14 @@ func (server *Server) onNewXwaylandSurface(surface wlr.XwaylandSurface) {
 	server.addView(&view)
 }
 
+func (server *Server) onNewXDGToplevel(toplevel wlr.XDGToplevel) {
+	server.addXDGToplevel(toplevel.Base())
+}
+
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
-	switch surface.Role() {
-	case wlr.XDGSurfaceRoleToplevel:
-		server.addXDGToplevel(surface)
-	case wlr.XDGSurfaceRolePopup:
+	// Popups only; toplevels come from OnNewToplevel.
+	if surface.Role() == wlr.XDGSurfaceRolePopup {
 		server.addXDGPopup(surface)
-	case wlr.XDGSurfaceRoleNone:
-		// TODO
 	}
 }
 
@@ -259,11 +274,19 @@ func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 		CSD:         true,
 		ViewSurface: &viewSurfaceXDG{s: surface},
 	}
-	view.onDestroyListener = surface.OnDestroy(func(s wlr.XDGSurface) {
+	// The toplevel is destroyed before the XDGSurface, and its listeners
+	// have to be removed by then.
+	view.onDestroyListener = surface.Toplevel().OnDestroy(func(t wlr.XDGToplevel) {
 		server.onDestroyView(&view)
 	})
 	view.onMapListener = surface.Surface().OnMap(func(s wlr.Surface) {
 		server.onMapView(&view)
+	})
+	// The toplevel can't be configured until the initial commit.
+	view.onCommitListener = surface.Surface().OnCommit(func(s wlr.Surface) {
+		if surface.InitialCommit() {
+			server.resizeNewView(&view)
+		}
 	})
 	view.onRequestMoveListener = surface.Toplevel().OnRequestMove(func(t wlr.XDGToplevel, client wlr.SeatClient, serial uint32) {
 		server.startMove(&view)
@@ -329,7 +352,10 @@ func (server *Server) onMapView(view *View) {
 
 func (server *Server) addView(view *View) {
 	server.views = append(server.views, view)
+	server.resizeNewView(view)
+}
 
+func (server *Server) resizeNewView(view *View) {
 	nv, ok := server.newViews[view.PID()]
 	if ok {
 		server.resizeViewTo(nil, view, *nv)
@@ -351,8 +377,8 @@ func (server *Server) moveViewTo(out *Output, view *View, p geom.Point[float64])
 
 	view.Coords = p
 
-	if out != nil {
-		view.Surface().SendEnter(out.Output)
+	if s := view.Surface(); (out != nil) && s.Valid() {
+		s.SendEnter(out.Output)
 	}
 }
 
@@ -368,8 +394,8 @@ func (server *Server) resizeViewTo(out *Output, view *View, r geom.Rect[float64]
 	view.Coords = r.Min
 	view.Resize(int(r.Dx()), int(r.Dy()))
 
-	if out != nil {
-		view.Surface().SendEnter(out.Output)
+	if s := view.Surface(); (out != nil) && s.Valid() {
+		s.SendEnter(out.Output)
 	}
 }
 
@@ -389,8 +415,11 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 		pv.SetActivated(false)
 	}
 
-	k := server.seat.GetKeyboard()
-	server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
+	if k := server.seat.GetKeyboard(); k.Valid() {
+		server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
+	} else {
+		server.seat.KeyboardNotifyEnter(s, nil, wlr.KeyboardModifiers{})
+	}
 
 	view.SetActivated(true)
 	server.bringViewToFront(view)
@@ -487,7 +516,7 @@ func (server *Server) tileView(view *View) {
 	if s := view.Surface(); s.Valid() {
 		view.Restore = view.Bounds()
 	}
-	view.SetMaximized(true) // TODO: Fix the race condition between this and resizing the view.
+	view.SetMaximized(true, true) // TODO: Fix the race condition between this and resizing the view.
 
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())
@@ -501,7 +530,7 @@ func (server *Server) untileView(view *View, restore bool) {
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())
 
-	view.SetMaximized(false)
+	view.SetMaximized(false, false)
 	if restore && !view.Restore.IsZero() {
 		server.resizeViewTo(nil, view, view.Restore)
 	}
@@ -513,6 +542,9 @@ func (server *Server) layoutTiles(out *Output) {
 	}
 
 	if out == nil {
+		if len(server.outputs) == 0 {
+			return
+		}
 		out = server.outputs[0]
 	}
 
@@ -568,10 +600,28 @@ func (server *Server) onNewToplevelDecoration(dm wlr.XDGDecorationManagerV1, d w
 	}
 
 	view.CSD = false
-	d.SetMode(wlr.XDGToplevelDecorationV1ModeServerSide)
 
-	var onDestroyListener wlr.Listener
+	// The mode can't be sent until the toplevel's initial commit.
+	base := d.Toplevel().Base()
+	setMode := func() bool {
+		if !base.Initialized() {
+			return false
+		}
+		d.SetMode(wlr.XDGToplevelDecorationV1ModeServerSide)
+		return true
+	}
+
+	var onCommitListener, onDestroyListener wlr.Listener
+	if !setMode() {
+		onCommitListener = base.Surface().OnCommit(func(s wlr.Surface) {
+			if setMode() {
+				onCommitListener.Destroy()
+				onCommitListener = wlr.Listener{}
+			}
+		})
+	}
 	onDestroyListener = d.OnDestroy(func(d wlr.XDGToplevelDecorationV1) {
+		onCommitListener.Destroy()
 		onDestroyListener.Destroy()
 	})
 }

@@ -29,7 +29,7 @@ Building and Installing
 
 ### Dependencies
 
-* wlroots v0.15
+* wlroots v0.20
 
 ### Installation
 

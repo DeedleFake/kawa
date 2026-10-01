@@ -10,59 +10,73 @@ import (
 )
 
 type Framer interface {
-	Frame(*Server, *Output)
+	Frame(*Server, *Output, wlr.RenderPass)
 }
 
 func (server *Server) onFrame(out *Output) {
-	_, err := out.Output.AttachRender()
+	state := wlr.NewOutputState()
+	defer state.Finish()
+
+	pass, err := out.Output.BeginRenderPass(state)
 	if err != nil {
-		wlr.Log(wlr.Error, "output attach render: %v", err)
+		wlr.Log(wlr.Error, "begin render pass: %v", err)
 		return
 	}
-	defer out.Output.Commit()
 
-	server.renderer.Begin(out.Output, out.Output.Width(), out.Output.Height())
-	defer server.renderer.End()
-
-	server.renderer.Clear(ColorBackground)
-	server.renderBG(out)
-	server.renderLayer(out, wlr.LayerShellV1LayerBackground)
-	server.renderLayer(out, wlr.LayerShellV1LayerBottom)
-	server.renderViews(out)
-	server.renderNewViews(out)
-	server.renderLayer(out, wlr.LayerShellV1LayerTop)
-	server.renderLayer(out, wlr.LayerShellV1LayerOverlay)
+	pass.AddRect(
+		image.Rect(0, 0, out.Output.Width(), out.Output.Height()),
+		ColorBackground,
+		wlr.BlendModePremultiplied,
+	)
+	server.renderBG(out, pass)
+	server.renderLayer(out, pass, wlr.LayerShellV1LayerBackground)
+	server.renderLayer(out, pass, wlr.LayerShellV1LayerBottom)
+	server.renderViews(out, pass)
+	server.renderNewViews(out, pass)
+	server.renderLayer(out, pass, wlr.LayerShellV1LayerTop)
+	server.renderLayer(out, pass, wlr.LayerShellV1LayerOverlay)
 	if server.statusBar.Output() == out {
-		server.renderStatusBar()
+		server.renderStatusBar(out, pass)
 	}
-	server.renderMode(out)
-	server.renderCursor(out)
+	server.renderMode(out, pass)
+	server.renderCursor(out, pass)
+
+	pass.Submit()
+	out.Output.CommitState(state)
 }
 
-func (server *Server) renderBG(out *Output) {
+// toOutputLocal converts a layout-space rect to an output-local image.Rectangle.
+func (server *Server) toOutputLocal(out *Output, r geom.Rect[float64]) image.Rectangle {
+	ox, oy := server.outputLayout.OutputCoords(out.Output)
+	return r.Sub(geom.Pt(ox, oy)).ImageRect()
+}
+
+func (server *Server) renderBG(out *Output, pass wlr.RenderPass) {
 	if !server.bg.Valid() {
 		return
 	}
 
 	to := server.outputTilingBounds(out)
 	r := geom.RConv[float64](geom.Rt(0, 0, server.bg.Width(), server.bg.Height()))
-
-	m := wlr.ProjectBoxMatrix(
-		server.bgScale(to, r).ImageRect(),
+	dst := server.toOutputLocal(out, server.bgScale(to, r))
+	pass.AddTexture(
+		server.bg,
+		image.Rectangle{},
+		dst,
+		1,
 		wlr.OutputTransformNormal,
-		0,
-		out.Output.TransformMatrix(),
+		wlr.FilterBilinear,
+		wlr.BlendModePremultiplied,
 	)
-	server.renderer.RenderTextureWithMatrix(server.bg, m, 1)
 }
 
-func (server *Server) renderViews(out *Output) {
+func (server *Server) renderViews(out *Output, pass wlr.RenderPass) {
 	for _, view := range server.tiled {
 		if !view.Mapped() {
 			continue
 		}
 
-		server.renderView(out, view)
+		server.renderView(out, pass, view)
 	}
 
 	for _, view := range server.views {
@@ -70,18 +84,18 @@ func (server *Server) renderViews(out *Output) {
 			continue
 		}
 
-		server.renderView(out, view)
+		server.renderView(out, pass, view)
 	}
 }
 
-func (server *Server) renderView(out *Output, view *View) {
+func (server *Server) renderView(out *Output, pass wlr.RenderPass, view *View) {
 	if !view.CSD {
-		server.renderViewBorder(out, view)
+		server.renderViewBorder(out, pass, view)
 	}
-	server.renderViewSurfaces(out, view)
+	server.renderViewSurfaces(out, pass, view)
 }
 
-func (server *Server) renderViewBorder(out *Output, view *View) {
+func (server *Server) renderViewBorder(out *Output, pass wlr.RenderPass, view *View) {
 	color := ColorInactiveBorder
 	if view.Activated() {
 		color = ColorActiveBorder
@@ -91,40 +105,50 @@ func (server *Server) renderViewBorder(out *Output, view *View) {
 	}
 
 	r := view.Bounds().Inset(-WindowBorder)
-	server.renderRectBorder(out, geom.RConv[float64](r), color)
+	server.renderRectBorder(out, pass, geom.RConv[float64](r), color)
 }
 
-func (server *Server) renderViewSurfaces(out *Output, view *View) {
+func (server *Server) renderViewSurfaces(out *Output, pass wlr.RenderPass, view *View) {
 	for s := range view.Surfaces() {
 		p := geom.Pt(s.X, s.Y)
-		server.renderSurface(out, s.Surface, geom.PConv[int](view.Coords).Add(p))
+		server.renderSurface(out, pass, s.Surface, geom.PConv[int](view.Coords).Add(p))
 	}
 }
 
-func (server *Server) renderNewViews(out *Output) {
+func (server *Server) renderNewViews(out *Output, pass wlr.RenderPass) {
 	for _, nv := range server.newViews {
-		server.renderSelectionBox(out, *nv)
+		server.renderSelectionBox(out, pass, *nv)
 	}
 }
 
-func (server *Server) renderLayer(out *Output, layer wlr.LayerShellV1Layer) {
+func (server *Server) renderLayer(out *Output, pass wlr.RenderPass, layer wlr.LayerShellV1Layer) {
 	// TODO
 }
 
-func (server *Server) renderRectBorder(out *Output, r geom.Rect[float64], color color.Color) {
-	server.renderer.RenderRect(geom.Rt(0, 0, WindowBorder, r.Dy()).Add(r.Min).ImageRect(), color, out.Output.TransformMatrix())
-	server.renderer.RenderRect(geom.Rt(0, 0, WindowBorder, r.Dy()).Add(geom.Pt(r.Max.X-WindowBorder, r.Min.Y)).ImageRect(), color, out.Output.TransformMatrix())
-	server.renderer.RenderRect(geom.Rt(0, 0, r.Dx(), WindowBorder).Add(r.Min).ImageRect(), color, out.Output.TransformMatrix())
-	server.renderer.RenderRect(geom.Rt(0, 0, r.Dx(), WindowBorder).Add(geom.Pt(r.Min.X, r.Max.Y-WindowBorder)).ImageRect(), color, out.Output.TransformMatrix())
+func (server *Server) renderRectBorder(out *Output, pass wlr.RenderPass, r geom.Rect[float64], color color.Color) {
+	pass.AddRect(server.toOutputLocal(out, geom.Rt(0, 0, WindowBorder, r.Dy()).Add(r.Min)), color, wlr.BlendModePremultiplied)
+	pass.AddRect(server.toOutputLocal(out, geom.Rt(0, 0, WindowBorder, r.Dy()).Add(geom.Pt(r.Max.X-WindowBorder, r.Min.Y))), color, wlr.BlendModePremultiplied)
+	pass.AddRect(server.toOutputLocal(out, geom.Rt(0, 0, r.Dx(), WindowBorder).Add(r.Min)), color, wlr.BlendModePremultiplied)
+	pass.AddRect(server.toOutputLocal(out, geom.Rt(0, 0, r.Dx(), WindowBorder).Add(geom.Pt(r.Min.X, r.Max.Y-WindowBorder))), color, wlr.BlendModePremultiplied)
 }
 
-func (server *Server) renderSelectionBox(out *Output, r geom.Rect[float64]) {
+func (server *Server) renderSelectionBox(out *Output, pass wlr.RenderPass, r geom.Rect[float64]) {
+	// wlroots fills the whole output for an empty rect, so empty boxes
+	// have to be skipped instead of drawn.
 	r = r.Canon()
-	server.renderRectBorder(out, r, ColorSelectionBox)
-	server.renderer.RenderRect(r.Inset(WindowBorder).ImageRect(), ColorSelectionBackground, out.Output.TransformMatrix())
+	if server.toOutputLocal(out, r).Empty() {
+		return
+	}
+	server.renderRectBorder(out, pass, r, ColorSelectionBox)
+
+	inner := server.toOutputLocal(out, r.Inset(WindowBorder))
+	if inner.Empty() {
+		return
+	}
+	pass.AddRect(inner, ColorSelectionBackground, wlr.BlendModePremultiplied)
 }
 
-func (server *Server) renderSurface(out *Output, s wlr.Surface, p geom.Point[int]) {
+func (server *Server) renderSurface(out *Output, pass wlr.RenderPass, s wlr.Surface, p geom.Point[int]) {
 	texture := s.GetTexture()
 	if !texture.Valid() {
 		wlr.Log(wlr.Error, "invalid texture for surface")
@@ -133,45 +157,55 @@ func (server *Server) renderSurface(out *Output, s wlr.Surface, p geom.Point[int
 
 	r := surfaceBounds(s).Add(geom.PConv[int](p))
 	tr := s.Current().Transform().Invert()
-	m := wlr.ProjectBoxMatrix(r.ImageRect(), tr, 0, out.Output.TransformMatrix())
-
-	server.renderer.RenderTextureWithMatrix(texture, m, 1)
+	pass.AddTexture(
+		texture,
+		image.Rectangle{},
+		server.toOutputLocal(out, geom.RConv[float64](r)),
+		1,
+		tr,
+		wlr.FilterBilinear,
+		wlr.BlendModePremultiplied,
+	)
 	s.SendFrameDone(time.Now())
 }
 
-func (server *Server) renderStatusBar() {
-	out := server.statusBar.Output()
-	tm := out.Output.TransformMatrix()
-
+func (server *Server) renderStatusBar(out *Output, pass wlr.RenderPass) {
 	b := server.statusBarBounds()
-	server.renderer.RenderRect(b.ImageRect(), ColorMenuBorder, tm)
+	pass.AddRect(server.toOutputLocal(out, b), ColorMenuBorder, wlr.BlendModePremultiplied)
 
 	if title := server.statusBar.Title(); title.Valid() {
 		tb := geom.Rt(0, 0, float64(title.Width()), float64(title.Height()))
 		tb = geom.Align(b, tb, geom.EdgeLeft)
 		tb = tb.Add(geom.Pt[float64](WindowBorder, 0))
-		m := wlr.ProjectBoxMatrix(tb.ImageRect(), wlr.OutputTransformNormal, 0, tm)
-		server.renderer.RenderTextureWithMatrix(title, m, 1)
+		pass.AddTexture(
+			title,
+			image.Rectangle{},
+			server.toOutputLocal(out, tb),
+			1,
+			wlr.OutputTransformNormal,
+			wlr.FilterBilinear,
+			wlr.BlendModePremultiplied,
+		)
 	}
 }
 
-func (server *Server) renderMode(out *Output) {
+func (server *Server) renderMode(out *Output, pass wlr.RenderPass) {
 	m, ok := server.inputMode.(Framer)
 	if !ok {
 		return
 	}
 
-	m.Frame(server, out)
+	m.Frame(server, out, pass)
 }
 
-func (server *Server) renderCursor(out *Output) {
-	out.Output.RenderSoftwareCursors(image.Rectangle{})
+func (server *Server) renderCursor(out *Output, pass wlr.RenderPass) {
+	out.Output.AddSoftwareCursorsToRenderPass(pass, image.Rectangle{})
 }
 
-func (server *Server) renderMenu(out *Output, m *Menu, p geom.Point[float64], sel *MenuItem) {
+func (server *Server) renderMenu(out *Output, pass wlr.RenderPass, m *Menu, p geom.Point[float64], sel *MenuItem) {
 	r := m.Bounds().Add(p)
-	server.renderer.RenderRect(r.Inset(-WindowBorder/2).ImageRect(), ColorMenuBorder, out.Output.TransformMatrix())
-	server.renderer.RenderRect(r.ImageRect(), ColorMenuUnselected, out.Output.TransformMatrix())
+	pass.AddRect(server.toOutputLocal(out, r.Inset(-WindowBorder/2)), ColorMenuBorder, wlr.BlendModePremultiplied)
+	pass.AddRect(server.toOutputLocal(out, r), ColorMenuUnselected, wlr.BlendModePremultiplied)
 
 	for item, bounds := range m.Items() {
 		ar := bounds.Add(p)
@@ -180,10 +214,17 @@ func (server *Server) renderMenu(out *Output, m *Menu, p geom.Point[float64], se
 		t := item.inactive
 		if item == sel {
 			t = item.active
-			server.renderer.RenderRect(ar.ImageRect(), ColorMenuSelected, out.Output.TransformMatrix())
+			pass.AddRect(server.toOutputLocal(out, ar), ColorMenuSelected, wlr.BlendModePremultiplied)
 		}
 
-		matrix := wlr.ProjectBoxMatrix(tr.ImageRect(), wlr.OutputTransformNormal, 0, out.Output.TransformMatrix())
-		server.renderer.RenderTextureWithMatrix(t, matrix, 1)
+		pass.AddTexture(
+			t,
+			image.Rectangle{},
+			server.toOutputLocal(out, tr),
+			1,
+			wlr.OutputTransformNormal,
+			wlr.FilterBilinear,
+			wlr.BlendModePremultiplied,
+		)
 	}
 }

@@ -49,10 +49,11 @@ func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
 	cc := server.cursorCoords()
 
-	forceMenu := server.seat.GetKeyboard().GetModifiers()&wlr.KeyboardModifierLogo != 0
+	k := server.seat.GetKeyboard()
+	forceMenu := k.Valid() && (k.GetModifiers()&wlr.KeyboardModifierLogo != 0)
 	if !forceMenu {
 		out := server.outputAt(cc)
-		forceMenu = (out == server.statusBar.Output()) && (cc.Y <= StatusBarHeight)
+		forceMenu = (out != nil) && (out == server.statusBar.Output()) && (cc.Y <= StatusBarHeight)
 	}
 	if forceMenu {
 		switch b {
@@ -277,8 +278,8 @@ func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.Pointer, b 
 	m.m.Select(m.sel)
 }
 
-func (m *inputModeMenu) Frame(server *Server, out *Output) {
-	server.renderMenu(out, m.m, m.p, m.sel)
+func (m *inputModeMenu) Frame(server *Server, out *Output, pass wlr.RenderPass) {
+	server.renderMenu(out, pass, m.m, m.p, m.sel)
 }
 
 type inputModeSelectView struct {
@@ -361,14 +362,14 @@ func (m *inputModeResize) CursorButtonReleased(server *Server, dev wlr.Pointer, 
 	server.startNormal()
 }
 
-func (m *inputModeResize) Frame(server *Server, out *Output) {
+func (m *inputModeResize) Frame(server *Server, out *Output, pass wlr.RenderPass) {
 	if !m.resizing {
 		return
 	}
 
 	cc := server.cursorCoords()
 	r := geom.Rect[float64]{Min: m.s, Max: cc}
-	server.renderSelectionBox(out, r)
+	server.renderSelectionBox(out, pass, r)
 }
 
 func (m *inputModeResize) TargetView() *View {
@@ -426,10 +427,10 @@ func (m *inputModeNew) CursorButtonReleased(server *Server, dev wlr.Pointer, b w
 	server.startNormal()
 }
 
-func (m *inputModeNew) Frame(server *Server, out *Output) {
+func (m *inputModeNew) Frame(server *Server, out *Output, pass wlr.RenderPass) {
 	if !m.dragging || m.started {
 		return
 	}
 
-	server.renderSelectionBox(out, m.n)
+	server.renderSelectionBox(out, pass, m.n)
 }
