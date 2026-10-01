@@ -47,6 +47,7 @@ type Server struct {
 	xwayland             wlr.Xwayland
 	decorationManager    wlr.ServerDecorationManager
 	xdgDecorationManager wlr.XDGDecorationManagerV1
+	activation           wlr.XDGActivationV1
 
 	outputs []*Output
 	//inputs    []wlr.InputDevice
@@ -56,6 +57,8 @@ type Server struct {
 	tiled     []*View
 	hidden    []*View
 	newViews  map[int]*geom.Rect[float64]
+
+	activationTokens map[wlr.XDGActivationTokenV1]*activationToken
 
 	// exited carries the pids of programs started from New, as they
 	// exit, from the goroutines that wait on them to the event loop.
@@ -95,6 +98,8 @@ type Server struct {
 	onNewLayerSurfaceListener       wlr.Listener
 	onNewDecorationListener         wlr.Listener
 	onNewToplevelDecorationListener wlr.Listener
+	onNewActivationTokenListener    wlr.Listener
+	onRequestActivateListener       wlr.Listener
 }
 
 func (server *Server) Release() {
@@ -114,6 +119,8 @@ func (server *Server) Release() {
 	server.onNewLayerSurfaceListener.Destroy()
 	server.onNewDecorationListener.Destroy()
 	server.onNewToplevelDecorationListener.Destroy()
+	server.onNewActivationTokenListener.Destroy()
+	server.onRequestActivateListener.Destroy()
 	server.exited.src.Remove()
 	syscall.Close(server.exited.r)
 	syscall.Close(server.exited.w)
@@ -148,6 +155,9 @@ func (server *Server) exec(to *geom.Rect[float64]) {
 	for _, term := range server.Terms {
 		args := strings.Fields(term)
 		cmd := exec.Command(args[0], args[1:]...) // TODO: Context support?
+		if token := server.newActivationToken(); token != "" {
+			cmd.Env = append(os.Environ(), "XDG_ACTIVATION_TOKEN="+token, "DESKTOP_STARTUP_ID="+token)
+		}
 		err := cmd.Start()
 		if err != nil {
 			wlr.Log(wlr.Error, "start new with %q: %v", term, err)
