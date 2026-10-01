@@ -101,6 +101,10 @@ func (server *Server) init() error {
 	server.pressed = make(map[wlr.CursorButton]struct{})
 
 	server.display = wlr.CreateDisplay()
+	err := server.initExited()
+	if err != nil {
+		return err
+	}
 
 	server.backend = wlr.AutocreateBackend(server.display.EventLoop())
 	if !server.backend.Valid() {
