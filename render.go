@@ -90,7 +90,9 @@ func (server *Server) renderViews(out *Output, pass wlr.RenderPass) {
 }
 
 func (server *Server) renderView(out *Output, pass wlr.RenderPass, view *View) {
-	if !view.CSD {
+	// A window that draws its own decorations still gets a border while
+	// it wants attention, or there would be nothing to show it.
+	if !view.CSD || view.attention {
 		server.renderViewBorder(out, pass, view)
 	}
 	server.renderViewSurfaces(out, pass, view)
@@ -100,6 +102,9 @@ func (server *Server) renderViewBorder(out *Output, pass wlr.RenderPass, view *V
 	color := ColorInactiveBorder
 	if view.Activated() {
 		color = ColorActiveBorder
+	}
+	if view.attention {
+		color = ColorSelectionBox
 	}
 	if server.targetView() == view {
 		color = ColorSelectionBox

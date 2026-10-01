@@ -576,11 +576,20 @@ func (server *Server) hideView(view *View) {
 	server.hidden = append(server.hidden, view)
 	view.SetMinimized(true)
 
+	server.mainMenu.Add(server.hiddenMenuItem(view))
+}
+
+// hiddenMenuItem makes the main menu item that unhides view. Its text is
+// drawn in the selection color while the view wants attention.
+func (server *Server) hiddenMenuItem(view *View) *MenuItem {
 	item := NewTextMenuItem(server.renderer, view.Title())
+	if view.attention {
+		item = NewColoredTextMenuItem(server.renderer, view.Title(), ColorSelectionBox)
+	}
 	item.OnSelect = func() {
 		server.unhideView(view)
 	}
-	server.mainMenu.Add(item)
+	return item
 }
 
 func (server *Server) isViewHidden(view *View) bool {
@@ -740,13 +749,9 @@ func (server *Server) updateTitles() {
 	// Not the best way to do this, perhaps...
 	for _, view := range server.hidden {
 		item := server.mainMenu.Item(len(mainMenuText))
-
-		n := NewTextMenuItem(server.renderer, view.Title())
-		n.OnSelect = item.OnSelect
-
 		server.mainMenu.Remove(item)
 		item.Release()
-		server.mainMenu.Add(n)
+		server.mainMenu.Add(server.hiddenMenuItem(view))
 	}
 
 	var focusedTitle string

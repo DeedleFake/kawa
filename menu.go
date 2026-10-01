@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"image/color"
 	"iter"
 	"slices"
 
@@ -149,6 +150,15 @@ func NewTextMenuItem(renderer wlr.Renderer, text string) *MenuItem {
 	return NewMenuItem(
 		draw.CreateTextTexture(renderer, image.White, text),
 		draw.CreateTextTexture(renderer, image.Black, text),
+	)
+}
+
+// NewColoredTextMenuItem is like NewTextMenuItem, but draws the text in
+// c while the item isn't selected.
+func NewColoredTextMenuItem(renderer wlr.Renderer, text string, c color.Color) *MenuItem {
+	return NewMenuItem(
+		draw.CreateTextTexture(renderer, image.White, text),
+		draw.CreateTextTexture(renderer, image.NewUniform(c), text),
 	)
 }
 
