@@ -9,7 +9,12 @@ import (
 
 type Output struct {
 	Output wlr.Output
-	Layers [4][]LayerSurface
+	Layers [4][]*LayerSurface
+
+	// usable is the part of the output, relative to it, that is left
+	// for windows once the status bar and the exclusive zones of layer
+	// surfaces are taken out.
+	usable geom.Rect[int]
 
 	onFrameListener   wlr.Listener
 	onDestroyListener wlr.Listener
@@ -24,7 +29,10 @@ type OutputConfig struct {
 }
 
 func (server *Server) outputAt(p geom.Point[float64]) *Output {
-	wout := server.outputLayout.OutputAt(p.X, p.Y)
+	return server.outputFor(server.outputLayout.OutputAt(p.X, p.Y))
+}
+
+func (server *Server) outputFor(wout wlr.Output) *Output {
 	for _, out := range server.outputs {
 		if out.Output == wout {
 			return out
@@ -38,12 +46,18 @@ func (server *Server) outputBounds(out *Output) geom.Rect[float64] {
 	return geom.Rt(0, 0, float64(out.Output.Width()), float64(out.Output.Height())).Add(geom.Pt(x, y))
 }
 
-func (server *Server) outputTilingBounds(out *Output) geom.Rect[float64] {
+// outputVisibleBounds returns the part of the output that the status
+// bar doesn't cover.
+func (server *Server) outputVisibleBounds(out *Output) geom.Rect[float64] {
 	b := server.outputBounds(out)
 	if out == server.statusBar.Output() {
 		return b.Pad(StatusBarHeight, 0, 0, 0)
 	}
 	return b
+}
+
+func (server *Server) outputUsableBounds(out *Output) geom.Rect[float64] {
+	return geom.RConv[float64](out.usable).Add(server.outputBounds(out).Min)
 }
 
 func (server *Server) statusBarBounds() geom.Rect[float64] {
@@ -73,9 +87,11 @@ func (server *Server) onNewOutput(wout wlr.Output) {
 	case server.statusBar.Output() == nil:
 		server.statusBar.SetOutput(&out)
 	}
+	server.arrangeLayers(&out)
 }
 
 func (server *Server) onDestroyOutput(out *Output) {
+	out.closeLayerSurfaces()
 	out.onFrameListener.Destroy()
 	out.onDestroyListener.Destroy()
 
@@ -90,6 +106,9 @@ func (server *Server) onDestroyOutput(out *Output) {
 			next = server.outputs[0]
 		}
 		server.statusBar.SetOutput(next)
+		if next != nil {
+			server.arrangeLayers(next)
+		}
 	}
 }
 

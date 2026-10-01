@@ -382,7 +382,10 @@ func (m *inputModeResize) TargetView() *View {
 }
 
 type inputModeNew struct {
-	n        geom.Rect[float64]
+	n geom.Rect[float64]
+	// area is the usable area of the output that the drag started on.
+	// The box stays inside of it.
+	area     geom.Rect[float64]
 	dragging bool
 	started  bool
 }
@@ -397,7 +400,7 @@ func (m *inputModeNew) CursorMoved(server *Server, t time.Time) {
 		return
 	}
 
-	cc := server.cursorCoords()
+	cc := m.clamp(server.cursorCoords())
 	m.n.Max = cc
 
 	if math.Abs(cc.X-float64(m.n.Min.X)) < MinWidth {
@@ -419,9 +422,20 @@ func (m *inputModeNew) CursorButtonPressed(server *Server, dev wlr.Pointer, b wl
 		return
 	}
 
-	m.n.Min = server.cursorCoords()
+	cc := server.cursorCoords()
+	if out := server.outputAt(cc); out != nil {
+		m.area = server.outputUsableBounds(out)
+	}
+	m.n.Min = m.clamp(cc)
 	m.n.Max = m.n.Min
 	m.dragging = true
+}
+
+func (m *inputModeNew) clamp(p geom.Point[float64]) geom.Point[float64] {
+	if m.area.IsZero() {
+		return p
+	}
+	return geom.Max(m.area.Min, geom.Min(p, m.area.Max))
 }
 
 func (m *inputModeNew) CursorButtonReleased(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {

@@ -306,7 +306,7 @@ func (server *Server) unconstrainPopup(view *View, popup wlr.XDGPopup) {
 		return
 	}
 
-	box := server.outputTilingBounds(out).Sub(view.surfaceCoords())
+	box := server.outputUsableBounds(out).Sub(view.surfaceCoords())
 	popup.UnconstrainFromBox(box.ImageRect())
 }
 
@@ -437,7 +437,7 @@ func (server *Server) resizeNewView(view *View) bool {
 }
 
 func (server *Server) centerViewOnOutput(out *Output, view *View) {
-	ob := server.outputBounds(out)
+	ob := server.outputUsableBounds(out)
 	vb := view.Bounds()
 	p := vb.CenterAt(ob.Center())
 
@@ -625,7 +625,7 @@ func (server *Server) layoutTiles(out *Output) {
 		out = server.outputs[0]
 	}
 
-	or := server.outputTilingBounds(out)
+	or := server.outputUsableBounds(out)
 	tiles := geom.TiledRows(len(server.tiled), or, 4)
 	for i, tile := range xiter.Enumerate(tiles) {
 		tile = tile.Inset(3 * WindowBorder)

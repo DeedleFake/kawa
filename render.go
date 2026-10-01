@@ -56,7 +56,7 @@ func (server *Server) renderBG(out *Output, pass wlr.RenderPass) {
 		return
 	}
 
-	to := server.outputTilingBounds(out)
+	to := server.outputVisibleBounds(out)
 	r := geom.RConv[float64](geom.Rt(0, 0, server.bg.Width(), server.bg.Height()))
 	dst := server.toOutputLocal(out, server.bgScale(to, r))
 	pass.AddTexture(
