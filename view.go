@@ -282,13 +282,32 @@ func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
 	// client won't map one until it has been configured.
 	surface.ScheduleConfigure()
 
-	parent := server.viewForSurface(surface.Popup().Parent())
+	popup := surface.Popup()
+	parent := server.viewForSurface(popup.Parent())
 	if parent == nil {
 		wlr.Log(wlr.Debug, "parent of popup could not be found")
 		return
 	}
 
+	server.unconstrainPopup(parent, popup)
 	parent.addPopup(surface)
+}
+
+// unconstrainPopup keeps a popup inside the usable part of the output
+// that its toplevel is on, flipping or sliding it as its positioner
+// allows. wlroots wants that area relative to the toplevel's surface,
+// and works out where nested popups are from there.
+func (server *Server) unconstrainPopup(view *View, popup wlr.XDGPopup) {
+	out := server.outputAt(view.Bounds().Center())
+	if out == nil {
+		out = server.outputAt(server.cursorCoords())
+	}
+	if out == nil {
+		return
+	}
+
+	box := server.outputTilingBounds(out).Sub(view.surfaceCoords())
+	popup.UnconstrainFromBox(box.ImageRect())
 }
 
 func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
