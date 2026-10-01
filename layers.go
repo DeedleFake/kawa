@@ -208,3 +208,33 @@ func excludeZone(usable geom.Rect[int], state wlr.LayerSurfaceV1State, edge wlr.
 		return usable
 	}
 }
+
+// layerSurfaceCoords returns the position of a layer surface in the
+// layout.
+func (server *Server) layerSurfaceCoords(ls *LayerSurface) geom.Point[float64] {
+	return server.outputBounds(ls.Output).Min.Add(geom.PConv[float64](ls.Geo.Min))
+}
+
+func (server *Server) layerForSurface(s wlr.Surface) *LayerSurface {
+	for _, out := range server.outputs {
+		for _, layer := range out.Layers {
+			for _, ls := range layer {
+				for sub := range ls.LayerSurface.Surfaces() {
+					if sub.Surface == s {
+						return ls
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// unconstrainLayerPopup keeps a popup of a layer surface inside the
+// part of the output that the status bar doesn't cover. A layer surface
+// can sit outside of the usable area, like a panel in its own exclusive
+// zone, so its popups aren't held to it either.
+func (server *Server) unconstrainLayerPopup(ls *LayerSurface, popup wlr.XDGPopup) {
+	box := server.outputVisibleBounds(ls.Output).Sub(server.layerSurfaceCoords(ls))
+	popup.UnconstrainFromBox(box.ImageRect())
+}

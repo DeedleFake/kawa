@@ -285,6 +285,10 @@ func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
 	popup := surface.Popup()
 	parent := server.viewForSurface(popup.Parent())
 	if parent == nil {
+		if ls := server.layerForSurface(popup.Parent()); ls != nil {
+			server.unconstrainLayerPopup(ls, popup)
+			return
+		}
 		wlr.Log(wlr.Debug, "parent of popup could not be found")
 		return
 	}
