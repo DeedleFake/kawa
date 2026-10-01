@@ -71,6 +71,9 @@ type Server struct {
 	systemMenu *Menu
 
 	statusBar *StatusBar
+	// prevFocus is the window that had the keyboard before a layer
+	// surface took it.
+	prevFocus *View
 
 	inputMode InputMode
 	// pressed holds the pointer buttons that are currently down.

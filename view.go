@@ -483,6 +483,13 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 		s = view.Surface()
 	}
 
+	// The window gets the keyboard once the layer surface that has it
+	// to itself lets go.
+	if server.exclusiveLayer() != nil {
+		server.prevFocus = view
+		return
+	}
+
 	pv := server.focusedView()
 	if pv == view {
 		return
@@ -491,16 +498,20 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 		pv.SetActivated(false)
 	}
 
-	if k := server.seat.GetKeyboard(); k.Valid() {
-		server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
-	} else {
-		server.seat.KeyboardNotifyEnter(s, nil, wlr.KeyboardModifiers{})
-	}
+	server.keyboardEnter(s)
 
 	view.SetActivated(true)
 	server.bringViewToFront(view)
 
 	server.updateTitles()
+}
+
+func (server *Server) keyboardEnter(s wlr.Surface) {
+	if k := server.seat.GetKeyboard(); k.Valid() {
+		server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
+	} else {
+		server.seat.KeyboardNotifyEnter(s, nil, wlr.KeyboardModifiers{})
+	}
 }
 
 func (server *Server) focusedView() *View {

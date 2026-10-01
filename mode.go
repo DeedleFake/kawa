@@ -24,7 +24,7 @@ func (server *Server) startNormal() {
 func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
 	cc := server.cursorCoords()
 
-	view, edges, surface, sp := server.viewAt(nil, cc)
+	_, view, edges, surface, sp := server.surfaceAt(cc)
 	if edges != m.prevEdges {
 		cursor := interactCursor
 		if !server.isViewTiled(view) {
@@ -65,7 +65,14 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.Pointer, b
 		return
 	}
 
-	view, edges, surface, _ := server.viewAt(nil, cc)
+	ls, view, edges, surface, _ := server.surfaceAt(cc)
+	if ls != nil {
+		if ls.LayerSurface.Current().KeyboardInteractive() != wlr.LayerSurfaceV1KeyboardInteractivityNone {
+			server.focusLayer(ls)
+		}
+		server.seat.PointerNotifyButton(t, b, wlr.ButtonPressed)
+		return
+	}
 	if view == nil {
 		switch b {
 		case wlr.BtnRight:
