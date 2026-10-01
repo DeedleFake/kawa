@@ -2,6 +2,8 @@ deedles.dev/wlr v0.0.0-20260930200955-3b4a1aefdded h1:ih8m5IANHiloD6GMNJKm/kRQr0
 deedles.dev/wlr v0.0.0-20260930200955-3b4a1aefdded/go.mod h1:MtwAdJf47vQrRJi1h2Io+z8km13AR7VeMmVl6xxBZP8=
 deedles.dev/wlr v0.0.0-20261001041748-be0b3283f920 h1:1WPo3Ar+KmYA7xD55sgTYLMjNQtOT23oscLRvDlRveM=
 deedles.dev/wlr v0.0.0-20261001041748-be0b3283f920/go.mod h1:MtwAdJf47vQrRJi1h2Io+z8km13AR7VeMmVl6xxBZP8=
+deedles.dev/wlr v0.0.0-20261001043845-0c483673516a h1:dy6auPHimoLJXpmzhetHxV17dx5vwAVgkbQTjNeIAi0=
+deedles.dev/wlr v0.0.0-20261001043845-0c483673516a/go.mod h1:MtwAdJf47vQrRJi1h2Io+z8km13AR7VeMmVl6xxBZP8=
 deedles.dev/ximage v0.0.0-20260216031900-83cce02ab70f h1:Nr3p3VitLKGFSGxA8gb1MCc+ECIbROYlJvVURLt2Sdg=
 deedles.dev/ximage v0.0.0-20260216031900-83cce02ab70f/go.mod h1:TuV4i9Rw7p4vd0kbQcc6WzCPXgBqQpdpQTXYh9b5zNY=
 deedles.dev/xiter v0.2.1 h1:yyyfo1sDwARp5lyMvILBJpEI28sIFN0TNYagAdBUa+s=
