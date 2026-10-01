@@ -401,7 +401,14 @@ func (server *Server) onMapView(view *View) {
 	nv, ok := server.newViews[pid]
 	if ok {
 		delete(server.newViews, pid)
-		server.startBorderResizeFrom(view, wlr.EdgeNone, *nv)
+		// The window got the box's size and place when it was first
+		// configured. Only a drag that is still going on keeps
+		// resizing it, and there's no release to end one that isn't.
+		if len(server.pressed) > 0 {
+			server.startBorderResizeFrom(view, wlr.EdgeNone, *nv)
+		} else {
+			server.focusView(view, view.Surface())
+		}
 		return
 	}
 
