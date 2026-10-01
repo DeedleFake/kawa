@@ -156,17 +156,24 @@ func (server *Server) renderSurface(out *Output, pass wlr.RenderPass, s wlr.Surf
 	}
 
 	r := surfaceBounds(s).Add(geom.PConv[int](p))
+	dst := server.toOutputLocal(out, geom.RConv[float64](r))
 	tr := s.Current().Transform().Invert()
 	pass.AddTexture(
 		texture,
 		image.Rectangle{},
-		server.toOutputLocal(out, geom.RConv[float64](r)),
+		dst,
 		1,
 		tr,
 		wlr.FilterBilinear,
 		wlr.BlendModePremultiplied,
 	)
 	s.SendFrameDone(time.Now())
+
+	// Every output draws every surface, so only the one that the
+	// surface is actually on gets to present it.
+	if dst.Overlaps(image.Rect(0, 0, out.Output.Width(), out.Output.Height())) {
+		wlr.PresentationSurfaceTexturedOnOutput(s, out.Output)
+	}
 }
 
 func (server *Server) renderStatusBar(out *Output, pass wlr.RenderPass) {

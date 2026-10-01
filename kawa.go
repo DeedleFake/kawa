@@ -129,6 +129,9 @@ func (server *Server) init() error {
 	wlr.CreateDataControlManagerV1(server.display)
 	wlr.CreatePrimarySelectionV1DeviceManager(server.display)
 	wlr.CreateSubcompositor(server.display)
+	// Clients like GTK 4 that get no presentation feedback time frames
+	// from the output's refresh rate, which nested outputs don't have.
+	wlr.CreatePresentation(server.display, server.backend, 2)
 
 	wlr.CreateGammaControlManagerV1(server.display)
 
