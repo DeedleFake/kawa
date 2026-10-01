@@ -35,6 +35,7 @@ func (server *Server) onFrame(out *Output) {
 	server.renderNewViews(out, pass)
 	server.renderLayer(out, pass, wlr.LayerShellV1LayerTop)
 	server.renderLayer(out, pass, wlr.LayerShellV1LayerOverlay)
+	server.renderLayerPopups(out, pass)
 	if server.statusBar.Output() == out {
 		server.renderStatusBar(out, pass)
 	}
@@ -56,7 +57,7 @@ func (server *Server) renderBG(out *Output, pass wlr.RenderPass) {
 		return
 	}
 
-	to := server.outputTilingBounds(out)
+	to := server.outputVisibleBounds(out)
 	r := geom.RConv[float64](geom.Rt(0, 0, server.bg.Width(), server.bg.Height()))
 	dst := server.toOutputLocal(out, server.bgScale(to, r))
 	pass.AddTexture(
@@ -122,7 +123,34 @@ func (server *Server) renderNewViews(out *Output, pass wlr.RenderPass) {
 }
 
 func (server *Server) renderLayer(out *Output, pass wlr.RenderPass, layer wlr.LayerShellV1Layer) {
-	// TODO
+	for _, ls := range out.Layers[layer] {
+		if !ls.Mapped() {
+			continue
+		}
+
+		p := geom.PConv[int](server.layerSurfaceCoords(ls))
+		for s := range ls.LayerSurface.Surface().Surfaces() {
+			server.renderSurface(out, pass, s.Surface, p.Add(geom.Pt(s.X, s.Y)))
+		}
+	}
+}
+
+// renderLayerPopups draws the popups of every layer surface on out above
+// all of the layers, so that a menu from a panel in the bottom layer
+// isn't hidden under windows.
+func (server *Server) renderLayerPopups(out *Output, pass wlr.RenderPass) {
+	for _, layer := range out.Layers {
+		for _, ls := range layer {
+			if !ls.Mapped() {
+				continue
+			}
+
+			p := geom.PConv[int](server.layerSurfaceCoords(ls))
+			for s := range ls.LayerSurface.PopupSurfaces() {
+				server.renderSurface(out, pass, s.Surface, p.Add(geom.Pt(s.X, s.Y)))
+			}
+		}
+	}
 }
 
 func (server *Server) renderRectBorder(out *Output, pass wlr.RenderPass, r geom.Rect[float64], color color.Color) {
