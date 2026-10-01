@@ -178,6 +178,8 @@ func (server *Server) init() error {
 	server.xdgDecorationManager = wlr.CreateXDGDecorationManagerV1(server.display)
 	server.onNewToplevelDecorationListener = server.xdgDecorationManager.OnNewToplevelDecoration(server.onNewToplevelDecoration)
 
+	server.initActivation()
+
 	server.initUI()
 
 	server.startNormal()

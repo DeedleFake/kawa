@@ -39,6 +39,13 @@ type View struct {
 	Restore geom.Rect[float64]
 	CSD     bool
 
+	// activateOnMap is set when the client was allowed to activate the
+	// view before it mapped.
+	activateOnMap bool
+	// attention is set when the client asked to be activated but
+	// wasn't allowed to be. It's cleared once the view gets focus.
+	attention bool
+
 	popups []*Popup
 
 	onMapListener             wlr.Listener
@@ -400,6 +407,9 @@ func (server *Server) onDestroyView(view *View) {
 }
 
 func (server *Server) onMapView(view *View) {
+	activate := view.activateOnMap
+	view.activateOnMap = false
+
 	pid := view.PID()
 
 	nv, ok := server.newViews[pid]
@@ -425,6 +435,9 @@ func (server *Server) onMapView(view *View) {
 	}
 
 	server.centerViewOnOutput(out, view)
+	if activate {
+		server.focusView(view, view.Surface())
+	}
 }
 
 func (server *Server) addView(view *View) {
@@ -500,6 +513,7 @@ func (server *Server) focusView(view *View, s wlr.Surface) {
 
 	server.keyboardEnter(s)
 
+	view.attention = false
 	view.SetActivated(true)
 	server.bringViewToFront(view)
 
@@ -567,6 +581,10 @@ func (server *Server) hideView(view *View) {
 		server.unhideView(view)
 	}
 	server.mainMenu.Add(item)
+}
+
+func (server *Server) isViewHidden(view *View) bool {
+	return slices.Contains(server.hidden, view)
 }
 
 func (server *Server) unhideView(view *View) {
