@@ -92,11 +92,13 @@ func (server *Server) onCursorMotionAbsolute(dev wlr.Pointer, t time.Time, x, y 
 func (server *Server) onCursorButton(dev wlr.Pointer, t time.Time, b wlr.CursorButton, state wlr.ButtonState) {
 	switch state {
 	case wlr.ButtonPressed:
+		server.pressed[b] = struct{}{}
 		m, ok := server.inputMode.(CursorButtonPresser)
 		if ok {
 			m.CursorButtonPressed(server, dev, b, t)
 		}
 	case wlr.ButtonReleased:
+		delete(server.pressed, b)
 		m, ok := server.inputMode.(CursorButtonReleaser)
 		if ok {
 			m.CursorButtonReleased(server, dev, b, t)
@@ -109,6 +111,11 @@ func (server *Server) onCursorAxis(dev wlr.Pointer, t time.Time, source wlr.Axis
 }
 
 func (server *Server) onCursorFrame() {
+	// Other modes send no pointer events to clients, and a frame for
+	// every motion can fill up a client's socket during a resize.
+	if _, ok := server.inputMode.(*inputModeNormal); !ok {
+		return
+	}
 	server.seat.PointerNotifyFrame()
 }
 

@@ -46,6 +46,22 @@ func parseTransform(str string) (wlr.OutputTransform, error) {
 	}
 }
 
+// parseScale parses a background scaling method from a string.
+func parseScale(str string) (scaleFunc, error) {
+	switch str {
+	case "stretch":
+		return scaleStretch, nil
+	case "center":
+		return scaleCenter, nil
+	case "fit":
+		return scaleFit, nil
+	case "fill":
+		return scaleFill, nil
+	default:
+		return nil, fmt.Errorf("unknown scaling method: %q", str)
+	}
+}
+
 // parseOutputConfigs parses an OutputConfig from a string.
 func parseOutputConfigs(outputConfigs string) iter.Seq[OutputConfig] {
 	return func(yield func(OutputConfig) bool) {
@@ -82,8 +98,13 @@ func parseOutputConfigs(outputConfigs string) iter.Seq[OutputConfig] {
 // running, as well as a few other pieces of initialization.
 func (server *Server) init() error {
 	server.newViews = make(map[int]*geom.Rect[float64])
+	server.pressed = make(map[wlr.CursorButton]struct{})
 
 	server.display = wlr.CreateDisplay()
+	err := server.initExited()
+	if err != nil {
+		return err
+	}
 
 	server.backend = wlr.AutocreateBackend(server.display.EventLoop())
 	if !server.backend.Valid() {
@@ -108,6 +129,9 @@ func (server *Server) init() error {
 	wlr.CreateDataControlManagerV1(server.display)
 	wlr.CreatePrimarySelectionV1DeviceManager(server.display)
 	wlr.CreateSubcompositor(server.display)
+	// Clients like GTK 4 that get no presentation feedback time frames
+	// from the output's refresh rate, which nested outputs don't have.
+	wlr.CreatePresentation(server.display, server.backend, 2)
 
 	wlr.CreateGammaControlManagerV1(server.display)
 
@@ -135,10 +159,13 @@ func (server *Server) init() error {
 
 	server.seat = wlr.CreateSeat(server.display, "seat0")
 	server.onRequestCursorListener = server.seat.OnRequestSetCursor(server.onRequestCursor)
+	// Clients, Xwayland included, can only ask for the selection. It
+	// doesn't change unless it's set here.
+	server.onSetSelectionListener = server.seat.OnRequestSetSelection(server.seat.SetSelection)
+	server.onSetPrimarySelectionListener = server.seat.OnRequestSetPrimarySelection(server.seat.SetPrimarySelection)
 
 	server.xdgShell = wlr.CreateXDGShell(server.display, 3)
 	server.onNewXDGToplevelListener = server.xdgShell.OnNewToplevel(server.onNewXDGToplevel)
-	// Prefer OnNewPopup once wlr.XDGPopup exposes Base(); Role() on new_surface can miss.
 	server.onNewXDGSurfaceListener = server.xdgShell.OnNewSurface(server.onNewXDGSurface)
 
 	server.layerShell = wlr.CreateLayerShellV1(server.display, 4)
@@ -164,6 +191,9 @@ func (server *Server) run() error {
 
 	server.xwayland = wlr.CreateXwayland(server.display, server.compositor, false)
 	server.onNewXwaylandSurfaceListener = server.xwayland.OnNewSurface(server.onNewXwaylandSurface)
+	// wlroots holds on to the seat until Xwayland is ready. Without it,
+	// X clients get no selections.
+	server.xwayland.SetSeat(server.seat)
 
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {
@@ -197,7 +227,11 @@ func main() {
 
 	terms := xflag.StringsFlag("terms", []string{"sakura", "alacritty"}, "preferentially ordered list of terminals for new windows to use")
 	bg := flag.String("bg", "", "background image")
-	bgScale := flag.String("bgscale", "stretch", "background image scaling method (stretch, center, fit, fill)")
+	bgScale := scaleStretch
+	flag.Func("bgscale", "background image scaling method (stretch, center, fit, fill) (default stretch)", func(str string) (err error) {
+		bgScale, err = parseScale(str)
+		return err
+	})
 	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
 	flag.Parse()
 
@@ -215,18 +249,7 @@ func main() {
 
 	if *bg != "" {
 		server.loadBG(*bg)
-		switch *bgScale {
-		case "stretch":
-			server.bgScale = scaleStretch
-		case "center":
-			server.bgScale = scaleCenter
-		case "fit":
-			server.bgScale = scaleFit
-		case "fill":
-			server.bgScale = scaleFill
-		default:
-			wlr.Log(wlr.Error, "unknown scaling method: %q", *bgScale)
-		}
+		server.bgScale = bgScale
 	}
 
 	err = server.run()

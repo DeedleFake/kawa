@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/binary"
+	"fmt"
 	"image"
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
@@ -54,6 +57,13 @@ type Server struct {
 	hidden    []*View
 	newViews  map[int]*geom.Rect[float64]
 
+	// exited carries the pids of programs started from New, as they
+	// exit, from the goroutines that wait on them to the event loop.
+	exited struct {
+		r, w int
+		src  wlr.EventSource
+	}
+
 	bg      wlr.Texture
 	bgScale scaleFunc
 
@@ -63,6 +73,8 @@ type Server struct {
 	statusBar *StatusBar
 
 	inputMode InputMode
+	// pressed holds the pointer buttons that are currently down.
+	pressed map[wlr.CursorButton]struct{}
 
 	onNewOutputListener             wlr.Listener
 	onNewInputListener              wlr.Listener
@@ -72,6 +84,8 @@ type Server struct {
 	onCursorAxisListener            wlr.Listener
 	onCursorFrameListener           wlr.Listener
 	onRequestCursorListener         wlr.Listener
+	onSetSelectionListener          wlr.Listener
+	onSetPrimarySelectionListener   wlr.Listener
 	onNewXDGToplevelListener        wlr.Listener
 	onNewXDGSurfaceListener         wlr.Listener
 	onNewXwaylandSurfaceListener    wlr.Listener
@@ -89,12 +103,17 @@ func (server *Server) Release() {
 	server.onCursorAxisListener.Destroy()
 	server.onCursorFrameListener.Destroy()
 	server.onRequestCursorListener.Destroy()
+	server.onSetSelectionListener.Destroy()
+	server.onSetPrimarySelectionListener.Destroy()
 	server.onNewXDGToplevelListener.Destroy()
 	server.onNewXDGSurfaceListener.Destroy()
 	server.onNewXwaylandSurfaceListener.Destroy()
 	server.onNewLayerSurfaceListener.Destroy()
 	server.onNewDecorationListener.Destroy()
 	server.onNewToplevelDecorationListener.Destroy()
+	server.exited.src.Remove()
+	syscall.Close(server.exited.r)
+	syscall.Close(server.exited.w)
 }
 
 func (server *Server) Shutdown() {
@@ -132,11 +151,55 @@ func (server *Server) exec(to *geom.Rect[float64]) {
 			continue
 		}
 
-		server.newViews[cmd.Process.Pid] = to
+		pid := cmd.Process.Pid
+		go func() {
+			cmd.Wait()
+
+			// Only the event loop can touch the server, so pass the pid
+			// along to it. A write this small to a pipe is atomic.
+			var b [4]byte
+			binary.NativeEndian.PutUint32(b[:], uint32(pid))
+			syscall.Write(server.exited.w, b[:])
+		}()
+
+		server.newViews[pid] = to
 		return
 	}
 
 	wlr.Log(wlr.Error, "no valid terminals found for new window")
+}
+
+func (server *Server) initExited() error {
+	var fds [2]int
+	err := syscall.Pipe2(fds[:], syscall.O_CLOEXEC)
+	if err != nil {
+		return fmt.Errorf("create pipe: %w", err)
+	}
+	err = syscall.SetNonblock(fds[0], true)
+	if err != nil {
+		return fmt.Errorf("set pipe non-blocking: %w", err)
+	}
+
+	server.exited.r, server.exited.w = fds[0], fds[1]
+	server.exited.src = server.display.EventLoop().AddFd(uintptr(fds[0]), wlr.EventReadable, server.onExited)
+	return nil
+}
+
+// onExited forgets the New box of each program that has exited. One
+// that never opened a window would otherwise leave its box up forever.
+// A window that a program's own child opens after it exits gets placed
+// like any other.
+func (server *Server) onExited(fd uintptr, mask wlr.EventMask) {
+	var buf [4 * 64]byte
+	for {
+		n, _ := syscall.Read(int(fd), buf[:])
+		if n <= 0 {
+			return
+		}
+		for b := buf[:n]; len(b) >= 4; b = b[4:] {
+			delete(server.newViews, int(binary.NativeEndian.Uint32(b)))
+		}
+	}
 }
 
 func (server *Server) initUI() {

@@ -32,6 +32,9 @@ const (
 
 type View struct {
 	ViewSurface
+	// Coords is the position of the view's window geometry, not of its
+	// surface, so that the view stays in place when a client changes
+	// its geometry offset, such as by dropping CSD shadows on maximize.
 	Coords  geom.Point[float64]
 	Restore geom.Rect[float64]
 	CSD     bool
@@ -64,7 +67,13 @@ func (view *View) Release() {
 }
 
 func (view *View) Bounds() geom.Rect[float64] {
-	return geom.RConv[float64](view.Geometry()).Add(view.Coords)
+	g := view.Geometry()
+	return geom.RConv[float64](g.Sub(g.Min)).Add(view.Coords)
+}
+
+// surfaceCoords returns the position of the view's main surface.
+func (view *View) surfaceCoords() geom.Point[float64] {
+	return view.Coords.Sub(geom.PConv[float64](view.Geometry().Min))
 }
 
 func (view *View) addPopup(surface wlr.XDGSurface) {
@@ -155,7 +164,7 @@ func (server *Server) viewIndexAt(out *Output, views []*View, p geom.Point[float
 }
 
 func (server *Server) isViewAt(out *Output, view *View, p geom.Point[float64]) (edges wlr.Edges, s wlr.Surface, sp geom.Point[float64], ok bool) {
-	surface, sp, ok := view.SurfaceAt(p.Sub(view.Coords))
+	surface, sp, ok := view.SurfaceAt(p.Sub(view.surfaceCoords()))
 	if ok {
 		return wlr.EdgeNone, surface, sp, true
 	}
@@ -253,26 +262,59 @@ func (server *Server) onNewXDGToplevel(toplevel wlr.XDGToplevel) {
 }
 
 func (server *Server) onNewXDGSurface(surface wlr.XDGSurface) {
-	// Popups only; toplevels come from OnNewToplevel.
-	if surface.Role() == wlr.XDGSurfaceRolePopup {
-		server.addXDGPopup(surface)
-	}
+	// Popups only; toplevels come from OnNewToplevel. The role isn't
+	// assigned yet when new_surface fires, so check on the initial
+	// commit instead.
+	var onCommit, onDestroy wlr.Listener
+	onCommit = surface.Surface().OnCommit(func(wlr.Surface) {
+		if surface.InitialCommit() && (surface.Role() == wlr.XDGSurfaceRolePopup) {
+			server.addXDGPopup(surface)
+		}
+	})
+	onDestroy = surface.OnDestroy(func(wlr.XDGSurface) {
+		onCommit.Destroy()
+		onDestroy.Destroy()
+	})
 }
 
 func (server *Server) addXDGPopup(surface wlr.XDGSurface) {
-	parent := server.viewForSurface(surface.Popup().Parent())
+	// wlroots leaves configuring popups to the compositor, and the
+	// client won't map one until it has been configured.
+	surface.ScheduleConfigure()
+
+	popup := surface.Popup()
+	parent := server.viewForSurface(popup.Parent())
 	if parent == nil {
 		wlr.Log(wlr.Debug, "parent of popup could not be found")
 		return
 	}
 
+	server.unconstrainPopup(parent, popup)
 	parent.addPopup(surface)
 }
 
+// unconstrainPopup keeps a popup inside the usable part of the output
+// that its toplevel is on, flipping or sliding it as its positioner
+// allows. wlroots wants that area relative to the toplevel's surface,
+// and works out where nested popups are from there.
+func (server *Server) unconstrainPopup(view *View, popup wlr.XDGPopup) {
+	out := server.outputAt(view.Bounds().Center())
+	if out == nil {
+		out = server.outputAt(server.cursorCoords())
+	}
+	if out == nil {
+		return
+	}
+
+	box := server.outputTilingBounds(out).Sub(view.surfaceCoords())
+	popup.UnconstrainFromBox(box.ImageRect())
+}
+
 func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
+	vs := &viewSurfaceXDG{s: surface}
 	view := View{
 		CSD:         true,
-		ViewSurface: &viewSurfaceXDG{s: surface},
+		ViewSurface: vs,
 	}
 	// The toplevel is destroyed before the XDGSurface, and its listeners
 	// have to be removed by then.
@@ -282,17 +324,31 @@ func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 	view.onMapListener = surface.Surface().OnMap(func(s wlr.Surface) {
 		server.onMapView(&view)
 	})
-	// The toplevel can't be configured until the initial commit.
+	// The toplevel can't be configured until the initial commit, and it
+	// won't map until it is. A 0x0 size lets the client pick its own
+	// unless it was started from New.
 	view.onCommitListener = surface.Surface().OnCommit(func(s wlr.Surface) {
 		if surface.InitialCommit() {
-			server.resizeNewView(&view)
+			// A client that unmaps starts over, and a size it never
+			// acked must not hold back its first configure.
+			vs.sizeSerial, vs.hasPending = 0, false
+			if !server.resizeNewView(&view) {
+				view.Resize(0, 0)
+			}
+			return
+		}
+		vs.onCommit()
+	})
+	// A client asks for a move or resize after it gets a button press.
+	// If the button is already up by the time the request arrives, the
+	// drag is over and there would be no release to end it.
+	view.onRequestMoveListener = surface.Toplevel().OnRequestMove(func(t wlr.XDGToplevel, client wlr.SeatClient, serial uint32) {
+		if len(server.pressed) > 0 {
+			server.startMove(&view)
 		}
 	})
-	view.onRequestMoveListener = surface.Toplevel().OnRequestMove(func(t wlr.XDGToplevel, client wlr.SeatClient, serial uint32) {
-		server.startMove(&view)
-	})
 	view.onRequestResizeListener = surface.Toplevel().OnRequestResize(func(t wlr.XDGToplevel, client wlr.SeatClient, serial uint32, edges wlr.Edges) {
-		if !server.isViewTiled(&view) {
+		if (len(server.pressed) > 0) && !server.isViewTiled(&view) {
 			server.startBorderResize(&view, edges)
 		}
 	})
@@ -311,6 +367,16 @@ func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 
 func (server *Server) onDestroyView(view *View) {
 	view.Release()
+
+	// A mode that is still holding on to the view, such as an
+	// in-progress move or resize, would otherwise use it after it's
+	// gone.
+	if server.targetView() == view {
+		server.startNormal()
+	}
+	if i := slices.Index(server.hidden, view); i >= 0 {
+		server.removeHidden(i)
+	}
 
 	i := slices.Index(server.views, view)
 	if i >= 0 {
@@ -335,7 +401,14 @@ func (server *Server) onMapView(view *View) {
 	nv, ok := server.newViews[pid]
 	if ok {
 		delete(server.newViews, pid)
-		server.startBorderResizeFrom(view, wlr.EdgeNone, *nv)
+		// The window got the box's size and place when it was first
+		// configured. Only a drag that is still going on keeps
+		// resizing it, and there's no release to end one that isn't.
+		if len(server.pressed) > 0 {
+			server.startBorderResizeFrom(view, wlr.EdgeNone, *nv)
+		} else {
+			server.focusView(view, view.Surface())
+		}
 		return
 	}
 
@@ -355,11 +428,12 @@ func (server *Server) addView(view *View) {
 	server.resizeNewView(view)
 }
 
-func (server *Server) resizeNewView(view *View) {
+func (server *Server) resizeNewView(view *View) bool {
 	nv, ok := server.newViews[view.PID()]
 	if ok {
 		server.resizeViewTo(nil, view, *nv)
 	}
+	return ok
 }
 
 func (server *Server) centerViewOnOutput(out *Output, view *View) {
@@ -387,9 +461,7 @@ func (server *Server) resizeViewTo(out *Output, view *View, r geom.Rect[float64]
 		out = server.outputAt(r.Min)
 	}
 
-	vb := view.Bounds()
-	off := view.Coords.Sub(vb.Min)
-	r = r.Add(off).Canon()
+	r = r.Canon()
 
 	view.Coords = r.Min
 	view.Resize(int(r.Dx()), int(r.Dy()))
@@ -483,16 +555,21 @@ func (server *Server) hideView(view *View) {
 }
 
 func (server *Server) unhideView(view *View) {
-	i := slices.Index(server.hidden, view)
+	server.removeHidden(slices.Index(server.hidden, view))
+
+	server.views = append(server.views, view)
+	server.focusView(view, view.Surface())
+	view.SetMinimized(false)
+}
+
+// removeHidden removes the view at index i from the hidden list, along
+// with its main menu item.
+func (server *Server) removeHidden(i int) {
 	server.hidden = slices.Delete(server.hidden, i, i+1)
 
 	mi := server.mainMenu.Item(len(mainMenuText) + i)
 	server.mainMenu.Remove(mi)
 	mi.Release()
-
-	server.views = append(server.views, view)
-	server.focusView(view, view.Surface())
-	view.SetMinimized(false)
 }
 
 func (server *Server) toggleViewTiling(view *View) {
@@ -516,7 +593,7 @@ func (server *Server) tileView(view *View) {
 	if s := view.Surface(); s.Valid() {
 		view.Restore = view.Bounds()
 	}
-	view.SetMaximized(true, true) // TODO: Fix the race condition between this and resizing the view.
+	view.SetMaximized(true, true)
 
 	server.layoutTiles(nil)
 	server.focusView(view, view.Surface())
@@ -630,7 +707,6 @@ func (server *Server) updateTitles() {
 	// Not the best way to do this, perhaps...
 	for _, view := range server.hidden {
 		item := server.mainMenu.Item(len(mainMenuText))
-		item.Release()
 
 		n := NewTextMenuItem(server.renderer, view.Title())
 		n.OnSelect = item.OnSelect

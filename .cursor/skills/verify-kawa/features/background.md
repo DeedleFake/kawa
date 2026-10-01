@@ -21,4 +21,4 @@ Preconditions: baseline; a small PNG/JPEG under `$VERIFY_KAWA_HOME`.
 ## Gotchas
 
 - Bad path/decode logs an error and continues without a background.
-- Unknown `-bgscale` logs `unknown scaling method` and, with a loaded `-bg`, kawa panics (nil pointer in `renderBG`) on the first frame.
+- Unknown `-bgscale` is rejected during flag parsing: kawa prints `invalid value "..." for flag -bgscale: unknown scaling method: "..."` plus usage to stderr and exits with status 2 before starting, so `launch.sh` reports `kawa died before client connect`.

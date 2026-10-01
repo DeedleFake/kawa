@@ -34,6 +34,13 @@ type ViewSurface interface {
 
 type viewSurfaceXDG struct {
 	s wlr.XDGSurface
+
+	// sizeSerial is the serial of the last configure that carried a
+	// new size. Until the client acks and commits it, newer sizes are
+	// only remembered in pending and sent once it catches up.
+	sizeSerial uint32
+	pending    struct{ w, h int }
+	hasPending bool
 }
 
 func (s *viewSurfaceXDG) PID() int {
@@ -59,7 +66,30 @@ func (s *viewSurfaceXDG) Resize(w, h int) {
 	if !s.s.Initialized() {
 		return
 	}
-	s.s.Toplevel().SetSize(int32(w), int32(h))
+	if !s.caughtUp() {
+		s.pending.w, s.pending.h = w, h
+		s.hasPending = true
+		return
+	}
+	s.hasPending = false
+	s.sizeSerial = s.s.Toplevel().SetSize(int32(w), int32(h))
+}
+
+// caughtUp reports whether the client has acked and committed the
+// last size that was sent to it.
+func (s *viewSurfaceXDG) caughtUp() bool {
+	if s.sizeSerial == 0 {
+		return true
+	}
+	return int32(s.s.Current().ConfigureSerial()-s.sizeSerial) >= 0
+}
+
+// onCommit sends the latest size that was held back while the client
+// was behind.
+func (s *viewSurfaceXDG) onCommit() {
+	if s.hasPending && s.caughtUp() {
+		s.Resize(s.pending.w, s.pending.h)
+	}
 }
 
 func (s *viewSurfaceXDG) SetResizing(resizing bool) {
@@ -126,7 +156,7 @@ type viewSurfaceXwayland struct {
 }
 
 func (s *viewSurfaceXwayland) PID() int {
-	return -1 // There doesn't seem to be a way to get this...
+	return s.s.PID()
 }
 
 func (s *viewSurfaceXwayland) HasSurface(surface wlr.Surface) (has bool) {
