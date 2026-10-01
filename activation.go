@@ -7,6 +7,9 @@ import (
 // activationToken is what kawa knows about an xdg-activation token
 // beyond what wlroots keeps.
 type activationToken struct {
+	// trusted is true for tokens that kawa made itself for a program
+	// that the user started from it.
+	trusted bool
 	// hadFocus is true if the surface that the client said the token
 	// came from belonged to whatever had the keyboard when the token
 	// was made.
@@ -32,6 +35,17 @@ func (server *Server) trackActivationToken(t wlr.XDGActivationTokenV1, info *act
 		delete(server.activationTokens, t)
 	})
 	server.activationTokens[t] = info
+}
+
+// newActivationToken makes a token for a program that kawa is about to
+// start. It returns an empty string if wlroots couldn't make one.
+func (server *Server) newActivationToken() string {
+	t := server.activation.CreateToken()
+	if !t.Valid() {
+		return ""
+	}
+	server.trackActivationToken(t, &activationToken{trusted: true})
+	return t.Name()
 }
 
 // surfaceHasFocus returns true if s is, or belongs to the same window
@@ -61,10 +75,13 @@ func (server *Server) surfaceHasFocus(s wlr.Surface) bool {
 // made or have it now. A token without a surface can't be tied to what
 // the user was doing, so it doesn't count.
 func (server *Server) activationAllowed(t wlr.XDGActivationTokenV1) bool {
+	info := server.activationTokens[t]
+	if (info != nil) && info.trusted {
+		return true
+	}
 	if !t.Seat().Valid() {
 		return false
 	}
-	info := server.activationTokens[t]
 	return ((info != nil) && info.hadFocus) || server.surfaceHasFocus(t.Surface())
 }
 

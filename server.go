@@ -155,6 +155,9 @@ func (server *Server) exec(to *geom.Rect[float64]) {
 	for _, term := range server.Terms {
 		args := strings.Fields(term)
 		cmd := exec.Command(args[0], args[1:]...) // TODO: Context support?
+		if token := server.newActivationToken(); token != "" {
+			cmd.Env = append(os.Environ(), "XDG_ACTIVATION_TOKEN="+token, "DESKTOP_STARTUP_ID="+token)
+		}
 		err := cmd.Start()
 		if err != nil {
 			wlr.Log(wlr.Error, "start new with %q: %v", term, err)
