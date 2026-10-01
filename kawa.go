@@ -156,6 +156,10 @@ func (server *Server) init() error {
 
 	server.seat = wlr.CreateSeat(server.display, "seat0")
 	server.onRequestCursorListener = server.seat.OnRequestSetCursor(server.onRequestCursor)
+	// Clients, Xwayland included, can only ask for the selection. It
+	// doesn't change unless it's set here.
+	server.onSetSelectionListener = server.seat.OnRequestSetSelection(server.seat.SetSelection)
+	server.onSetPrimarySelectionListener = server.seat.OnRequestSetPrimarySelection(server.seat.SetPrimarySelection)
 
 	server.xdgShell = wlr.CreateXDGShell(server.display, 3)
 	server.onNewXDGToplevelListener = server.xdgShell.OnNewToplevel(server.onNewXDGToplevel)
@@ -184,6 +188,9 @@ func (server *Server) run() error {
 
 	server.xwayland = wlr.CreateXwayland(server.display, server.compositor, false)
 	server.onNewXwaylandSurfaceListener = server.xwayland.OnNewSurface(server.onNewXwaylandSurface)
+	// wlroots holds on to the seat until Xwayland is ready. Without it,
+	// X clients get no selections.
+	server.xwayland.SetSeat(server.seat)
 
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {

@@ -84,6 +84,8 @@ type Server struct {
 	onCursorAxisListener            wlr.Listener
 	onCursorFrameListener           wlr.Listener
 	onRequestCursorListener         wlr.Listener
+	onSetSelectionListener          wlr.Listener
+	onSetPrimarySelectionListener   wlr.Listener
 	onNewXDGToplevelListener        wlr.Listener
 	onNewXDGSurfaceListener         wlr.Listener
 	onNewXwaylandSurfaceListener    wlr.Listener
@@ -101,6 +103,8 @@ func (server *Server) Release() {
 	server.onCursorAxisListener.Destroy()
 	server.onCursorFrameListener.Destroy()
 	server.onRequestCursorListener.Destroy()
+	server.onSetSelectionListener.Destroy()
+	server.onSetPrimarySelectionListener.Destroy()
 	server.onNewXDGToplevelListener.Destroy()
 	server.onNewXDGSurfaceListener.Destroy()
 	server.onNewXwaylandSurfaceListener.Destroy()
