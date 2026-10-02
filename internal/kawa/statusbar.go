@@ -1,9 +1,9 @@
-package main
+package kawa
 
 import (
 	"image"
 
-	"deedles.dev/kawa/draw"
+	"deedles.dev/kawa/internal/draw"
 	"deedles.dev/wlr"
 )
 

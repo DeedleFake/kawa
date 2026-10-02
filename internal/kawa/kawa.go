@@ -1,4 +1,4 @@
-package main
+package kawa
 
 import (
 	"errors"
@@ -220,7 +220,7 @@ func (server *Server) run() error {
 	return nil
 }
 
-func main() {
+func Main() {
 	if addr, ok := os.LookupEnv("PPROF_ADDR"); ok {
 		go func() { log.Println(http.ListenAndServe(addr, nil)) }()
 	}

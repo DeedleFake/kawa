@@ -1,4 +1,4 @@
-package main
+package kawa
 
 import (
 	"deedles.dev/wlr"

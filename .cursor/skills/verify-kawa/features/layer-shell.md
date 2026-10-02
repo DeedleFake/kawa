@@ -1,6 +1,6 @@
 # Layer shell
 
-kawa implements `zwlr_layer_shell_v1` (`layers.go`) for wallpapers, panels, launchers, and notifications. Surfaces with an exclusive zone shrink the area used for new windows and tiling. Top and overlay surfaces that ask for exclusive keyboard get it and give it back when they let go, and layer popups (panel menus) are kept on screen below the status bar and drawn above everything.
+kawa implements `zwlr_layer_shell_v1` (`internal/kawa/layers.go`) for wallpapers, panels, launchers, and notifications. Surfaces with an exclusive zone shrink the area used for new windows and tiling. Top and overlay surfaces that ask for exclusive keyboard get it and give it back when they let go, and layer popups (panel menus) are kept on screen below the status bar and drawn above everything.
 
 ## Sub-features
 

@@ -5,7 +5,7 @@ This directory is the maintained source for verifying user-facing kawa composito
 ## Baseline preconditions
 
 - Repo root is `deedles.dev/kawa` (`go.mod`), on `master` or a branch based on it (wlroots 0.20 bindings).
-- `VERIFY_KAWA_BIN` is a `go build` of `.` from this checkout into `$VERIFY_KAWA_HOME/bin/kawa` (`CGO_ENABLED=1`, `GOTOOLCHAIN=auto`, wlroots 0.20 on `PKG_CONFIG_PATH` / `LD_LIBRARY_PATH`).
+- `VERIFY_KAWA_BIN` is a `go build` of `./cmd/kawa` from this checkout into `$VERIFY_KAWA_HOME/bin/kawa` (`CGO_ENABLED=1`, `GOTOOLCHAIN=auto`, wlroots 0.20 on `PKG_CONFIG_PATH` / `LD_LIBRARY_PATH`).
 - `VERIFY_KAWA_HOME` is a fresh `/tmp/verify-kawa-$RUN_ID`.
 - `XDG_RUNTIME_DIR=$VERIFY_KAWA_HOME/run` exists with mode `0700`.
 - `DISPLAY` names an X server this run started (a private Xvfb, see SKILL.md Launch); `WAYLAND_DISPLAY` is **unset** for the compositor process so the X11 backend is used.

@@ -165,7 +165,7 @@ jobs:
       - name: Build
         env:
           CGO_ENABLED: '1'
-        run: go build .
+        run: go build ./...
 
       - name: Vet
         env:

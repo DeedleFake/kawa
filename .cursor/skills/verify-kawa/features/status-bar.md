@@ -28,6 +28,6 @@ Preconditions: `compositor-boot` proven.
 ## Gotchas
 
 - Title updates are render-path side effects; there is no log line to grep.
-- Any press with Y ≤ `StatusBarHeight` (or with Logo held) opens a menu: left → system, right → main (`mode.go`).
+- Any press with Y ≤ `StatusBarHeight` (or with Logo held) opens a menu: left → system, right → main (`internal/kawa/mode.go`).
 - Releasing button 1 without moving selects `Log Out` and shuts kawa down.
 - A layer-shell panel (waybar) is placed below kawa's bar, not over it.

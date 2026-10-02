@@ -1,4 +1,4 @@
-package main
+package kawa
 
 import (
 	"image"
@@ -6,7 +6,7 @@ import (
 	"iter"
 	"slices"
 
-	"deedles.dev/kawa/draw"
+	"deedles.dev/kawa/internal/draw"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
 )

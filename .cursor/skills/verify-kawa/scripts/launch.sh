@@ -88,7 +88,7 @@ chmod 0700 "$XDG_RUNTIME_DIR"
 
 (
 	cd "$VERIFY_KAWA_ROOT"
-	go build -o "$VERIFY_KAWA_HOME/bin/kawa" .
+	go build -o "$VERIFY_KAWA_HOME/bin/kawa" ./cmd/kawa
 )
 export VERIFY_KAWA_BIN="$VERIFY_KAWA_HOME/bin/kawa"
 
