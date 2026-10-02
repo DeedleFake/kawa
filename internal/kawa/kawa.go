@@ -3,81 +3,21 @@ package kawa
 import (
 	"errors"
 	"flag"
-	"fmt"
-	"iter"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"slices"
-	"strconv"
-	"strings"
 
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 
 	"deedles.dev/kawa/internal/bg"
+	"deedles.dev/kawa/internal/output"
 	"deedles.dev/kawa/internal/xflag"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
 )
-
-// parseTransform parses an OutputTransform from a string.
-func parseTransform(str string) (wlr.OutputTransform, error) {
-	switch str {
-	case "normal", "0":
-		return wlr.OutputTransformNormal, nil
-	case "90":
-		return wlr.OutputTransform90, nil
-	case "180":
-		return wlr.OutputTransform180, nil
-	case "270":
-		return wlr.OutputTransform270, nil
-	case "flipped":
-		return wlr.OutputTransformFlipped, nil
-	case "flipped-90":
-		return wlr.OutputTransformFlipped90, nil
-	case "flipped-180":
-		return wlr.OutputTransformFlipped180, nil
-	case "flipped-270":
-		return wlr.OutputTransformFlipped270, nil
-	default:
-		return 0, fmt.Errorf("invalid transform: %q", str)
-	}
-}
-
-// parseOutputConfigs parses an OutputConfig from a string.
-func parseOutputConfigs(outputConfigs string) iter.Seq[OutputConfig] {
-	return func(yield func(OutputConfig) bool) {
-		if outputConfigs == "" {
-			return
-		}
-
-		// TODO: Handle errors.
-		for config := range strings.SplitSeq(outputConfigs, ",") {
-			parts := strings.Split(config, ":")
-			c := OutputConfig{Name: parts[0]}
-			c.X, _ = strconv.Atoi(parts[1])
-			c.Y, _ = strconv.Atoi(parts[2])
-			if len(parts) >= 5 {
-				c.Width, _ = strconv.Atoi(parts[3])
-				c.Height, _ = strconv.Atoi(parts[4])
-			}
-			if len(parts) >= 6 {
-				scale, _ := strconv.ParseFloat(parts[5], 32)
-				c.Scale = float32(scale)
-			}
-			if len(parts) >= 7 {
-				c.Transform, _ = parseTransform(parts[6])
-			}
-
-			if !yield(c) {
-				return
-			}
-		}
-	}
-}
 
 // init initializes the boilerplate necessary to get wlroots up and
 // running, as well as a few other pieces of initialization.
@@ -219,10 +159,9 @@ func Main() {
 	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
 	flag.Parse()
 
-	outputConfigsParsed := parseOutputConfigs(*outputConfigs)
 	server := Server{
 		Terms:         *terms,
-		OutputConfigs: slices.Collect(outputConfigsParsed),
+		OutputConfigs: output.Parse(*outputConfigs),
 	}
 
 	err := server.init()

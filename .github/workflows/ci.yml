@@ -181,4 +181,4 @@ jobs:
       - name: Test pure packages
         env:
           CGO_ENABLED: '0'
-        run: go test ./internal/bg
+        run: go test ./internal/bg ./internal/output

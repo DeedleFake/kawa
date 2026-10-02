@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"deedles.dev/kawa/internal/bg"
+	"deedles.dev/kawa/internal/output"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
 )
@@ -31,7 +32,7 @@ var (
 
 type Server struct {
 	Terms         []string
-	OutputConfigs []OutputConfig
+	OutputConfigs []output.Config
 
 	display wlr.Display
 
