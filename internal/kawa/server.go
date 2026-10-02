@@ -2,7 +2,6 @@ package kawa
 
 import (
 	"encoding/binary"
-	"fmt"
 	"image"
 	"os"
 	"os/exec"
@@ -75,10 +74,10 @@ type Server struct {
 
 	// exited carries the pids of programs started from New, as they
 	// exit, from the goroutines that wait on them to the event loop.
-	exited struct {
-		r, w int
-		src  wlr.EventSource
-	}
+	exited loopPipe
+	// canceled wakes the event loop when the context given to Run is
+	// done.
+	canceled loopPipe
 
 	bg wlr.Texture
 
@@ -133,9 +132,8 @@ func (server *Server) release() {
 	server.onNewToplevelDecorationListener.Destroy()
 	server.onNewActivationTokenListener.Destroy()
 	server.onRequestActivateListener.Destroy()
-	server.exited.src.Remove()
-	syscall.Close(server.exited.r)
-	syscall.Close(server.exited.w)
+	server.exited.close()
+	server.canceled.close()
 }
 
 func (server *Server) shutdown() {
@@ -192,22 +190,6 @@ func (server *Server) exec(to *geom.Rect[float64]) {
 	}
 
 	wlr.Log(wlr.Error, "no valid terminals found for new window")
-}
-
-func (server *Server) initExited() error {
-	var fds [2]int
-	err := syscall.Pipe2(fds[:], syscall.O_CLOEXEC)
-	if err != nil {
-		return fmt.Errorf("create pipe: %w", err)
-	}
-	err = syscall.SetNonblock(fds[0], true)
-	if err != nil {
-		return fmt.Errorf("set pipe non-blocking: %w", err)
-	}
-
-	server.exited.r, server.exited.w = fds[0], fds[1]
-	server.exited.src = server.display.EventLoop().AddFd(uintptr(fds[0]), wlr.EventReadable, server.onExited)
-	return nil
 }
 
 // onExited forgets the New box of each program that has exited. One
