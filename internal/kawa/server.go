@@ -126,7 +126,6 @@ func (server *Server) release() {
 	server.onSetPrimarySelectionListener.Destroy()
 	server.onNewXDGToplevelListener.Destroy()
 	server.onNewXDGSurfaceListener.Destroy()
-	server.onNewXwaylandSurfaceListener.Destroy()
 	server.onNewLayerSurfaceListener.Destroy()
 	server.onNewDecorationListener.Destroy()
 	server.onNewToplevelDecorationListener.Destroy()
