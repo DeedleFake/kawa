@@ -148,8 +148,8 @@ func NewMenuItem(active, inactive wlr.Texture) *MenuItem {
 
 func NewTextMenuItem(renderer wlr.Renderer, text string) *MenuItem {
 	return NewMenuItem(
-		draw.CreateTextTexture(renderer, image.White, text),
-		draw.CreateTextTexture(renderer, image.Black, text),
+		textTexture(renderer, image.White, text),
+		textTexture(renderer, image.Black, text),
 	)
 }
 
@@ -157,9 +157,14 @@ func NewTextMenuItem(renderer wlr.Renderer, text string) *MenuItem {
 // c while the item isn't selected.
 func NewColoredTextMenuItem(renderer wlr.Renderer, text string, c color.Color) *MenuItem {
 	return NewMenuItem(
-		draw.CreateTextTexture(renderer, image.White, text),
-		draw.CreateTextTexture(renderer, image.NewUniform(c), text),
+		textTexture(renderer, image.White, text),
+		textTexture(renderer, image.NewUniform(c), text),
 	)
+}
+
+// textTexture draws str in src on a new texture.
+func textTexture(r wlr.Renderer, src image.Image, str string) wlr.Texture {
+	return wlr.TextureFromImage(r, draw.Text(src, str))
 }
 
 func (item *MenuItem) Size() geom.Point[int] {

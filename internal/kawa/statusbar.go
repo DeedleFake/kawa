@@ -3,7 +3,6 @@ package kawa
 import (
 	"image"
 
-	"deedles.dev/kawa/internal/draw"
 	"deedles.dev/wlr"
 )
 
@@ -27,7 +26,7 @@ func (s *StatusBar) SetTitle(r wlr.Renderer, str string) {
 		return
 	}
 
-	s.title = draw.CreateTextTexture(r, image.White, str)
+	s.title = textTexture(r, image.White, str)
 }
 
 func (s *StatusBar) Title() wlr.Texture {
