@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"deedles.dev/kawa/internal/bg"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
 )
@@ -68,7 +69,7 @@ type Server struct {
 	}
 
 	bg      wlr.Texture
-	bgScale scaleFunc
+	bgScale bg.Scale
 
 	mainMenu   *Menu
 	systemMenu *Menu

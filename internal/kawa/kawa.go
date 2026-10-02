@@ -17,6 +17,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 
+	"deedles.dev/kawa/internal/bg"
 	"deedles.dev/kawa/internal/xflag"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
@@ -43,22 +44,6 @@ func parseTransform(str string) (wlr.OutputTransform, error) {
 		return wlr.OutputTransformFlipped270, nil
 	default:
 		return 0, fmt.Errorf("invalid transform: %q", str)
-	}
-}
-
-// parseScale parses a background scaling method from a string.
-func parseScale(str string) (scaleFunc, error) {
-	switch str {
-	case "stretch":
-		return scaleStretch, nil
-	case "center":
-		return scaleCenter, nil
-	case "fit":
-		return scaleFit, nil
-	case "fill":
-		return scaleFill, nil
-	default:
-		return nil, fmt.Errorf("unknown scaling method: %q", str)
 	}
 }
 
@@ -228,12 +213,9 @@ func Main() {
 	wlr.InitLog(wlr.Debug, nil)
 
 	terms := xflag.StringsFlag("terms", []string{"sakura", "alacritty"}, "preferentially ordered list of terminals for new windows to use")
-	bg := flag.String("bg", "", "background image")
-	bgScale := scaleStretch
-	flag.Func("bgscale", "background image scaling method (stretch, center, fit, fill) (default stretch)", func(str string) (err error) {
-		bgScale, err = parseScale(str)
-		return err
-	})
+	bgPath := flag.String("bg", "", "background image")
+	var bgScale bg.Scale
+	flag.TextVar(&bgScale, "bgscale", bg.Stretch, "background image scaling method (stretch, center, fit, fill)")
 	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
 	flag.Parse()
 
@@ -249,8 +231,8 @@ func Main() {
 		os.Exit(1)
 	}
 
-	if *bg != "" {
-		server.loadBG(*bg)
+	if *bgPath != "" {
+		server.loadBG(*bgPath)
 		server.bgScale = bgScale
 	}
 

@@ -171,3 +171,14 @@ jobs:
         env:
           CGO_ENABLED: '1'
         run: go vet ./...
+
+      - name: Test
+        env:
+          CGO_ENABLED: '1'
+        run: go test ./...
+
+      # Building these without cgo keeps wlr out of them.
+      - name: Test pure packages
+        env:
+          CGO_ENABLED: '0'
+        run: go test ./internal/bg
