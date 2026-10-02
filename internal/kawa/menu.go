@@ -47,6 +47,13 @@ func (m *Menu) Items() iter.Seq2[*MenuItem, geom.Rect[float64]] {
 	}
 }
 
+// Release destroys the textures of the items in m.
+func (m *Menu) Release() {
+	for _, item := range m.items {
+		item.Release()
+	}
+}
+
 func (m *Menu) Len() int {
 	return len(m.items)
 }

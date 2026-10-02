@@ -116,9 +116,9 @@ func (server *Server) init() error {
 }
 
 // Run starts the compositor and runs its event loop until the user
-// logs out or ctx is done. It sets WAYLAND_DISPLAY and, if Xwayland
-// started, DISPLAY in the process environment. Run may only be called
-// once.
+// logs out or ctx is done, then destroys the compositor. It sets
+// WAYLAND_DISPLAY and, if Xwayland started, DISPLAY in the process
+// environment. Run may only be called once.
 //
 // It is invalid to change the struct from outside after this is called.
 func (server *Server) Run(ctx context.Context) error {
@@ -127,6 +127,8 @@ func (server *Server) Run(ctx context.Context) error {
 	// submit, so every call has to come from the same thread.
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
+
+	defer server.teardown()
 
 	err := server.init()
 	if err != nil {
@@ -137,8 +139,6 @@ func (server *Server) Run(ctx context.Context) error {
 		server.loadBG(server.Background)
 	}
 
-	defer server.release()
-
 	// wl_display_terminate isn't safe to call from another thread, so
 	// wake the event loop and let it terminate the display itself.
 	w := server.canceled.w
@@ -148,7 +148,7 @@ func (server *Server) Run(ctx context.Context) error {
 		syscall.Write(w, []byte{0})
 	})
 	defer func() {
-		// release closes the pipe, so the write has to be over first.
+		// teardown closes the pipe, so the write has to be over first.
 		if !stopCancel() {
 			<-wrote
 		}
@@ -181,6 +181,45 @@ func (server *Server) Run(ctx context.Context) error {
 	server.display.Run()
 
 	return nil
+}
+
+// teardown destroys what init and Run created, in the order that
+// wlroots needs. It also works after init fails partway.
+func (server *Server) teardown() {
+	// Xwayland goes first, because wlroots restarts it if
+	// DestroyClients takes its client away.
+	server.onNewXwaylandSurfaceListener.Destroy()
+	server.onNewXwaylandSurfaceListener = wlr.Listener{}
+	if server.xwayland.Valid() {
+		server.xwayland.Destroy()
+	}
+
+	server.display.DestroyClients()
+	server.release()
+
+	if server.bg.Valid() {
+		server.bg.Destroy()
+	}
+	if server.statusBar != nil {
+		server.statusBar.SetTitle(server.renderer, "")
+	}
+	for _, m := range []*Menu{server.mainMenu, server.systemMenu} {
+		if m != nil {
+			m.Release()
+		}
+	}
+
+	if server.cursorMgr.Valid() {
+		server.cursorMgr.Destroy()
+	}
+	if server.cursor != (wlr.Cursor{}) {
+		server.cursor.Destroy()
+	}
+
+	server.allocator.Destroy()
+	server.renderer.Destroy()
+	server.backend.Destroy()
+	server.display.Destroy()
 }
 
 // onCanceled stops the event loop once the context given to Run is

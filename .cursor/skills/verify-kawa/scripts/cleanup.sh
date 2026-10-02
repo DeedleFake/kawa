@@ -84,8 +84,9 @@ if grep -qF " $run/doc " /proc/self/mounts; then
 	done
 fi
 
-# kawa does not clean up after itself on SIGTERM, so the X lock and socket
-# of the Xwayland it started are left behind. Remove the ones that name it.
+# kawa removes the X lock and socket of the Xwayland it started when it
+# exits, but not when it gets killed, as it does above if it takes too
+# long. Remove the ones that still name it.
 if [ -n "$kawa_pid" ] && ! kill -0 "$kawa_pid" 2>/dev/null; then
 	for lock in /tmp/.X*-lock; do
 		[ -O "$lock" ] || continue
