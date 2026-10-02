@@ -162,11 +162,6 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Build
-        env:
-          CGO_ENABLED: '1'
-        run: go build ./...
-
       - name: Vet
         env:
           CGO_ENABLED: '1'
