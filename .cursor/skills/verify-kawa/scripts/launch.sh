@@ -46,17 +46,30 @@ export GOTOOLCHAIN=auto
 
 # Prefer X11 backend so we do not nest into another agent's Wayland session.
 unset WAYLAND_DISPLAY || true
-if [ -z "${DISPLAY:-}" ]; then
-	for s in /tmp/.X11-unix/X*; do
-		[ -e "$s" ] || continue
-		n=$(basename "$s" | sed 's/^X//')
-		DISPLAY=":$n"
-		break
-	done
-	[ -n "${DISPLAY:-}" ] || fail "no DISPLAY and no /tmp/.X11-unix sockets"
-	export DISPLAY
-fi
+# Guessing a display could land kawa on another agent's X server, so the
+# caller has to name its own.
+[ -n "${DISPLAY:-}" ] || fail "DISPLAY is unset; start a private Xvfb (see SKILL.md Launch) and export DISPLAY"
+xdpyinfo >/dev/null 2>&1 || fail "cannot connect to DISPLAY=$DISPLAY"
+export DISPLAY
 unset WLR_BACKENDS || true
+
+# The X11 backend only looks up the atoms that it names its window with and
+# never creates them, so on a fresh X server the window stays untitled and
+# screenshot.sh cannot find it. Create them first.
+python3 - <<'PY' || fail "could not intern the X11 backend's window atoms on DISPLAY=$DISPLAY"
+import ctypes
+x = ctypes.CDLL("libX11.so.6")
+x.XOpenDisplay.restype = ctypes.c_void_p
+x.XOpenDisplay.argtypes = [ctypes.c_char_p]
+x.XInternAtom.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
+x.XCloseDisplay.argtypes = [ctypes.c_void_p]
+d = x.XOpenDisplay(None)
+if not d:
+    raise SystemExit(1)
+for name in (b"WM_PROTOCOLS", b"WM_DELETE_WINDOW", b"_NET_WM_NAME", b"UTF8_STRING"):
+    x.XInternAtom(d, name, 0)
+x.XCloseDisplay(d)
+PY
 
 # Do not override the real HOME (module cache / toolchain live there).
 case "${HOME:-}" in
@@ -84,11 +97,43 @@ helper_bin="$VERIFY_KAWA_HOME/bin/wayland-registry"
 gcc -O2 -o "$helper_bin" "$helper_src" $(pkg-config --cflags --libs wayland-client)
 export VERIFY_KAWA_HELPER="$helper_bin"
 
+# activation-client drives xdg-activation (features/activation.md). It needs
+# wayland-protocols for the protocol XML; without it only that helper is missing.
+act_bin="$VERIFY_KAWA_HOME/bin/activation-client"
+if protocols=$(pkg-config --variable=pkgdatadir wayland-protocols 2>/dev/null) && [ -n "$protocols" ]; then
+	gen="$VERIFY_KAWA_HOME/bin/gen"
+	mkdir -p "$gen"
+	for xml in "$protocols/stable/xdg-shell/xdg-shell.xml" "$protocols/staging/xdg-activation/xdg-activation-v1.xml"; do
+		base=$(basename "$xml" .xml)
+		wayland-scanner client-header "$xml" "$gen/$base-client.h"
+		wayland-scanner private-code "$xml" "$gen/$base-protocol.c"
+	done
+	gcc -O2 -Wall -I"$gen" -o "$act_bin" \
+		"$VERIFY_KAWA_ROOT/.cursor/skills/verify-kawa/scripts/activation-client.c" \
+		"$gen/xdg-shell-protocol.c" "$gen/xdg-activation-v1-protocol.c" \
+		$(pkg-config --cflags --libs wayland-client)
+else
+	printf 'launch: warning: wayland-protocols not found by pkg-config; activation-client not built\n' >&2
+fi
+
 if [ -f "$VERIFY_KAWA_HOME/pids/kawa.pid" ]; then
 	old=$(cat "$VERIFY_KAWA_HOME/pids/kawa.pid")
 	if [ -n "$old" ] && kill -0 "$old" 2>/dev/null; then
 		fail "kawa already running under this home (pid=$old); run cleanup.sh first"
 	fi
+fi
+
+# A private session bus. Without one, GTK clients autolaunch a bus on the X
+# display that every later run on that display shares, and the portals it
+# starts mount $XDG_RUNTIME_DIR/doc. cleanup.sh stops it with the rest.
+unset DBUS_SESSION_BUS_ADDRESS || true
+if command -v dbus-daemon >/dev/null 2>&1; then
+	bus="unix:path=$XDG_RUNTIME_DIR/bus"
+	dbus-daemon --session --fork --address="$bus" --print-pid >"$VERIFY_KAWA_HOME/pids/dbus.pid" \
+		|| fail "could not start a private D-Bus session"
+	export DBUS_SESSION_BUS_ADDRESS="$bus"
+else
+	printf 'launch: warning: dbus-daemon not found; GTK clients will autolaunch a shared session bus\n' >&2
 fi
 
 stdout_log="$VERIFY_KAWA_HOME/logs/kawa.stdout"
@@ -163,9 +208,13 @@ printf '%s\n' "$sock" >"$VERIFY_KAWA_HOME/wayland-display"
 	printf "export VERIFY_KAWA_EVIDENCE='%s'\n" "$VERIFY_KAWA_EVIDENCE"
 	printf "export VERIFY_KAWA_BIN='%s'\n" "$VERIFY_KAWA_BIN"
 	printf "export VERIFY_KAWA_HELPER='%s'\n" "$VERIFY_KAWA_HELPER"
+	printf "export VERIFY_KAWA_ACTIVATION_CLIENT='%s'\n" "$act_bin"
 	printf "export VERIFY_KAWA_WAYLAND_DISPLAY='%s'\n" "$sock"
 	printf "export XDG_RUNTIME_DIR='%s'\n" "$XDG_RUNTIME_DIR"
 	printf "export DISPLAY='%s'\n" "$DISPLAY"
+	if [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+		printf "export DBUS_SESSION_BUS_ADDRESS='%s'\n" "$DBUS_SESSION_BUS_ADDRESS"
+	fi
 	printf "export PKG_CONFIG_PATH='%s'\n" "$PKG_CONFIG_PATH"
 	printf "export LD_LIBRARY_PATH='%s'\n" "$LD_LIBRARY_PATH"
 	printf "export CGO_ENABLED=1\n"

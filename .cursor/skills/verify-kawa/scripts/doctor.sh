@@ -51,9 +51,10 @@ case "$mode" in
 esac
 
 if [ -z "${DISPLAY:-}" ]; then
-	fail "DISPLAY is unset; X11 backend needs a parent X display (e.g. DISPLAY=:9)"
+	fail "DISPLAY is unset; X11 backend needs a parent X display (start a private Xvfb, see SKILL.md Launch)"
 fi
-if [ -n "${WAYLAND_DISPLAY:-}" ]; then
+# Clients are pointed at kawa's own socket on purpose; only another one is suspect.
+if [ -n "${WAYLAND_DISPLAY:-}" ] && [ "$WAYLAND_DISPLAY" != "${VERIFY_KAWA_WAYLAND_DISPLAY:-}" ]; then
 	# Nested under another compositor is allowed for interactive use, but
 	# verification prefers X11 so we do not attach to another agent's session.
 	printf 'doctor: warning WAYLAND_DISPLAY=%s is set; prefer unsetting it so kawa uses the X11 backend\n' "$WAYLAND_DISPLAY" >&2
@@ -113,6 +114,9 @@ if [ -f "$VERIFY_KAWA_HOME/pids/kawa.pid" ]; then
 	fi
 	[ "$VERIFY_KAWA_WAYLAND_DISPLAY" = "$sock" ] \
 		|| fail "VERIFY_KAWA_WAYLAND_DISPLAY=$VERIFY_KAWA_WAYLAND_DISPLAY != log sock $sock"
+	# screenshot.sh and the xdotool recipes find kawa's window by this title.
+	xwininfo -root -tree | grep -q '"wlroots - X11-1"' \
+		|| fail "no \"wlroots - X11-1\" window on DISPLAY=$DISPLAY (kawa was started without launch.sh, or on a display it cannot title)"
 fi
 
 printf 'doctor: ok bin=%s home=%s display=%s wlroots=%s\n' \
