@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"deedles.dev/kawa/internal/anchor"
+	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
 )
 
@@ -17,27 +18,27 @@ func TestPlace(t *testing.T) {
 	}{
 		{
 			"stretched wallpaper",
-			anchor.State{Anchor: anchor.Top | anchor.Bottom | anchor.Left | anchor.Right, Zone: -1},
+			anchor.State{Anchor: wlr.EdgeTop | wlr.EdgeBottom | wlr.EdgeLeft | wlr.EdgeRight, Zone: -1},
 			full,
 		},
 		{
 			"top panel",
-			anchor.State{Anchor: anchor.Top | anchor.Left | anchor.Right, Height: 30, Zone: 30},
+			anchor.State{Anchor: wlr.EdgeTop | wlr.EdgeLeft | wlr.EdgeRight, Height: 30, Zone: 30},
 			geom.Rt(0, 25, 1024, 55),
 		},
 		{
 			"bottom panel with margins",
-			anchor.State{Anchor: anchor.Bottom | anchor.Left | anchor.Right, Height: 30, Margin: anchor.Margins{Bottom: 5, Left: 10, Right: 20}},
+			anchor.State{Anchor: wlr.EdgeBottom | wlr.EdgeLeft | wlr.EdgeRight, Height: 30, Margin: anchor.Margins{Bottom: 5, Left: 10, Right: 20}},
 			geom.Rt(10, 733, 1004, 763),
 		},
 		{
 			"left dock",
-			anchor.State{Anchor: anchor.Left, Width: 64, Height: 400, Margin: anchor.Margins{Left: 4}},
+			anchor.State{Anchor: wlr.EdgeLeft, Width: 64, Height: 400, Margin: anchor.Margins{Left: 4}},
 			geom.Rt(4, 196, 68, 596),
 		},
 		{
 			"right dock",
-			anchor.State{Anchor: anchor.Right, Width: 64, Height: 400, Margin: anchor.Margins{Right: 4}},
+			anchor.State{Anchor: wlr.EdgeRight, Width: 64, Height: 400, Margin: anchor.Margins{Right: 4}},
 			geom.Rt(956, 196, 1020, 596),
 		},
 		{
@@ -47,12 +48,12 @@ func TestPlace(t *testing.T) {
 		},
 		{
 			"anchored to both sides with a size",
-			anchor.State{Anchor: anchor.Left | anchor.Right, Width: 300, Height: 200},
+			anchor.State{Anchor: wlr.EdgeLeft | wlr.EdgeRight, Width: 300, Height: 200},
 			geom.Rt(362, 296, 662, 496),
 		},
 		{
 			"margins wider than the area",
-			anchor.State{Anchor: anchor.Left | anchor.Right, Height: 10, Margin: anchor.Margins{Left: 800, Right: 800}},
+			anchor.State{Anchor: wlr.EdgeLeft | wlr.EdgeRight, Height: 10, Margin: anchor.Margins{Left: 800, Right: 800}},
 			geom.Rt(800, 391, 800, 401),
 		},
 	}
@@ -70,15 +71,15 @@ func TestExclude(t *testing.T) {
 	usable := geom.Rt(0, 25, 1024, 768)
 	state := anchor.State{Zone: 30, Margin: anchor.Margins{Top: 1, Right: 2, Bottom: 3, Left: 4}}
 	tests := []struct {
-		edge anchor.Edges
+		edge wlr.Edges
 		want geom.Rect[int]
 	}{
 		{0, usable},
-		{anchor.Top, geom.Rt(0, 56, 1024, 768)},
-		{anchor.Bottom, geom.Rt(0, 25, 1024, 735)},
-		{anchor.Left, geom.Rt(34, 25, 1024, 768)},
-		{anchor.Right, geom.Rt(0, 25, 992, 768)},
-		{anchor.Top | anchor.Left, usable},
+		{wlr.EdgeTop, geom.Rt(0, 56, 1024, 768)},
+		{wlr.EdgeBottom, geom.Rt(0, 25, 1024, 735)},
+		{wlr.EdgeLeft, geom.Rt(34, 25, 1024, 768)},
+		{wlr.EdgeRight, geom.Rt(0, 25, 992, 768)},
+		{wlr.EdgeTop | wlr.EdgeLeft, usable},
 	}
 	for _, test := range tests {
 		got := anchor.Exclude(usable, state, test.edge)
