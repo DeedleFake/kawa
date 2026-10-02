@@ -171,3 +171,14 @@ jobs:
         env:
           CGO_ENABLED: '1'
         run: go test ./...
+
+      - name: Lint
+        env:
+          CGO_ENABLED: '1'
+        run: go tool golangci-lint run --disable=errcheck ./...
+
+      - name: Go fix
+        env:
+          CGO_ENABLED: '1'
+        # -diff exits non-zero if any fix is suggested.
+        run: go fix -diff ./...
