@@ -148,7 +148,7 @@ source "$VERIFY_KAWA_HOME/env.sh"   # if not already
 .cursor/skills/verify-kawa/scripts/cleanup.sh
 ```
 
-Kills PIDs under `$VERIFY_KAWA_HOME/pids` (SIGTERM then SIGKILL). Then it stops your remaining processes whose environment has `XDG_RUNTIME_DIR=$VERIFY_KAWA_HOME/run` (grandchildren of `New`, portals started over the bus), except itself and the shells that started it, unmounts `$XDG_RUNTIME_DIR/doc` if a document portal mounted it, removes the X lock and socket that kawa's Xwayland leaves behind (kawa does not clean them up on SIGTERM), and runs `rm -rf "$VERIFY_KAWA_HOME"`. Does **not** delete `$VERIFY_KAWA_EVIDENCE`. Never `pkill kawa`. Run it as the last step of a drive, from a shell that is not also running clients you still need for this run. Then kill your private Xvfb by the PID you saved.
+Kills PIDs under `$VERIFY_KAWA_HOME/pids` (SIGTERM then SIGKILL). Then it stops your remaining processes whose environment has `XDG_RUNTIME_DIR=$VERIFY_KAWA_HOME/run` (grandchildren of `New`, portals started over the bus), except itself and the shells that started it, unmounts `$XDG_RUNTIME_DIR/doc` if a document portal mounted it, removes the X lock and socket that kawa's Xwayland leaves behind if kawa had to be killed, and runs `rm -rf "$VERIFY_KAWA_HOME"`. Does **not** delete `$VERIFY_KAWA_EVIDENCE`. Never `pkill kawa`. Run it as the last step of a drive, from a shell that is not also running clients you still need for this run. Then kill your private Xvfb by the PID you saved.
 
 ## Helpers
 
