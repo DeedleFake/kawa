@@ -7,6 +7,8 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"deedles.dev/kawa/internal/bg"
 	"deedles.dev/kawa/internal/kawa"
@@ -32,7 +34,13 @@ func main() {
 	server.Terms = *terms
 	server.OutputConfigs = output.Parse(*outputConfigs)
 
-	err := server.Run(context.Background())
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	// After the first signal, let another one kill kawa in case shutting
+	// down gets stuck.
+	context.AfterFunc(ctx, stop)
+
+	err := server.Run(ctx)
 	if err != nil {
 		wlr.Log(wlr.Error, "%v", err)
 		os.Exit(1)
