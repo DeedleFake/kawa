@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
+	"syscall"
 
 	_ "image/gif"
 	_ "image/jpeg"
@@ -24,6 +26,10 @@ func (server *Server) init() error {
 
 	var err error
 	server.exited, err = newLoopPipe(server.display.EventLoop(), server.onExited)
+	if err != nil {
+		return err
+	}
+	server.canceled, err = newLoopPipe(server.display.EventLoop(), server.onCanceled)
 	if err != nil {
 		return err
 	}
@@ -110,11 +116,18 @@ func (server *Server) init() error {
 }
 
 // Run starts the compositor and runs its event loop until the user
-// logs out. It sets WAYLAND_DISPLAY and, if Xwayland started, DISPLAY
-// in the process environment. Run may only be called once.
+// logs out or ctx is done. It sets WAYLAND_DISPLAY and, if Xwayland
+// started, DISPLAY in the process environment. Run may only be called
+// once.
 //
 // It is invalid to change the struct from outside after this is called.
 func (server *Server) Run(ctx context.Context) error {
+	// wlroots leaves per-thread state between calls, such as the EGL
+	// context that a GLES2 render pass keeps current from begin to
+	// submit, so every call has to come from the same thread.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	err := server.init()
 	if err != nil {
 		return fmt.Errorf("init server: %w", err)
@@ -125,6 +138,21 @@ func (server *Server) Run(ctx context.Context) error {
 	}
 
 	defer server.release()
+
+	// wl_display_terminate isn't safe to call from another thread, so
+	// wake the event loop and let it terminate the display itself.
+	w := server.canceled.w
+	wrote := make(chan struct{})
+	stopCancel := context.AfterFunc(ctx, func() {
+		defer close(wrote)
+		syscall.Write(w, []byte{0})
+	})
+	defer func() {
+		// release closes the pipe, so the write has to be over first.
+		if !stopCancel() {
+			<-wrote
+		}
+	}()
 
 	server.xwayland = wlr.CreateXwayland(server.display, server.compositor, false)
 	server.onNewXwaylandSurfaceListener = server.xwayland.OnNewSurface(server.onNewXwaylandSurface)
@@ -153,4 +181,12 @@ func (server *Server) Run(ctx context.Context) error {
 	server.display.Run()
 
 	return nil
+}
+
+// onCanceled stops the event loop once the context given to Run is
+// done.
+func (server *Server) onCanceled(fd uintptr, mask wlr.EventMask) {
+	var buf [1]byte
+	syscall.Read(int(fd), buf[:])
+	server.shutdown()
 }

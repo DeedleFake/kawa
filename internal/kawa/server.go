@@ -75,6 +75,9 @@ type Server struct {
 	// exited carries the pids of programs started from New, as they
 	// exit, from the goroutines that wait on them to the event loop.
 	exited loopPipe
+	// canceled wakes the event loop when the context given to Run is
+	// done.
+	canceled loopPipe
 
 	bg wlr.Texture
 
@@ -130,6 +133,7 @@ func (server *Server) release() {
 	server.onNewActivationTokenListener.Destroy()
 	server.onRequestActivateListener.Destroy()
 	server.exited.close()
+	server.canceled.close()
 }
 
 func (server *Server) shutdown() {
