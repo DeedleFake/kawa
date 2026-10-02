@@ -155,8 +155,7 @@ func (server *Server) viewAt(out *Output, p geom.Point[float64]) (*View, wlr.Edg
 }
 
 func (server *Server) viewIndexAt(out *Output, views []*View, p geom.Point[float64]) (int, wlr.Edges, wlr.Surface, geom.Point[float64]) {
-	for i := len(views) - 1; i >= 0; i-- {
-		view := views[i]
+	for i, view := range slices.Backward(views) {
 		if !view.Mapped() {
 			continue
 		}

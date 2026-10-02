@@ -195,8 +195,7 @@ func (server *Server) layerForSurface(s wlr.Surface) *LayerSurface {
 func (server *Server) layerSurfaceAt(out *Output, p geom.Point[float64], layers ...wlr.LayerShellV1Layer) (*LayerSurface, wlr.Surface, geom.Point[float64], bool) {
 	for _, layer := range layers {
 		list := out.Layers[layer]
-		for i := len(list) - 1; i >= 0; i-- {
-			ls := list[i]
+		for _, ls := range slices.Backward(list) {
 			if !ls.Mapped() {
 				continue
 			}
@@ -216,8 +215,7 @@ func (server *Server) layerSurfaceAt(out *Output, p geom.Point[float64], layers 
 func (server *Server) layerPopupAt(out *Output, p geom.Point[float64]) (*LayerSurface, wlr.Surface, geom.Point[float64], bool) {
 	for layer := wlr.LayerShellV1LayerOverlay; layer >= wlr.LayerShellV1LayerBackground; layer-- {
 		list := out.Layers[layer]
-		for i := len(list) - 1; i >= 0; i-- {
-			ls := list[i]
+		for _, ls := range slices.Backward(list) {
 			if !ls.Mapped() {
 				continue
 			}
@@ -248,8 +246,7 @@ func (server *Server) exclusiveLayer() *LayerSurface {
 	for _, layer := range []wlr.LayerShellV1Layer{wlr.LayerShellV1LayerOverlay, wlr.LayerShellV1LayerTop} {
 		for _, out := range server.outputs {
 			list := out.Layers[layer]
-			for i := len(list) - 1; i >= 0; i-- {
-				ls := list[i]
+			for _, ls := range slices.Backward(list) {
 				if ls.Mapped() && (ls.LayerSurface.Current().KeyboardInteractive() == wlr.LayerSurfaceV1KeyboardInteractivityExclusive) {
 					return ls
 				}
