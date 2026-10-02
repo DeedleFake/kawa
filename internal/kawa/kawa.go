@@ -21,7 +21,9 @@ func (server *Server) init() error {
 	server.pressed = make(map[wlr.CursorButton]struct{})
 
 	server.display = wlr.CreateDisplay()
-	err := server.initExited()
+
+	var err error
+	server.exited, err = newLoopPipe(server.display.EventLoop(), server.onExited)
 	if err != nil {
 		return err
 	}
