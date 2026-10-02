@@ -3,6 +3,7 @@ package kawa
 import (
 	"slices"
 
+	"deedles.dev/kawa/internal/anchor"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
 )
@@ -138,10 +139,11 @@ func (server *Server) arrangeLayers(out *Output) {
 					continue
 				}
 
-				ls.Geo = placeLayerSurface(s.Current(), full, usable)
+				state := anchorState(s.Current())
+				ls.Geo = anchor.Place(state, full, usable)
 				s.Configure(uint32(ls.Geo.Dx()), uint32(ls.Geo.Dy()))
 				if ls.Mapped() {
-					usable = excludeZone(usable, s.Current(), s.ExclusiveEdge())
+					usable = anchor.Exclude(usable, state, anchor.Edges(s.ExclusiveEdge()))
 				}
 			}
 		}
@@ -154,63 +156,15 @@ func (server *Server) arrangeLayers(out *Output) {
 	server.layoutTiles(nil)
 }
 
-// placeLayerSurface finds where a layer surface goes inside of usable,
-// or inside of full if its exclusive zone is -1. A desired size of 0
-// stretches it between its margins on that axis.
-func placeLayerSurface(state wlr.LayerSurfaceV1State, full, usable geom.Rect[int]) geom.Rect[int] {
-	bounds := usable
-	if state.ExclusiveZone() == -1 {
-		bounds = full
-	}
-
-	anchor := state.Anchor()
+// anchorState returns what a layer surface asks for in its state.
+func anchorState(state wlr.LayerSurfaceV1State) anchor.State {
 	top, right, bottom, left := state.Margin()
-	x0, x1 := placeSpan(
-		bounds.Min.X, bounds.Max.X,
-		int(state.DesiredWidth()), int(left), int(right),
-		anchor&wlr.LayerSurfaceV1AnchorLeft != 0, anchor&wlr.LayerSurfaceV1AnchorRight != 0,
-	)
-	y0, y1 := placeSpan(
-		bounds.Min.Y, bounds.Max.Y,
-		int(state.DesiredHeight()), int(top), int(bottom),
-		anchor&wlr.LayerSurfaceV1AnchorTop != 0, anchor&wlr.LayerSurfaceV1AnchorBottom != 0,
-	)
-	return geom.Rt(x0, y0, x1, y1).Canon()
-}
-
-// placeSpan places a span of length n between lo and hi on one axis.
-// It's pushed against whichever end it is anchored to alone, and
-// centered otherwise.
-func placeSpan(lo, hi, n, before, after int, toLo, toHi bool) (int, int) {
-	switch {
-	case n == 0:
-		return lo + before, max(lo+before, hi-after)
-	case toLo && !toHi:
-		return lo + before, lo + before + n
-	case toHi && !toLo:
-		return hi - after - n, hi - after
-	default:
-		start := lo + (hi-lo)/2 - n/2
-		return start, start + n
-	}
-}
-
-// excludeZone removes a mapped layer surface's exclusive zone from the
-// edge of usable that it's anchored to.
-func excludeZone(usable geom.Rect[int], state wlr.LayerSurfaceV1State, edge wlr.Edges) geom.Rect[int] {
-	zone := int(state.ExclusiveZone())
-	top, right, bottom, left := state.Margin()
-	switch edge {
-	case wlr.EdgeTop:
-		return usable.Pad(zone+int(top), 0, 0, 0)
-	case wlr.EdgeBottom:
-		return usable.Pad(0, zone+int(bottom), 0, 0)
-	case wlr.EdgeLeft:
-		return usable.Pad(0, 0, zone+int(left), 0)
-	case wlr.EdgeRight:
-		return usable.Pad(0, 0, 0, zone+int(right))
-	default:
-		return usable
+	return anchor.State{
+		Anchor: anchor.Edges(state.Anchor()),
+		Width:  int(state.DesiredWidth()),
+		Height: int(state.DesiredHeight()),
+		Margin: anchor.Margins{Top: int(top), Right: int(right), Bottom: int(bottom), Left: int(left)},
+		Zone:   int(state.ExclusiveZone()),
 	}
 }
 
