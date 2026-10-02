@@ -49,7 +49,7 @@ source "$VERIFY_KAWA_HOME/env.sh"
 
 Never run as a DRM session. Never `pkill kawa`. Do not permanently unset the user’s session compositor.
 
-Flags (see `Main` in `internal/kawa/kawa.go`): `-terms`, `-bg`, `-bgscale`, `-out`.
+Flags (see `cmd/kawa/main.go`): `-terms`, `-bg`, `-bgscale`, `-out`.
 
 Ready: stderr contains `Running Wayland compositor on WAYLAND_DISPLAY=` and `kill -0` on the recorded PID succeeds.
 
