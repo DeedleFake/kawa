@@ -143,7 +143,7 @@ func (server *Server) arrangeLayers(out *Output) {
 				ls.Geo = anchor.Place(state, full, usable)
 				s.Configure(uint32(ls.Geo.Dx()), uint32(ls.Geo.Dy()))
 				if ls.Mapped() {
-					usable = anchor.Exclude(usable, state, anchor.Edges(s.ExclusiveEdge()))
+					usable = anchor.Exclude(usable, state, s.ExclusiveEdge())
 				}
 			}
 		}
@@ -160,7 +160,7 @@ func (server *Server) arrangeLayers(out *Output) {
 func anchorState(state wlr.LayerSurfaceV1State) anchor.State {
 	top, right, bottom, left := state.Margin()
 	return anchor.State{
-		Anchor: anchor.Edges(state.Anchor()),
+		Anchor: wlr.Edges(state.Anchor()),
 		Width:  int(state.DesiredWidth()),
 		Height: int(state.DesiredHeight()),
 		Margin: anchor.Margins{Top: int(top), Right: int(right), Bottom: int(bottom), Left: int(left)},

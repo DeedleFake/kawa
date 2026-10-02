@@ -1,17 +1,9 @@
 // Package anchor places layer surfaces on an output.
 package anchor
 
-import "deedles.dev/ximage/geom"
-
-// Edges is a set of edges of an output. Its bits are the same as
-// those of the layer shell protocol's anchor enum and of wlr_edges.
-type Edges uint8
-
-const (
-	Top Edges = 1 << iota
-	Bottom
-	Left
-	Right
+import (
+	"deedles.dev/wlr"
+	"deedles.dev/ximage/geom"
 )
 
 // Margins are the distances that a surface keeps from the edges that
@@ -23,7 +15,7 @@ type Margins struct {
 // State is what a layer surface asks for.
 type State struct {
 	// Anchor is the edges that the surface is anchored to.
-	Anchor Edges
+	Anchor wlr.Edges
 	// Width and Height are the surface's desired size. 0 stretches it
 	// between its margins on that axis.
 	Width, Height int
@@ -44,12 +36,12 @@ func Place(s State, full, usable geom.Rect[int]) geom.Rect[int] {
 	x0, x1 := placeSpan(
 		bounds.Min.X, bounds.Max.X,
 		s.Width, s.Margin.Left, s.Margin.Right,
-		s.Anchor&Left != 0, s.Anchor&Right != 0,
+		s.Anchor&wlr.EdgeLeft != 0, s.Anchor&wlr.EdgeRight != 0,
 	)
 	y0, y1 := placeSpan(
 		bounds.Min.Y, bounds.Max.Y,
 		s.Height, s.Margin.Top, s.Margin.Bottom,
-		s.Anchor&Top != 0, s.Anchor&Bottom != 0,
+		s.Anchor&wlr.EdgeTop != 0, s.Anchor&wlr.EdgeBottom != 0,
 	)
 	return geom.Rt(x0, y0, x1, y1).Canon()
 }
@@ -73,15 +65,15 @@ func placeSpan(lo, hi, n, before, after int, toLo, toHi bool) (int, int) {
 
 // Exclude removes a layer surface's exclusive zone from edge, the edge
 // of usable that the zone applies to.
-func Exclude(usable geom.Rect[int], s State, edge Edges) geom.Rect[int] {
+func Exclude(usable geom.Rect[int], s State, edge wlr.Edges) geom.Rect[int] {
 	switch edge {
-	case Top:
+	case wlr.EdgeTop:
 		return usable.Pad(s.Zone+s.Margin.Top, 0, 0, 0)
-	case Bottom:
+	case wlr.EdgeBottom:
 		return usable.Pad(0, s.Zone+s.Margin.Bottom, 0, 0)
-	case Left:
+	case wlr.EdgeLeft:
 		return usable.Pad(0, 0, s.Zone+s.Margin.Left, 0)
-	case Right:
+	case wlr.EdgeRight:
 		return usable.Pad(0, 0, 0, s.Zone+s.Margin.Right)
 	default:
 		return usable
