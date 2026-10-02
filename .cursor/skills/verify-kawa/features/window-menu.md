@@ -4,10 +4,10 @@ Right-pressing empty desktop or the status bar opens the main menu: `New`, `Resi
 
 ## Sub-features
 
-- `main-menu` — right-press on empty desktop, on the status bar, or anywhere with Logo held opens the main menu (`mainMenuText` in `kawa.go`, `onMainMenuSelected` in `mode.go`).
+- `main-menu` — right-press on empty desktop, on the status bar, or anywhere with Logo held opens the main menu (`mainMenuText` and the `onMainMenu*` callbacks in `internal/kawa/server.go`, `startMenu` in `internal/kawa/mode.go`).
 - `system-menu` — left-press on the status bar opens a menu with only `Log Out`, which shuts the compositor down.
 - `new-window` — `New`, then right-drag a box. Once the drag passes the minimum size (128x24), kawa starts the program. The child gets `XDG_ACTIVATION_TOKEN` and `DESKTOP_STARTUP_ID` set to a trusted activation token. Its stdout and stderr go to `/dev/null`.
-- `new-box` — the red-bordered box stays drawn after the drag until a window whose PID matches the child maps, or the child exits (`startNew` in `mode.go`). A program that exits without a window clears the box.
+- `new-box` — the red-bordered box stays drawn after the drag until a window whose PID matches the child maps, or the child exits (`startNew` in `internal/kawa/mode.go`). A program that exits without a window clears the box.
 - `new-late-map` — a window that maps after the drag ended takes the box and gets keyboard focus. The next click is not swallowed.
 - `new-early-map` — a window that maps while the drag is still going border-resizes with the pointer until release.
 - `new-grandchild` — a window opened by some other process (for example a grandchild after the started program exited) does not match the box. It opens centered on the output, on top but unfocused.

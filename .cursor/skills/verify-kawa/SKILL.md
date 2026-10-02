@@ -41,15 +41,15 @@ source "$VERIFY_KAWA_HOME/env.sh"
 1. Finds `wlroots-0.20` via the caller's `PKG_CONFIG_PATH` (prepending `VERIFY_KAWA_PKG_CONFIG_PATH` if set) and fails if it is missing; prepends its `libdir` to `LD_LIBRARY_PATH`; sets `CGO_ENABLED=1`, `GOTOOLCHAIN=auto`.
 2. Unsets `WAYLAND_DISPLAY` and requires `DISPLAY` (it fails rather than guess one) so kawa uses the **X11 backend**, not another agent’s compositor. It then creates the `WM_PROTOCOLS`, `WM_DELETE_WINDOW`, `_NET_WM_NAME` and `UTF8_STRING` atoms on that display: the X11 backend only looks them up, so on a fresh X server its window would stay untitled and `screenshot.sh` could not find it.
 3. Creates `XDG_RUNTIME_DIR=$VERIFY_KAWA_HOME/run` with mode **0700**. Without this, kawa dies with `XDG_RUNTIME_DIR is invalid or not set` / `can't auto add wayland socket`. DRM FD / dmabuf messages on stderr are noisy but non-fatal until the socket fails.
-4. Builds `go build -o "$VERIFY_KAWA_HOME/bin/kawa" .`, compiles `.cursor/skills/verify-kawa/scripts/wayland-registry.c` → `$VERIFY_KAWA_HOME/bin/wayland-registry`, and, when `wayland-protocols` is on pkg-config, `activation-client.c` → `$VERIFY_KAWA_HOME/bin/activation-client` (protocol code generated with `wayland-scanner`).
+4. Builds `go build -o "$VERIFY_KAWA_HOME/bin/kawa" ./cmd/kawa`, compiles `.cursor/skills/verify-kawa/scripts/wayland-registry.c` → `$VERIFY_KAWA_HOME/bin/wayland-registry`, and, when `wayland-protocols` is on pkg-config, `activation-client.c` → `$VERIFY_KAWA_HOME/bin/activation-client` (protocol code generated with `wayland-scanner`).
 5. Starts a private D-Bus session bus at `$XDG_RUNTIME_DIR/bus` (PID in `pids/dbus.pid`). Without it, GTK clients autolaunch a bus tied to the X display that later runs on the same display would share.
 6. Starts kawa in the background with `launch.sh`'s arguments; writes PID to `$VERIFY_KAWA_HOME/pids/kawa.pid`; captures stdout/stderr under `$VERIFY_KAWA_HOME/logs/`.
-7. Waits for ready log line: `Running Wayland compositor on WAYLAND_DISPLAY=...` (from `kawa.go`). kawa then logs `Running Xwayland on DISPLAY=:N`, the display X clients inside kawa use.
+7. Waits for ready log line: `Running Wayland compositor on WAYLAND_DISPLAY=...` (from `internal/kawa/kawa.go`). kawa then logs `Running Xwayland on DISPLAY=:N`, the display X clients inside kawa use.
 8. Exports `VERIFY_KAWA_WAYLAND_DISPLAY` (socket **name**, under `$XDG_RUNTIME_DIR`), `VERIFY_KAWA_ACTIVATION_CLIENT`, and `DBUS_SESSION_BUS_ADDRESS` via `$VERIFY_KAWA_HOME/env.sh`.
 
 Never run as a DRM session. Never `pkill kawa`. Do not permanently unset the user’s session compositor.
 
-Flags (see `kawa.go` main): `-terms`, `-bg`, `-bgscale`, `-out`.
+Flags (see `cmd/kawa/main.go`): `-terms`, `-bg`, `-bgscale`, `-out`.
 
 Ready: stderr contains `Running Wayland compositor on WAYLAND_DISPLAY=` and `kill -0` on the recorded PID succeeds.
 

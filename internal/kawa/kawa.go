@@ -1,98 +1,18 @@
-package main
+package kawa
 
 import (
+	"context"
 	"errors"
-	"flag"
 	"fmt"
-	"iter"
-	"log"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
-	"slices"
-	"strconv"
-	"strings"
 
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 
-	"deedles.dev/kawa/internal/xflag"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
 )
-
-// parseTransform parses an OutputTransform from a string.
-func parseTransform(str string) (wlr.OutputTransform, error) {
-	switch str {
-	case "normal", "0":
-		return wlr.OutputTransformNormal, nil
-	case "90":
-		return wlr.OutputTransform90, nil
-	case "180":
-		return wlr.OutputTransform180, nil
-	case "270":
-		return wlr.OutputTransform270, nil
-	case "flipped":
-		return wlr.OutputTransformFlipped, nil
-	case "flipped-90":
-		return wlr.OutputTransformFlipped90, nil
-	case "flipped-180":
-		return wlr.OutputTransformFlipped180, nil
-	case "flipped-270":
-		return wlr.OutputTransformFlipped270, nil
-	default:
-		return 0, fmt.Errorf("invalid transform: %q", str)
-	}
-}
-
-// parseScale parses a background scaling method from a string.
-func parseScale(str string) (scaleFunc, error) {
-	switch str {
-	case "stretch":
-		return scaleStretch, nil
-	case "center":
-		return scaleCenter, nil
-	case "fit":
-		return scaleFit, nil
-	case "fill":
-		return scaleFill, nil
-	default:
-		return nil, fmt.Errorf("unknown scaling method: %q", str)
-	}
-}
-
-// parseOutputConfigs parses an OutputConfig from a string.
-func parseOutputConfigs(outputConfigs string) iter.Seq[OutputConfig] {
-	return func(yield func(OutputConfig) bool) {
-		if outputConfigs == "" {
-			return
-		}
-
-		// TODO: Handle errors.
-		for config := range strings.SplitSeq(outputConfigs, ",") {
-			parts := strings.Split(config, ":")
-			c := OutputConfig{Name: parts[0]}
-			c.X, _ = strconv.Atoi(parts[1])
-			c.Y, _ = strconv.Atoi(parts[2])
-			if len(parts) >= 5 {
-				c.Width, _ = strconv.Atoi(parts[3])
-				c.Height, _ = strconv.Atoi(parts[4])
-			}
-			if len(parts) >= 6 {
-				scale, _ := strconv.ParseFloat(parts[5], 32)
-				c.Scale = float32(scale)
-			}
-			if len(parts) >= 7 {
-				c.Transform, _ = parseTransform(parts[6])
-			}
-
-			if !yield(c) {
-				return
-			}
-		}
-	}
-}
 
 // init initializes the boilerplate necessary to get wlroots up and
 // running, as well as a few other pieces of initialization.
@@ -187,9 +107,22 @@ func (server *Server) init() error {
 	return nil
 }
 
-// run runs the server's main loop.
-func (server *Server) run() error {
-	defer server.Release()
+// Run starts the compositor and runs its event loop until the user
+// logs out. It sets WAYLAND_DISPLAY and, if Xwayland started, DISPLAY
+// in the process environment. Run may only be called once.
+//
+// It is invalid to change the struct from outside after this is called.
+func (server *Server) Run(ctx context.Context) error {
+	err := server.init()
+	if err != nil {
+		return fmt.Errorf("init server: %w", err)
+	}
+
+	if server.Background != "" {
+		server.loadBG(server.Background)
+	}
+
+	defer server.release()
 
 	server.xwayland = wlr.CreateXwayland(server.display, server.compositor, false)
 	server.onNewXwaylandSurfaceListener = server.xwayland.OnNewSurface(server.onNewXwaylandSurface)
@@ -199,12 +132,12 @@ func (server *Server) run() error {
 
 	socket, err := server.display.AddSocketAuto()
 	if err != nil {
-		return err
+		return fmt.Errorf("run server: %w", err)
 	}
 
 	err = server.backend.Start()
 	if err != nil {
-		return err
+		return fmt.Errorf("run server: %w", err)
 	}
 
 	os.Setenv("WAYLAND_DISPLAY", socket)
@@ -218,45 +151,4 @@ func (server *Server) run() error {
 	server.display.Run()
 
 	return nil
-}
-
-func main() {
-	if addr, ok := os.LookupEnv("PPROF_ADDR"); ok {
-		go func() { log.Println(http.ListenAndServe(addr, nil)) }()
-	}
-
-	wlr.InitLog(wlr.Debug, nil)
-
-	terms := xflag.StringsFlag("terms", []string{"sakura", "alacritty"}, "preferentially ordered list of terminals for new windows to use")
-	bg := flag.String("bg", "", "background image")
-	bgScale := scaleStretch
-	flag.Func("bgscale", "background image scaling method (stretch, center, fit, fill) (default stretch)", func(str string) (err error) {
-		bgScale, err = parseScale(str)
-		return err
-	})
-	outputConfigs := flag.String("out", "", "output configs (name:x:y[:width:height][:scale][:transform])")
-	flag.Parse()
-
-	outputConfigsParsed := parseOutputConfigs(*outputConfigs)
-	server := Server{
-		Terms:         *terms,
-		OutputConfigs: slices.Collect(outputConfigsParsed),
-	}
-
-	err := server.init()
-	if err != nil {
-		wlr.Log(wlr.Error, "init server: %v", err)
-		os.Exit(1)
-	}
-
-	if *bg != "" {
-		server.loadBG(*bg)
-		server.bgScale = bgScale
-	}
-
-	err = server.run()
-	if err != nil {
-		wlr.Log(wlr.Error, "run server: %v", err)
-		os.Exit(1)
-	}
 }

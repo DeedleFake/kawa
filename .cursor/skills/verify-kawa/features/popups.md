@@ -1,6 +1,6 @@
 # Popups
 
-XDG popups (context menus, dropdowns) are configured on their first commit and unconstrained to the usable area of the parent window's output (`view.go`), so a menu opened near the bottom or right edge flips or slides to stay on screen and below the status bar.
+XDG popups (context menus, dropdowns) are configured on their first commit and unconstrained to the usable area of the parent window's output (`internal/kawa/view.go`), so a menu opened near the bottom or right edge flips or slides to stay on screen and below the status bar.
 
 ## Sub-features
 

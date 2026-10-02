@@ -1,4 +1,4 @@
-package main
+package kawa
 
 import (
 	"image/color"
@@ -29,29 +29,3 @@ var (
 var (
 	DefaultRestore = geom.Rt[float64](0, 0, 640, 480).Add(geom.Pt[float64](10, 10))
 )
-
-type scaleFunc func(out, r geom.Rect[float64]) geom.Rect[float64]
-
-func scaleStretch(out, r geom.Rect[float64]) geom.Rect[float64] {
-	return out
-}
-
-func scaleCenter(out, r geom.Rect[float64]) geom.Rect[float64] {
-	return r.CenterAt(out.Center())
-}
-
-func scaleFit(out, r geom.Rect[float64]) geom.Rect[float64] {
-	if (r.Dx() < out.Dx()) && (r.Dy() < out.Dy()) {
-		return r
-	}
-	return scaleFill(out, r)
-}
-
-func scaleFill(out, r geom.Rect[float64]) geom.Rect[float64] {
-	return scaleCenter(out, r.FitTo(out.Size()))
-}
-
-func scaleTile(out, r geom.Rect[float64]) geom.Rect[float64] {
-	// TODO
-	return scaleCenter(out, r)
-}

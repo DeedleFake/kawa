@@ -162,12 +162,18 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Build
-        env:
-          CGO_ENABLED: '1'
-        run: go build .
-
       - name: Vet
         env:
           CGO_ENABLED: '1'
         run: go vet ./...
+
+      - name: Test
+        env:
+          CGO_ENABLED: '1'
+        run: go test ./...
+
+      # Building these without cgo keeps wlr out of them.
+      - name: Test pure packages
+        env:
+          CGO_ENABLED: '0'
+        run: go test ./internal/anchor ./internal/bg ./internal/draw ./internal/output ./internal/xflag

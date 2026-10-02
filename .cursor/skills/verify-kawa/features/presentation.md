@@ -1,6 +1,6 @@
 # Presentation time and GTK4
 
-kawa advertises `wp_presentation` and reports each surface as presented when its texture is drawn on an output (`render.go`). GTK4 uses that feedback to pace frames, so GTK4 apps animate and respond normally.
+kawa advertises `wp_presentation` and reports each surface as presented when its texture is drawn on an output (`internal/kawa/render.go`). GTK4 uses that feedback to pace frames, so GTK4 apps animate and respond normally.
 
 ## Sub-features
 

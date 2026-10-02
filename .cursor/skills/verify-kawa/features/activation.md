@@ -1,6 +1,6 @@
 # Activation and attention
 
-kawa implements `xdg_activation_v1` (`activation.go`). A window that asks to be activated with a valid token is focused and raised, and shown again if it was hidden. A request kawa refuses marks the window as wanting attention instead: a red border, even on client-decorated windows, and a red entry in the main menu if the window is hidden. Attention clears when the window gets focus. Programs started by `New` get a trusted token in `XDG_ACTIVATION_TOKEN` and `DESKTOP_STARTUP_ID`.
+kawa implements `xdg_activation_v1` (`internal/kawa/activation.go`). A window that asks to be activated with a valid token is focused and raised, and shown again if it was hidden. A request kawa refuses marks the window as wanting attention instead: a red border, even on client-decorated windows, and a red entry in the main menu if the window is hidden. Attention clears when the window gets focus. Programs started by `New` get a trusted token in `XDG_ACTIVATION_TOKEN` and `DESKTOP_STARTUP_ID`.
 
 ## Sub-features
 

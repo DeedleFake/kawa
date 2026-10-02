@@ -1,8 +1,9 @@
-package main
+package kawa
 
 import (
 	"slices"
 
+	"deedles.dev/kawa/internal/output"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
 )
@@ -20,12 +21,15 @@ type Output struct {
 	onDestroyListener wlr.Listener
 }
 
-type OutputConfig struct {
-	Name          string
-	X, Y          int
-	Width, Height int
-	Scale         float32
-	Transform     wlr.OutputTransform
+var outputTransforms = [...]wlr.OutputTransform{
+	output.Normal:     wlr.OutputTransformNormal,
+	output.Rotate90:   wlr.OutputTransform90,
+	output.Rotate180:  wlr.OutputTransform180,
+	output.Rotate270:  wlr.OutputTransform270,
+	output.Flipped:    wlr.OutputTransformFlipped,
+	output.Flipped90:  wlr.OutputTransformFlipped90,
+	output.Flipped180: wlr.OutputTransformFlipped180,
+	output.Flipped270: wlr.OutputTransformFlipped270,
 }
 
 func (server *Server) outputAt(p geom.Point[float64]) *Output {
@@ -127,7 +131,7 @@ func (server *Server) addOutput(out *Output) {
 	server.configureOutput(out, nil)
 }
 
-func (server *Server) configureOutput(out *Output, config *OutputConfig) {
+func (server *Server) configureOutput(out *Output, config *output.Config) {
 	state := wlr.NewOutputState()
 	defer state.Finish()
 	state.SetEnabled(true)
@@ -138,8 +142,8 @@ func (server *Server) configureOutput(out *Output, config *OutputConfig) {
 		if config.Scale != 0 {
 			state.SetScale(config.Scale)
 		}
-		if config.Transform != 0 {
-			state.SetTransform(config.Transform)
+		if config.Transform != output.Normal {
+			state.SetTransform(outputTransforms[config.Transform])
 		}
 	}
 
@@ -147,7 +151,7 @@ func (server *Server) configureOutput(out *Output, config *OutputConfig) {
 	server.layoutOutput(out, config)
 }
 
-func (server *Server) layoutOutput(out *Output, config *OutputConfig) {
+func (server *Server) layoutOutput(out *Output, config *output.Config) {
 	if (config == nil) || (config.X == -1) && (config.Y == -1) {
 		server.outputLayout.AddAuto(out.Output)
 		return
@@ -156,7 +160,7 @@ func (server *Server) layoutOutput(out *Output, config *OutputConfig) {
 	server.outputLayout.Add(out.Output, config.X, config.Y)
 }
 
-func (server *Server) setOutputMode(state wlr.OutputState, out *Output, config *OutputConfig) {
+func (server *Server) setOutputMode(state wlr.OutputState, out *Output, config *output.Config) {
 	if config != nil && config.Width != 0 && config.Height != 0 {
 		for mode := range out.Output.Modes() {
 			if (mode.Width() == int32(config.Width)) && (mode.Height() == int32(config.Height)) {

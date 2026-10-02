@@ -1,4 +1,4 @@
-package main
+package kawa
 
 import (
 	"encoding/binary"
@@ -9,6 +9,8 @@ import (
 	"strings"
 	"syscall"
 
+	"deedles.dev/kawa/internal/bg"
+	"deedles.dev/kawa/internal/output"
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
 )
@@ -28,9 +30,20 @@ var (
 	}
 )
 
+// Server is the kawa compositor. Set the exported fields, then call
+// Run.
 type Server struct {
-	Terms         []string
-	OutputConfigs []OutputConfig
+	// Terms are the commands, split on whitespace, that New tries in
+	// order until one starts.
+	Terms []string
+	// OutputConfigs configure outputs by name as they appear.
+	OutputConfigs []output.Config
+	// Background is the path of an image to draw behind everything
+	// else. If it is empty or can't be loaded, there is no background
+	// image.
+	Background string
+	// BackgroundScale is how Background is fitted to each output.
+	BackgroundScale bg.Scale
 
 	display wlr.Display
 
@@ -67,8 +80,7 @@ type Server struct {
 		src  wlr.EventSource
 	}
 
-	bg      wlr.Texture
-	bgScale scaleFunc
+	bg wlr.Texture
 
 	mainMenu   *Menu
 	systemMenu *Menu
@@ -102,7 +114,7 @@ type Server struct {
 	onRequestActivateListener       wlr.Listener
 }
 
-func (server *Server) Release() {
+func (server *Server) release() {
 	server.onNewOutputListener.Destroy()
 	server.onNewInputListener.Destroy()
 	server.onCursorMotionListener.Destroy()
@@ -126,7 +138,7 @@ func (server *Server) Release() {
 	syscall.Close(server.exited.w)
 }
 
-func (server *Server) Shutdown() {
+func (server *Server) shutdown() {
 	server.display.Terminate()
 }
 
@@ -299,5 +311,5 @@ func (server *Server) initSystemMenu() {
 }
 
 func (server *Server) onSystemMenuLogOut() {
-	server.Shutdown()
+	server.shutdown()
 }

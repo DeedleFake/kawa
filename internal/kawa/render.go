@@ -1,4 +1,4 @@
-package main
+package kawa
 
 import (
 	"image"
@@ -59,7 +59,7 @@ func (server *Server) renderBG(out *Output, pass wlr.RenderPass) {
 
 	to := server.outputVisibleBounds(out)
 	r := geom.RConv[float64](geom.Rt(0, 0, server.bg.Width(), server.bg.Height()))
-	dst := server.toOutputLocal(out, server.bgScale(to, r))
+	dst := server.toOutputLocal(out, server.BackgroundScale.Place(to, r))
 	pass.AddTexture(
 		server.bg,
 		image.Rectangle{},

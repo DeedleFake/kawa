@@ -36,7 +36,7 @@ Building and Installing
 Installing kawa can be done via [the `go` tool](https://pkg.go.dev/cmd/go):
 
 ```bash
-$ go install deedles.dev/kawa@latest
+$ go install deedles.dev/kawa/cmd/kawa@latest
 ```
 
 ### Compilation
@@ -46,7 +46,7 @@ If you would like to compile kawa without installing the resulting binary, use t
 ```bash
 $ git clone https://github.com/DeedleFake/kawa
 $ cd kawa
-$ go build
+$ go build ./cmd/kawa
 ```
 
 Prior Art

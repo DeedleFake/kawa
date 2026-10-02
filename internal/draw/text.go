@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 
-	"deedles.dev/wlr"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gomono"
 	"golang.org/x/image/font/opentype"
@@ -35,7 +34,9 @@ func init() {
 	}
 }
 
-func CreateTextTexture(r wlr.Renderer, src image.Image, str string) wlr.Texture {
+// Text draws str in src on a new transparent image that is as wide as
+// the text and as tall as the font's size.
+func Text(src image.Image, str string) *image.NRGBA {
 	fdraw := font.Drawer{
 		Src:  src,
 		Face: gomonoFace,
@@ -52,5 +53,5 @@ func CreateTextTexture(r wlr.Renderer, src image.Image, str string) wlr.Texture 
 	fdraw.Dst = buf
 	fdraw.DrawString(str)
 
-	return wlr.TextureFromImage(r, buf)
+	return buf
 }
