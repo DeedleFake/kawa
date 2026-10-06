@@ -67,7 +67,9 @@ type Server struct {
 	views     []*View
 	tiled     []*View
 	hidden    []*View
-	newViews  map[int]*geom.Rect[float64]
+	// newViews are the boxes that New has handed to programs that
+	// haven't opened a window yet, by pid.
+	newViews map[int]geom.Rect[float64]
 
 	activationTokens map[wlr.XDGActivationTokenV1]*activationToken
 
@@ -89,6 +91,7 @@ type Server struct {
 	prevFocus *View
 
 	inputMode InputMode
+	overlay   overlay
 	// pressed holds the pointer buttons that are currently down.
 	pressed map[wlr.CursorButton]struct{}
 
@@ -159,7 +162,9 @@ func (server *Server) loadBG(path string) {
 	wlr.Log(wlr.Info, "loaded %q as background", path)
 }
 
-func (server *Server) exec(to *geom.Rect[float64]) {
+// exec starts the first of Terms that will run, makes to the New box
+// for its pid, and returns the pid. It returns 0 if nothing started.
+func (server *Server) exec(to geom.Rect[float64]) int {
 	for _, term := range server.Terms {
 		args := strings.Fields(term)
 		cmd := exec.Command(args[0], args[1:]...) // TODO: Context support?
@@ -184,10 +189,11 @@ func (server *Server) exec(to *geom.Rect[float64]) {
 		}()
 
 		server.newViews[pid] = to
-		return
+		return pid
 	}
 
 	wlr.Log(wlr.Error, "no valid terminals found for new window")
+	return 0
 }
 
 // onExited forgets the New box of each program that has exited. One

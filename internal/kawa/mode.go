@@ -19,6 +19,7 @@ type inputModeNormal struct {
 func (server *Server) startNormal() {
 	server.setCursor("left_ptr")
 	server.inputMode = &inputModeNormal{}
+	server.overlay = overlay{}
 }
 
 func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
@@ -106,6 +107,7 @@ func (server *Server) startMove(view *View) {
 		view: view,
 		off:  cc.Sub(view.Coords),
 	}
+	server.overlay = overlay{target: view}
 }
 
 func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
@@ -132,10 +134,6 @@ func (m *inputModeMove) CursorButtonReleased(server *Server, dev wlr.Pointer, b 
 	server.startNormal()
 }
 
-func (m *inputModeMove) TargetView() *View {
-	return m.view
-}
-
 type inputModeBorderResize struct {
 	view  *View
 	edges wlr.Edges
@@ -155,6 +153,7 @@ func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from ge
 		edges: edges,
 		cur:   from,
 	}
+	server.overlay = overlay{target: view}
 }
 
 func (m *inputModeBorderResize) CursorMoved(server *Server, t time.Time) {
@@ -220,10 +219,6 @@ func (m *inputModeBorderResize) CursorButtonReleased(server *Server, dev wlr.Poi
 	server.startNormal()
 }
 
-func (m *inputModeBorderResize) TargetView() *View {
-	return m.view
-}
-
 type inputModeMenu struct {
 	m   *Menu
 	p   geom.Point[float64]
@@ -247,6 +242,7 @@ func (server *Server) startMenu(m *Menu, btn wlr.CursorButton) {
 		p:   mb.Min,
 		btn: btn,
 	}
+	server.overlay = overlay{menu: m, menuAt: mb.Min}
 	mode.CursorMoved(server, time.Now())
 	server.inputMode = &mode
 }
@@ -254,6 +250,7 @@ func (server *Server) startMenu(m *Menu, btn wlr.CursorButton) {
 func (m *inputModeMenu) CursorMoved(server *Server, t time.Time) {
 	cc := server.cursorCoords().Sub(m.p)
 	m.sel = m.m.ItemAt(cc)
+	server.overlay.menuSel = m.sel
 }
 
 func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
@@ -263,10 +260,6 @@ func (m *inputModeMenu) CursorButtonReleased(server *Server, dev wlr.Pointer, b 
 
 	server.startNormal()
 	m.m.Select(m.sel)
-}
-
-func (m *inputModeMenu) Frame(server *Server, out *Output, pass wlr.RenderPass) {
-	server.renderMenu(out, pass, m.m, m.p, m.sel)
 }
 
 type inputModeSelectView struct {
@@ -280,6 +273,7 @@ func (server *Server) startSelectView(b wlr.CursorButton, then func(*View)) {
 		startBtn: b,
 		then:     then,
 	}
+	server.overlay = overlay{}
 }
 
 func (m *inputModeSelectView) CursorButtonPressed(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
@@ -306,6 +300,7 @@ func (server *Server) startResize(view *View) {
 	server.inputMode = &inputModeResize{
 		view: view,
 	}
+	server.overlay = overlay{target: view}
 }
 
 func (m *inputModeResize) CursorMoved(server *Server, t time.Time) {
@@ -313,8 +308,9 @@ func (m *inputModeResize) CursorMoved(server *Server, t time.Time) {
 		return
 	}
 
-	cc := server.cursorCoords()
-	r := geom.Rect[float64]{Min: m.s, Max: cc}.Canon()
+	r := geom.Rect[float64]{Min: m.s, Max: server.cursorCoords()}
+	server.overlay.box = r
+	r = r.Canon()
 	if r.Dx() < math.Max(MinWidth, m.view.MinWidth()) {
 		return
 	}
@@ -347,20 +343,6 @@ func (m *inputModeResize) CursorButtonReleased(server *Server, dev wlr.Pointer, 
 	server.startNormal()
 }
 
-func (m *inputModeResize) Frame(server *Server, out *Output, pass wlr.RenderPass) {
-	if !m.resizing {
-		return
-	}
-
-	cc := server.cursorCoords()
-	r := geom.Rect[float64]{Min: m.s, Max: cc}
-	server.renderSelectionBox(out, pass, r)
-}
-
-func (m *inputModeResize) TargetView() *View {
-	return m.view
-}
-
 type inputModeNew struct {
 	n geom.Rect[float64]
 	// area is the usable area of the output that the drag started on.
@@ -368,11 +350,14 @@ type inputModeNew struct {
 	area     geom.Rect[float64]
 	dragging bool
 	started  bool
+	// pid is the program that got the box once it was big enough.
+	pid int
 }
 
 func (server *Server) startNew() {
 	server.setCursor("top_left_corner")
 	server.inputMode = &inputModeNew{}
+	server.overlay = overlay{}
 }
 
 func (m *inputModeNew) CursorMoved(server *Server, t time.Time) {
@@ -382,6 +367,7 @@ func (m *inputModeNew) CursorMoved(server *Server, t time.Time) {
 
 	cc := m.clamp(server.cursorCoords())
 	m.n.Max = cc
+	m.show(server)
 
 	if math.Abs(cc.X-float64(m.n.Min.X)) < MinWidth {
 		return
@@ -391,8 +377,9 @@ func (m *inputModeNew) CursorMoved(server *Server, t time.Time) {
 	}
 
 	if !m.started {
-		server.exec(&m.n)
+		m.pid = server.exec(m.n)
 		m.started = true
+		m.show(server)
 	}
 }
 
@@ -409,6 +396,22 @@ func (m *inputModeNew) CursorButtonPressed(server *Server, dev wlr.Pointer, b wl
 	m.n.Min = m.clamp(cc)
 	m.n.Max = m.n.Min
 	m.dragging = true
+	m.show(server)
+}
+
+// show puts the box where it gets drawn: in the overlay until the
+// program starts, and then as the program's New box for as long as it
+// still has one.
+func (m *inputModeNew) show(server *Server) {
+	if !m.started {
+		server.overlay.box = m.n
+		return
+	}
+
+	server.overlay.box = geom.Rect[float64]{}
+	if _, ok := server.newViews[m.pid]; ok {
+		server.newViews[m.pid] = m.n
+	}
 }
 
 func (m *inputModeNew) clamp(p geom.Point[float64]) geom.Point[float64] {
@@ -424,12 +427,4 @@ func (m *inputModeNew) CursorButtonReleased(server *Server, dev wlr.Pointer, b w
 	}
 
 	server.startNormal()
-}
-
-func (m *inputModeNew) Frame(server *Server, out *Output, pass wlr.RenderPass) {
-	if !m.dragging || m.started {
-		return
-	}
-
-	server.renderSelectionBox(out, pass, m.n)
 }

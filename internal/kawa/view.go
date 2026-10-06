@@ -8,10 +8,6 @@ import (
 	"deedles.dev/xiter"
 )
 
-type ViewTargeter interface {
-	TargetView() *View
-}
-
 var edgeCursors = [...]string{
 	wlr.EdgeNone:                   "",
 	wlr.EdgeTop:                    "top_side",
@@ -121,15 +117,6 @@ type Popup struct {
 
 func (p *Popup) Release() {
 	p.onDestroyListener.Destroy()
-}
-
-func (server *Server) targetView() *View {
-	m, ok := server.inputMode.(ViewTargeter)
-	if !ok {
-		return nil
-	}
-
-	return m.TargetView()
 }
 
 func (server *Server) onNewXwaylandSurface(surface wlr.XwaylandSurface) {
@@ -291,7 +278,7 @@ func (server *Server) onDestroyView(view *View) {
 	// A mode that is still holding on to the view, such as an
 	// in-progress move or resize, would otherwise use it after it's
 	// gone.
-	if server.targetView() == view {
+	if server.overlay.target == view {
 		server.startNormal()
 	}
 	if i := slices.Index(server.hidden, view); i >= 0 {
@@ -327,7 +314,7 @@ func (server *Server) onMapView(view *View) {
 		// configured. Only a drag that is still going on keeps
 		// resizing it, and there's no release to end one that isn't.
 		if len(server.pressed) > 0 {
-			server.startBorderResizeFrom(view, wlr.EdgeNone, *nv)
+			server.startBorderResizeFrom(view, wlr.EdgeNone, nv)
 		} else {
 			server.focus(focusTarget{view: view})
 		}
@@ -356,7 +343,7 @@ func (server *Server) addView(view *View) {
 func (server *Server) resizeNewView(view *View) bool {
 	nv, ok := server.newViews[view.PID()]
 	if ok {
-		server.resizeViewTo(nil, view, *nv)
+		server.resizeViewTo(nil, view, nv)
 	}
 	return ok
 }
