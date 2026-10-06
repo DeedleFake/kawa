@@ -61,14 +61,15 @@ type Server struct {
 	xdgDecorationManager wlr.XDGDecorationManagerV1
 	activation           wlr.XDGActivationV1
 
-	outputs []*Output
-	//inputs    []wlr.InputDevice
+	outputs   []*Output
 	pointers  []wlr.Pointer
 	keyboards []*Keyboard
 	views     []*View
 	tiled     []*View
 	hidden    []*View
-	newViews  map[int]*geom.Rect[float64]
+	// newViews are the boxes that New has handed to programs that
+	// haven't opened a window yet, by pid.
+	newViews map[int]geom.Rect[float64]
 
 	activationTokens map[wlr.XDGActivationTokenV1]*activationToken
 
@@ -89,7 +90,13 @@ type Server struct {
 	// surface took it.
 	prevFocus *View
 
-	inputMode InputMode
+	// interaction is what the pointer is doing for kawa instead of for
+	// clients. It's nil while clients get the pointer. interactionView
+	// is the window that it acts on, if any.
+	interaction     interaction
+	interactionView *View
+	overlay         overlay
+	hover           hoverState
 	// pressed holds the pointer buttons that are currently down.
 	pressed map[wlr.CursorButton]struct{}
 
@@ -160,7 +167,9 @@ func (server *Server) loadBG(path string) {
 	wlr.Log(wlr.Info, "loaded %q as background", path)
 }
 
-func (server *Server) exec(to *geom.Rect[float64]) {
+// exec starts the first of Terms that will run, makes to the New box
+// for its pid, and returns the pid. It returns 0 if nothing started.
+func (server *Server) exec(to geom.Rect[float64]) int {
 	for _, term := range server.Terms {
 		args := strings.Fields(term)
 		cmd := exec.Command(args[0], args[1:]...) // TODO: Context support?
@@ -185,10 +194,11 @@ func (server *Server) exec(to *geom.Rect[float64]) {
 		}()
 
 		server.newViews[pid] = to
-		return
+		return pid
 	}
 
 	wlr.Log(wlr.Error, "no valid terminals found for new window")
+	return 0
 }
 
 // onExited forgets the New box of each program that has exited. One
@@ -249,7 +259,7 @@ func (server *Server) onMainMenuResize() {
 func (server *Server) onMainMenuTile() {
 	server.startSelectView(wlr.BtnRight, func(view *View) {
 		server.toggleViewTiling(view)
-		server.startNormal()
+		server.endInteraction()
 	})
 }
 
@@ -262,14 +272,14 @@ func (server *Server) onMainMenuMove() {
 func (server *Server) onMainMenuClose() {
 	server.startSelectView(wlr.BtnRight, func(view *View) {
 		server.closeView(view)
-		server.startNormal()
+		server.endInteraction()
 	})
 }
 
 func (server *Server) onMainMenuHide() {
 	server.startSelectView(wlr.BtnRight, func(view *View) {
 		server.hideView(view)
-		server.startNormal()
+		server.endInteraction()
 	})
 }
 

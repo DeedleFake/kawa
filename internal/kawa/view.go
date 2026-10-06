@@ -1,33 +1,11 @@
 package kawa
 
 import (
-	"fmt"
 	"slices"
 
 	"deedles.dev/wlr"
 	"deedles.dev/ximage/geom"
 	"deedles.dev/xiter"
-)
-
-type ViewTargeter interface {
-	TargetView() *View
-}
-
-var edgeCursors = [...]string{
-	wlr.EdgeNone:                   "",
-	wlr.EdgeTop:                    "top_side",
-	wlr.EdgeLeft:                   "left_side",
-	wlr.EdgeRight:                  "right_side",
-	wlr.EdgeBottom:                 "bottom_side",
-	wlr.EdgeTop | wlr.EdgeLeft:     "top_left_corner",
-	wlr.EdgeTop | wlr.EdgeRight:    "top_right_corner",
-	wlr.EdgeBottom | wlr.EdgeLeft:  "bottom_left_corner",
-	wlr.EdgeBottom | wlr.EdgeRight: "bottom_right_corner",
-}
-
-const (
-	moveCursor     = "move"
-	interactCursor = "hand"
 )
 
 type View struct {
@@ -125,101 +103,6 @@ type Popup struct {
 
 func (p *Popup) Release() {
 	p.onDestroyListener.Destroy()
-}
-
-func (server *Server) targetView() *View {
-	m, ok := server.inputMode.(ViewTargeter)
-	if !ok {
-		return nil
-	}
-
-	return m.TargetView()
-}
-
-func (server *Server) viewAt(out *Output, p geom.Point[float64]) (*View, wlr.Edges, wlr.Surface, geom.Point[float64]) {
-	if out == nil {
-		out = server.outputAt(p)
-	}
-
-	i, edges, surface, sp := server.viewIndexAt(out, server.views, p)
-	if i >= 0 {
-		return server.views[i], edges, surface, sp
-	}
-
-	i, edges, surface, sp = server.viewIndexAt(out, server.tiled, p)
-	if i >= 0 {
-		return server.tiled[i], edges, surface, sp
-	}
-
-	return nil, wlr.EdgeNone, wlr.Surface{}, geom.Point[float64]{}
-}
-
-func (server *Server) viewIndexAt(out *Output, views []*View, p geom.Point[float64]) (int, wlr.Edges, wlr.Surface, geom.Point[float64]) {
-	for i, view := range slices.Backward(views) {
-		if !view.Mapped() {
-			continue
-		}
-
-		edges, surface, sp, ok := server.isViewAt(out, view, p)
-		if ok {
-			return i, edges, surface, sp
-		}
-	}
-
-	return -1, 0, wlr.Surface{}, geom.Point[float64]{}
-}
-
-func (server *Server) isViewAt(out *Output, view *View, p geom.Point[float64]) (edges wlr.Edges, s wlr.Surface, sp geom.Point[float64], ok bool) {
-	surface, sp, ok := view.SurfaceAt(p.Sub(view.surfaceCoords()))
-	if ok {
-		return wlr.EdgeNone, surface, sp, true
-	}
-
-	// Don't bother checking the borders if there aren't any.
-	if view.CSD {
-		return 0, wlr.Surface{}, geom.Point[float64]{}, false
-	}
-
-	r := view.Bounds()
-	if !p.In(r.Inset(-WindowBorder)) {
-		return 0, wlr.Surface{}, geom.Point[float64]{}, false
-	}
-
-	left := geom.Rt(r.Min.X-WindowBorder, r.Min.Y, r.Max.X, r.Max.Y)
-	if p.In(left) {
-		return wlr.EdgeLeft, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-
-	top := geom.Rt(r.Min.X, r.Min.Y-WindowBorder, r.Max.X, r.Max.Y)
-	if p.In(top) {
-		return wlr.EdgeTop, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-
-	right := geom.Rt(r.Min.X, r.Min.Y, r.Max.X+WindowBorder, r.Max.Y)
-	if p.In(right) {
-		return wlr.EdgeRight, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-
-	bottom := geom.Rt(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y+WindowBorder)
-	if p.In(bottom) {
-		return wlr.EdgeBottom, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-
-	if (p.X < r.Min.X) && (p.Y < r.Min.Y) {
-		return wlr.EdgeTop | wlr.EdgeLeft, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-	if (p.X >= r.Max.X) && (p.Y < r.Min.Y) {
-		return wlr.EdgeTop | wlr.EdgeRight, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-	if (p.X < r.Min.X) && (p.Y >= r.Max.Y) {
-		return wlr.EdgeBottom | wlr.EdgeLeft, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-	if (p.X >= r.Max.X) && (p.Y >= r.Max.Y) {
-		return wlr.EdgeBottom | wlr.EdgeRight, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-
-	// Where else could it possibly be if it gets to here?
-	panic(fmt.Errorf("this should not have happened\np = %+v\nr = %+v", p, r))
 }
 
 func (server *Server) onNewXwaylandSurface(surface wlr.XwaylandSurface) {
@@ -378,11 +261,8 @@ func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 func (server *Server) onDestroyView(view *View) {
 	view.Release()
 
-	// A mode that is still holding on to the view, such as an
-	// in-progress move or resize, would otherwise use it after it's
-	// gone.
-	if server.targetView() == view {
-		server.startNormal()
+	if server.interactionView == view {
+		server.endInteraction()
 	}
 	if i := slices.Index(server.hidden, view); i >= 0 {
 		server.removeHidden(i)
@@ -399,9 +279,8 @@ func (server *Server) onDestroyView(view *View) {
 	}
 
 	server.updateTitles()
-	allviews := xiter.Concat(slices.Values(server.tiled), slices.Values(server.views))
-	if n, ok := xiter.Drain(allviews); ok {
-		server.focusView(n, n.Surface())
+	if next := server.topView(); next != nil {
+		server.focus(next)
 	}
 }
 
@@ -418,9 +297,9 @@ func (server *Server) onMapView(view *View) {
 		// configured. Only a drag that is still going on keeps
 		// resizing it, and there's no release to end one that isn't.
 		if len(server.pressed) > 0 {
-			server.startBorderResizeFrom(view, wlr.EdgeNone, *nv)
+			server.startBorderResizeFrom(view, wlr.EdgeNone, nv)
 		} else {
-			server.focusView(view, view.Surface())
+			server.focus(view)
 		}
 		return
 	}
@@ -435,7 +314,7 @@ func (server *Server) onMapView(view *View) {
 
 	server.centerViewOnOutput(out, view)
 	if activate {
-		server.focusView(view, view.Surface())
+		server.focus(view)
 	}
 }
 
@@ -447,7 +326,7 @@ func (server *Server) addView(view *View) {
 func (server *Server) resizeNewView(view *View) bool {
 	nv, ok := server.newViews[view.PID()]
 	if ok {
-		server.resizeViewTo(nil, view, *nv)
+		server.resizeViewTo(nil, view, nv)
 	}
 	return ok
 }
@@ -485,51 +364,6 @@ func (server *Server) resizeViewTo(out *Output, view *View, r geom.Rect[float64]
 	if s := view.Surface(); (out != nil) && s.Valid() {
 		s.SendEnter(out.Output)
 	}
-}
-
-func (server *Server) focusView(view *View, s wlr.Surface) {
-	if !s.Valid() {
-		if !view.Mapped() {
-			return
-		}
-		s = view.Surface()
-	}
-
-	// The window gets the keyboard once the layer surface that has it
-	// to itself lets go.
-	if server.exclusiveLayer() != nil {
-		server.prevFocus = view
-		return
-	}
-
-	pv := server.focusedView()
-	if pv == view {
-		return
-	}
-	if pv != nil {
-		pv.SetActivated(false)
-	}
-
-	server.keyboardEnter(s)
-
-	view.attention = false
-	view.SetActivated(true)
-	server.bringViewToFront(view)
-
-	server.updateTitles()
-}
-
-func (server *Server) keyboardEnter(s wlr.Surface) {
-	if k := server.seat.GetKeyboard(); k.Valid() {
-		server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
-	} else {
-		server.seat.KeyboardNotifyEnter(s, nil, wlr.KeyboardModifiers{})
-	}
-}
-
-func (server *Server) focusedView() *View {
-	s := server.seat.KeyboardState().FocusedSurface()
-	return server.viewForSurface(s)
 }
 
 func (server *Server) viewForSurface(s wlr.Surface) *View {
@@ -599,7 +433,7 @@ func (server *Server) unhideView(view *View) {
 	server.removeHidden(slices.Index(server.hidden, view))
 
 	server.views = append(server.views, view)
-	server.focusView(view, view.Surface())
+	server.focus(view)
 	view.SetMinimized(false)
 }
 
@@ -637,7 +471,7 @@ func (server *Server) tileView(view *View) {
 	view.SetMaximized(true, true)
 
 	server.layoutTiles(nil)
-	server.focusView(view, view.Surface())
+	server.focus(view)
 }
 
 func (server *Server) untileView(view *View, restore bool) {
@@ -646,7 +480,7 @@ func (server *Server) untileView(view *View, restore bool) {
 	server.views = append(server.views, view)
 
 	server.layoutTiles(nil)
-	server.focusView(view, view.Surface())
+	server.focus(view)
 
 	view.SetMaximized(false, false)
 	if restore && !view.Restore.IsZero() {

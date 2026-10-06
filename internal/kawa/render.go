@@ -9,8 +9,21 @@ import (
 	"deedles.dev/ximage/geom"
 )
 
-type Framer interface {
-	Frame(*Server, *Output, wlr.RenderPass)
+// overlay is what the active interaction shows on top of the windows,
+// and the window that it highlights. Interactions write it, and onFrame
+// only reads it.
+type overlay struct {
+	// menu is the open menu, if there is one. It's drawn at menuAt with
+	// menuSel selected.
+	menu    *Menu
+	menuAt  geom.Point[float64]
+	menuSel *MenuItem
+	// box is the rubber band that the pointer is drawing. Nothing is
+	// drawn if it's empty.
+	box geom.Rect[float64]
+	// target is the window whose border is drawn in the selection
+	// color.
+	target *View
 }
 
 func (server *Server) onFrame(out *Output) {
@@ -39,7 +52,7 @@ func (server *Server) onFrame(out *Output) {
 	if server.statusBar.Output() == out {
 		server.renderStatusBar(out, pass)
 	}
-	server.renderMode(out, pass)
+	server.renderOverlay(out, pass)
 	server.renderCursor(out, pass)
 
 	pass.Submit()
@@ -106,7 +119,7 @@ func (server *Server) renderViewBorder(out *Output, pass wlr.RenderPass, view *V
 	if view.attention {
 		color = ColorSelectionBox
 	}
-	if server.targetView() == view {
+	if server.overlay.target == view {
 		color = ColorSelectionBox
 	}
 
@@ -123,7 +136,7 @@ func (server *Server) renderViewSurfaces(out *Output, pass wlr.RenderPass, view 
 
 func (server *Server) renderNewViews(out *Output, pass wlr.RenderPass) {
 	for _, nv := range server.newViews {
-		server.renderSelectionBox(out, pass, *nv)
+		server.renderSelectionBox(out, pass, nv)
 	}
 }
 
@@ -229,13 +242,12 @@ func (server *Server) renderStatusBar(out *Output, pass wlr.RenderPass) {
 	}
 }
 
-func (server *Server) renderMode(out *Output, pass wlr.RenderPass) {
-	m, ok := server.inputMode.(Framer)
-	if !ok {
-		return
+func (server *Server) renderOverlay(out *Output, pass wlr.RenderPass) {
+	o := &server.overlay
+	if o.menu != nil {
+		server.renderMenu(out, pass, o.menu, o.menuAt, o.menuSel)
 	}
-
-	m.Frame(server, out, pass)
+	server.renderSelectionBox(out, pass, o.box)
 }
 
 func (server *Server) renderCursor(out *Output, pass wlr.RenderPass) {
