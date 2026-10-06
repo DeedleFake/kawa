@@ -90,8 +90,11 @@ type Server struct {
 	// surface took it.
 	prevFocus *View
 
-	inputMode InputMode
-	overlay   overlay
+	// interaction is what the pointer is doing for kawa instead of for
+	// clients. It's nil while clients get the pointer.
+	interaction interaction
+	overlay     overlay
+	hover       hoverState
 	// pressed holds the pointer buttons that are currently down.
 	pressed map[wlr.CursorButton]struct{}
 
@@ -254,7 +257,7 @@ func (server *Server) onMainMenuResize() {
 func (server *Server) onMainMenuTile() {
 	server.startSelectView(wlr.BtnRight, func(view *View) {
 		server.toggleViewTiling(view)
-		server.startNormal()
+		server.endInteraction()
 	})
 }
 
@@ -267,14 +270,14 @@ func (server *Server) onMainMenuMove() {
 func (server *Server) onMainMenuClose() {
 	server.startSelectView(wlr.BtnRight, func(view *View) {
 		server.closeView(view)
-		server.startNormal()
+		server.endInteraction()
 	})
 }
 
 func (server *Server) onMainMenuHide() {
 	server.startSelectView(wlr.BtnRight, func(view *View) {
 		server.hideView(view)
-		server.startNormal()
+		server.endInteraction()
 	})
 }
 

@@ -10,22 +10,6 @@ import (
 	"deedles.dev/ximage/geom"
 )
 
-type CursorMover interface {
-	CursorMoved(*Server, time.Time)
-}
-
-type CursorButtonPresser interface {
-	CursorButtonPressed(*Server, wlr.Pointer, wlr.CursorButton, time.Time)
-}
-
-type CursorButtonReleaser interface {
-	CursorButtonReleased(*Server, wlr.Pointer, wlr.CursorButton, time.Time)
-}
-
-type CursorRequester interface {
-	RequestCursor(*Server, wlr.Surface, int, int)
-}
-
 type Keyboard struct {
 	Device wlr.Keyboard
 
@@ -69,66 +53,6 @@ func (server *Server) onKeyboardKeyPressed(kb *Keyboard, code uint32, update boo
 func (server *Server) onKeyboardKeyReleased(kb *Keyboard, code uint32, update bool, t time.Time) {
 	server.seat.SetKeyboard(kb.Device)
 	server.seat.KeyboardNotifyKey(t, code, wlr.KeyStateReleased)
-}
-
-func (server *Server) onCursorMotion(dev wlr.Pointer, t time.Time, dx, dy float64) {
-	server.cursor.Move(dev.Base(), dx, dy)
-
-	m, ok := server.inputMode.(CursorMover)
-	if ok {
-		m.CursorMoved(server, t)
-	}
-}
-
-func (server *Server) onCursorMotionAbsolute(dev wlr.Pointer, t time.Time, x, y float64) {
-	server.cursor.WarpAbsolute(dev.Base(), x, y)
-
-	m, ok := server.inputMode.(CursorMover)
-	if ok {
-		m.CursorMoved(server, t)
-	}
-}
-
-func (server *Server) onCursorButton(dev wlr.Pointer, t time.Time, b wlr.CursorButton, state wlr.ButtonState) {
-	switch state {
-	case wlr.ButtonPressed:
-		server.pressed[b] = struct{}{}
-		m, ok := server.inputMode.(CursorButtonPresser)
-		if ok {
-			m.CursorButtonPressed(server, dev, b, t)
-		}
-	case wlr.ButtonReleased:
-		delete(server.pressed, b)
-		m, ok := server.inputMode.(CursorButtonReleaser)
-		if ok {
-			m.CursorButtonReleased(server, dev, b, t)
-		}
-	}
-}
-
-func (server *Server) onCursorAxis(dev wlr.Pointer, t time.Time, source wlr.AxisSource, orient wlr.AxisOrientation, delta float64, deltaDiscrete int32, relativeDirection wlr.AxisRelativeDirection) {
-	server.seat.PointerNotifyAxis(t, orient, delta, deltaDiscrete, source, relativeDirection)
-}
-
-func (server *Server) onCursorFrame() {
-	// Other modes send no pointer events to clients, and a frame for
-	// every motion can fill up a client's socket during a resize.
-	if _, ok := server.inputMode.(*inputModeNormal); !ok {
-		return
-	}
-	server.seat.PointerNotifyFrame()
-}
-
-func (server *Server) onRequestCursor(client wlr.SeatClient, surface wlr.Surface, serial uint32, hotspotX, hotspotY int32) {
-	m, ok := server.inputMode.(CursorRequester)
-	if !ok {
-		return
-	}
-
-	focused := server.seat.PointerState().FocusedClient()
-	if focused == client {
-		m.RequestCursor(server, surface, int(hotspotX), int(hotspotY))
-	}
 }
 
 func (server *Server) addKeyboard(dev wlr.Keyboard) {
@@ -186,18 +110,6 @@ func (server *Server) addPointer(dev wlr.Pointer) {
 	server.setCursor("left_ptr")
 
 	server.pointers = append(server.pointers, dev)
-}
-
-func (server *Server) setCursor(name string) {
-	if name == "" {
-		return
-	}
-
-	xcursor := server.cursorMgr.GetXCursor(name, 1)
-	if server.xwayland.Valid() && xcursor.Valid() {
-		server.xwayland.SetCursor(xcursor.Image(0))
-	}
-	server.cursor.SetXCursor(server.cursorMgr, name)
 }
 
 func (server *Server) handleKeyboardShortcut(kb *Keyboard, code uint32, t time.Time) bool {

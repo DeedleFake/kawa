@@ -110,7 +110,7 @@ func (server *Server) init() error {
 
 	server.initUI()
 
-	server.startNormal()
+	server.endInteraction()
 
 	return nil
 }

@@ -8,20 +8,6 @@ import (
 	"deedles.dev/xiter"
 )
 
-var edgeCursors = [...]string{
-	wlr.EdgeNone:                   "",
-	wlr.EdgeTop:                    "top_side",
-	wlr.EdgeLeft:                   "left_side",
-	wlr.EdgeRight:                  "right_side",
-	wlr.EdgeBottom:                 "bottom_side",
-	wlr.EdgeTop | wlr.EdgeLeft:     "top_left_corner",
-	wlr.EdgeTop | wlr.EdgeRight:    "top_right_corner",
-	wlr.EdgeBottom | wlr.EdgeLeft:  "bottom_left_corner",
-	wlr.EdgeBottom | wlr.EdgeRight: "bottom_right_corner",
-}
-
-const interactCursor = "hand"
-
 type View struct {
 	ViewSurface
 	// Coords is the position of the view's window geometry, not of its
@@ -279,7 +265,7 @@ func (server *Server) onDestroyView(view *View) {
 	// in-progress move or resize, would otherwise use it after it's
 	// gone.
 	if server.overlay.target == view {
-		server.startNormal()
+		server.endInteraction()
 	}
 	if i := slices.Index(server.hidden, view); i >= 0 {
 		server.removeHidden(i)
