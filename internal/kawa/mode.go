@@ -135,18 +135,7 @@ func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 		return
 	}
 
-	to := cc.Sub(m.off)
-
-	//out := server.outputAt(cc)
-	//if out != nil {
-	//	sbb := server.statusBar.Bounds()
-	//	sbb.Max.Y += WindowBorder
-	//	if cc.In(sbb) {
-	//		to.Y = m.view.Coords.Y
-	//	}
-	//}
-
-	server.moveViewTo(nil, m.view, to)
+	server.moveViewTo(nil, m.view, cc.Sub(m.off))
 }
 
 func (m *inputModeMove) CursorButtonReleased(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {

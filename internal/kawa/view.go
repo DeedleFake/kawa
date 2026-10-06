@@ -25,10 +25,7 @@ var edgeCursors = [...]string{
 	wlr.EdgeBottom | wlr.EdgeRight: "bottom_right_corner",
 }
 
-const (
-	moveCursor     = "move"
-	interactCursor = "hand"
-)
+const interactCursor = "hand"
 
 type View struct {
 	ViewSurface
