@@ -58,14 +58,14 @@ func (server *Server) pressIdle(b wlr.CursorButton) bool {
 	switch h.kind {
 	case hitLayer:
 		if h.layer.LayerSurface.Current().KeyboardInteractive() != wlr.LayerSurfaceV1KeyboardInteractivityNone {
-			server.focus(focusTarget{layer: h.layer})
+			server.focus(h.layer)
 		}
 		return true
 	case hitViewContent:
-		server.focus(focusTarget{view: h.view, surface: h.surface})
+		server.focus(viewContent{h.view, h.surface})
 		return true
 	case hitViewBorder:
-		server.focus(focusTarget{view: h.view})
+		server.focus(h.view)
 		switch b {
 		case wlr.BtnLeft:
 			if !server.isViewTiled(h.view) {
@@ -89,7 +89,7 @@ type moveView struct {
 
 func (server *Server) startMove(view *View) {
 	server.begin(&moveView{view: view, off: server.cursorCoords().Sub(view.Coords)}, view, "grabbing")
-	server.focus(focusTarget{view: view})
+	server.focus(view)
 }
 
 func (m *moveView) moved(server *Server) {
@@ -131,7 +131,7 @@ func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
 func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from geom.Rect[float64]) {
 	view.SetResizing(true)
 	server.begin(&borderResize{view: view, edges: edges, cur: from}, view, "")
-	server.focus(focusTarget{view: view})
+	server.focus(view)
 }
 
 func (m *borderResize) moved(server *Server) {

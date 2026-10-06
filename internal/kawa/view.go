@@ -283,7 +283,7 @@ func (server *Server) onDestroyView(view *View) {
 
 	server.updateTitles()
 	if next := server.topView(); next != nil {
-		server.focus(focusTarget{view: next})
+		server.focus(next)
 	}
 }
 
@@ -302,7 +302,7 @@ func (server *Server) onMapView(view *View) {
 		if len(server.pressed) > 0 {
 			server.startBorderResizeFrom(view, wlr.EdgeNone, nv)
 		} else {
-			server.focus(focusTarget{view: view})
+			server.focus(view)
 		}
 		return
 	}
@@ -317,7 +317,7 @@ func (server *Server) onMapView(view *View) {
 
 	server.centerViewOnOutput(out, view)
 	if activate {
-		server.focus(focusTarget{view: view})
+		server.focus(view)
 	}
 }
 
@@ -436,7 +436,7 @@ func (server *Server) unhideView(view *View) {
 	server.removeHidden(slices.Index(server.hidden, view))
 
 	server.views = append(server.views, view)
-	server.focus(focusTarget{view: view})
+	server.focus(view)
 	view.SetMinimized(false)
 }
 
@@ -474,7 +474,7 @@ func (server *Server) tileView(view *View) {
 	view.SetMaximized(true, true)
 
 	server.layoutTiles(nil)
-	server.focus(focusTarget{view: view})
+	server.focus(view)
 }
 
 func (server *Server) untileView(view *View, restore bool) {
@@ -483,7 +483,7 @@ func (server *Server) untileView(view *View, restore bool) {
 	server.views = append(server.views, view)
 
 	server.layoutTiles(nil)
-	server.focus(focusTarget{view: view})
+	server.focus(view)
 
 	view.SetMaximized(false, false)
 	if restore && !view.Restore.IsZero() {

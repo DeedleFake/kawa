@@ -6,73 +6,83 @@ import (
 	"deedles.dev/wlr"
 )
 
-// focusTarget is what focus gives the keyboard to: a window if view is
-// set, a layer surface if layer is set, or nothing if neither is.
-type focusTarget struct {
-	view *View
-	// surface is the surface of view that gets the keyboard. If it's
-	// the zero value, the view's own surface does.
-	surface wlr.Surface
-	layer   *LayerSurface
+// A focusTarget is something that focus can give the keyboard to.
+type focusTarget interface {
+	// focusSurface returns the surface that gets the keyboard, or false
+	// if t can't have it now or already has it.
+	focusSurface(server *Server) (wlr.Surface, bool)
+	// focused is called once t has the keyboard. prev is the window
+	// that had it, if any.
+	focused(server *Server, prev *View)
 }
 
-// focus gives the keyboard to t. Nothing else moves the keyboard, so
-// it also keeps window activation, stacking, and the status bar title
-// in step with it.
+// focus gives the keyboard to t. Only focus and clearFocus move the
+// keyboard, so they also keep window activation, stacking, and the
+// status bar title in step with it.
 func (server *Server) focus(t focusTarget) {
-	switch {
-	case t.layer != nil:
-		if ex := server.exclusiveLayer(); (ex != nil) && (ex != t.layer) {
-			return
-		}
+	s, ok := t.focusSurface(server)
+	if !ok {
+		return
+	}
 
-		s := t.layer.LayerSurface.Surface()
-		if server.seat.KeyboardState().FocusedSurface() == s {
-			return
-		}
+	prev := server.focusedView()
+	if prev != nil {
+		prev.SetActivated(false)
+	}
+	server.keyboardEnter(s)
+	t.focused(server, prev)
+	server.updateTitles()
+}
 
-		if fv := server.focusedView(); fv != nil {
-			server.prevFocus = fv
-			fv.SetActivated(false)
-		}
-		server.keyboardEnter(s)
-		server.updateTitles()
+func (server *Server) clearFocus() {
+	server.seat.KeyboardNotifyClearFocus()
+	server.updateTitles()
+}
 
-	case t.view != nil:
-		view, s := t.view, t.surface
-		if !s.Valid() {
-			s = view.Surface()
-		}
-		if !s.Valid() && !view.Mapped() {
-			return
-		}
+func (view *View) focusSurface(server *Server) (wlr.Surface, bool) {
+	return viewContent{view, view.Surface()}.focusSurface(server)
+}
 
-		// The window gets the keyboard once the layer surface that has
-		// it to itself lets go.
-		if server.exclusiveLayer() != nil {
-			server.prevFocus = view
-			return
-		}
+func (view *View) focused(server *Server, prev *View) {
+	view.attention = false
+	view.SetActivated(true)
+	server.bringViewToFront(view)
+}
 
-		pv := server.focusedView()
-		if pv == view {
-			return
-		}
-		if pv != nil {
-			pv.SetActivated(false)
-		}
+// viewContent is a surface of a window, such as a subsurface or a
+// popup, that gets the keyboard instead of the window's own surface.
+type viewContent struct {
+	*View
+	surface wlr.Surface
+}
 
-		server.keyboardEnter(s)
+func (c viewContent) focusSurface(server *Server) (wlr.Surface, bool) {
+	if !c.surface.Valid() {
+		return wlr.Surface{}, false
+	}
 
-		view.attention = false
-		view.SetActivated(true)
-		server.bringViewToFront(view)
+	// The window gets the keyboard once the layer surface that has it
+	// to itself lets go.
+	if server.exclusiveLayer() != nil {
+		server.prevFocus = c.View
+		return wlr.Surface{}, false
+	}
 
-		server.updateTitles()
+	return c.surface, server.focusedView() != c.View
+}
 
-	default:
-		server.seat.KeyboardNotifyClearFocus()
-		server.updateTitles()
+func (ls *LayerSurface) focusSurface(server *Server) (wlr.Surface, bool) {
+	if ex := server.exclusiveLayer(); (ex != nil) && (ex != ls) {
+		return wlr.Surface{}, false
+	}
+
+	s := ls.LayerSurface.Surface()
+	return s, server.seat.KeyboardState().FocusedSurface() != s
+}
+
+func (ls *LayerSurface) focused(server *Server, prev *View) {
+	if prev != nil {
+		server.prevFocus = prev
 	}
 }
 
@@ -131,7 +141,7 @@ func (server *Server) exclusiveLayer() *LayerSurface {
 // can't keep it.
 func (server *Server) updateLayerFocus() {
 	if ls := server.exclusiveLayer(); ls != nil {
-		server.focus(focusTarget{layer: ls})
+		server.focus(ls)
 		return
 	}
 
@@ -154,5 +164,9 @@ func (server *Server) restoreFocus() {
 	if !slices.Contains(server.views, view) && !slices.Contains(server.tiled, view) {
 		view = server.topView()
 	}
-	server.focus(focusTarget{view: view})
+	if view == nil {
+		server.clearFocus()
+		return
+	}
+	server.focus(view)
 }
