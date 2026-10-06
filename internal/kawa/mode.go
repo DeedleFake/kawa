@@ -22,40 +22,33 @@ func (server *Server) startNormal() {
 }
 
 func (m *inputModeNormal) CursorMoved(server *Server, t time.Time) {
-	cc := server.cursorCoords()
-
-	_, view, edges, surface, sp := server.surfaceAt(cc)
-	if edges != m.prevEdges {
+	h := server.hitAt(server.cursorCoords(), hoverPlanes)
+	if h.edges != m.prevEdges {
 		cursor := interactCursor
-		if !server.isViewTiled(view) {
-			cursor = edgeCursors[edges]
-			m.prevEdges = edges
+		if !server.isViewTiled(h.view) {
+			cursor = edgeCursors[h.edges]
+			m.prevEdges = h.edges
 		}
 		server.setCursor(cursor)
 	}
-	if (view == nil) && m.inView {
+	if (h.view == nil) && m.inView {
 		server.setCursor("left_ptr")
 	}
-	m.inView = view != nil
-	if !surface.Valid() {
+	m.inView = h.view != nil
+	if !h.surface.Valid() {
 		server.seat.PointerNotifyClearFocus()
 		return
 	}
 
-	server.seat.PointerNotifyEnter(surface, sp.X, sp.Y)
-	server.seat.PointerNotifyMotion(t, sp.X, sp.Y)
+	server.seat.PointerNotifyEnter(h.surface, h.sp.X, h.sp.Y)
+	server.seat.PointerNotifyMotion(t, h.sp.X, h.sp.Y)
 }
 
 func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.Pointer, b wlr.CursorButton, t time.Time) {
-	cc := server.cursorCoords()
+	h := server.hitAt(server.cursorCoords(), pressPlanes)
 
 	k := server.seat.GetKeyboard()
-	forceMenu := k.Valid() && (k.GetModifiers()&wlr.KeyboardModifierLogo != 0)
-	if !forceMenu {
-		out := server.outputAt(cc)
-		forceMenu = (out != nil) && (out == server.statusBar.Output()) && (cc.Y <= StatusBarHeight)
-	}
-	if forceMenu {
+	if (k.Valid() && (k.GetModifiers()&wlr.KeyboardModifierLogo != 0)) || (h.kind == hitStatusBar) {
 		switch b {
 		case wlr.BtnLeft:
 			server.startMenu(server.systemMenu, b)
@@ -65,35 +58,28 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.Pointer, b
 		return
 	}
 
-	ls, view, edges, surface, _ := server.surfaceAt(cc)
-	if ls != nil {
-		if ls.LayerSurface.Current().KeyboardInteractive() != wlr.LayerSurfaceV1KeyboardInteractivityNone {
-			server.focusLayer(ls)
+	switch h.kind {
+	case hitLayer:
+		if h.layer.LayerSurface.Current().KeyboardInteractive() != wlr.LayerSurfaceV1KeyboardInteractivityNone {
+			server.focusLayer(h.layer)
 		}
 		server.seat.PointerNotifyButton(t, b, wlr.ButtonPressed)
-		return
-	}
-	if view == nil {
-		switch b {
-		case wlr.BtnRight:
+	case hitDesktop:
+		if b == wlr.BtnRight {
 			server.startMenu(server.mainMenu, b)
 		}
-		return
-	}
-
-	server.focusView(view, surface)
-
-	switch edges {
-	case wlr.EdgeNone:
+	case hitViewContent:
+		server.focusView(h.view, h.surface)
 		server.seat.PointerNotifyButton(t, b, wlr.ButtonPressed)
-	default:
+	case hitViewBorder:
+		server.focusView(h.view, h.surface)
 		switch b {
 		case wlr.BtnLeft:
-			if !server.isViewTiled(view) {
-				server.startBorderResize(view, edges)
+			if !server.isViewTiled(h.view) {
+				server.startBorderResize(h.view, h.edges)
 			}
 		case wlr.BtnRight:
-			server.startMove(view)
+			server.startMove(h.view)
 		}
 	}
 }
@@ -126,8 +112,8 @@ func (m *inputModeMove) CursorMoved(server *Server, t time.Time) {
 	cc := server.cursorCoords()
 
 	if server.isViewTiled(m.view) {
-		i, _, _, _ := server.viewIndexAt(nil, server.tiled, cc)
-		if i >= 0 {
+		if h := server.hitAt(cc, swapPlanes); h.view != nil {
+			i := slices.Index(server.tiled, h.view)
 			vi := slices.Index(server.tiled, m.view)
 			server.tiled[i], server.tiled[vi] = server.tiled[vi], server.tiled[i]
 			server.layoutTiles(nil)
@@ -302,10 +288,8 @@ func (m *inputModeSelectView) CursorButtonPressed(server *Server, dev wlr.Pointe
 		return
 	}
 
-	cc := server.cursorCoords()
-	view, _, _, _ := server.viewAt(nil, cc)
-	if view != nil {
-		m.then(view)
+	if h := server.hitAt(server.cursorCoords(), pickPlanes); h.view != nil {
+		m.then(h.view)
 		return
 	}
 	server.startNormal()

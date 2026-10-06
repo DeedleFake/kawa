@@ -323,29 +323,3 @@ func (server *Server) restoreFocus() {
 	}
 	server.focusView(view, view.Surface())
 }
-
-// surfaceAt finds what is under p, from the top down: the popups of
-// layer surfaces, the overlay and top layers, windows, and then the
-// bottom and background layers. Only one of the layer surface and the
-// window is non-nil.
-func (server *Server) surfaceAt(p geom.Point[float64]) (*LayerSurface, *View, wlr.Edges, wlr.Surface, geom.Point[float64]) {
-	out := server.outputAt(p)
-	if out == nil {
-		view, edges, s, sp := server.viewAt(nil, p)
-		return nil, view, edges, s, sp
-	}
-
-	if ls, s, sp, ok := server.layerPopupAt(out, p); ok {
-		return ls, nil, wlr.EdgeNone, s, sp
-	}
-	if ls, s, sp, ok := server.layerSurfaceAt(out, p, wlr.LayerShellV1LayerOverlay, wlr.LayerShellV1LayerTop); ok {
-		return ls, nil, wlr.EdgeNone, s, sp
-	}
-	if view, edges, s, sp := server.viewAt(out, p); view != nil {
-		return nil, view, edges, s, sp
-	}
-	if ls, s, sp, ok := server.layerSurfaceAt(out, p, wlr.LayerShellV1LayerBottom, wlr.LayerShellV1LayerBackground); ok {
-		return ls, nil, wlr.EdgeNone, s, sp
-	}
-	return nil, nil, wlr.EdgeNone, wlr.Surface{}, geom.Point[float64]{}
-}

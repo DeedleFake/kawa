@@ -1,7 +1,6 @@
 package kawa
 
 import (
-	"fmt"
 	"slices"
 
 	"deedles.dev/wlr"
@@ -131,92 +130,6 @@ func (server *Server) targetView() *View {
 	}
 
 	return m.TargetView()
-}
-
-func (server *Server) viewAt(out *Output, p geom.Point[float64]) (*View, wlr.Edges, wlr.Surface, geom.Point[float64]) {
-	if out == nil {
-		out = server.outputAt(p)
-	}
-
-	i, edges, surface, sp := server.viewIndexAt(out, server.views, p)
-	if i >= 0 {
-		return server.views[i], edges, surface, sp
-	}
-
-	i, edges, surface, sp = server.viewIndexAt(out, server.tiled, p)
-	if i >= 0 {
-		return server.tiled[i], edges, surface, sp
-	}
-
-	return nil, wlr.EdgeNone, wlr.Surface{}, geom.Point[float64]{}
-}
-
-func (server *Server) viewIndexAt(out *Output, views []*View, p geom.Point[float64]) (int, wlr.Edges, wlr.Surface, geom.Point[float64]) {
-	for i, view := range slices.Backward(views) {
-		if !view.Mapped() {
-			continue
-		}
-
-		edges, surface, sp, ok := server.isViewAt(out, view, p)
-		if ok {
-			return i, edges, surface, sp
-		}
-	}
-
-	return -1, 0, wlr.Surface{}, geom.Point[float64]{}
-}
-
-func (server *Server) isViewAt(out *Output, view *View, p geom.Point[float64]) (edges wlr.Edges, s wlr.Surface, sp geom.Point[float64], ok bool) {
-	surface, sp, ok := view.SurfaceAt(p.Sub(view.surfaceCoords()))
-	if ok {
-		return wlr.EdgeNone, surface, sp, true
-	}
-
-	// Don't bother checking the borders if there aren't any.
-	if view.CSD {
-		return 0, wlr.Surface{}, geom.Point[float64]{}, false
-	}
-
-	r := view.Bounds()
-	if !p.In(r.Inset(-WindowBorder)) {
-		return 0, wlr.Surface{}, geom.Point[float64]{}, false
-	}
-
-	left := geom.Rt(r.Min.X-WindowBorder, r.Min.Y, r.Max.X, r.Max.Y)
-	if p.In(left) {
-		return wlr.EdgeLeft, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-
-	top := geom.Rt(r.Min.X, r.Min.Y-WindowBorder, r.Max.X, r.Max.Y)
-	if p.In(top) {
-		return wlr.EdgeTop, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-
-	right := geom.Rt(r.Min.X, r.Min.Y, r.Max.X+WindowBorder, r.Max.Y)
-	if p.In(right) {
-		return wlr.EdgeRight, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-
-	bottom := geom.Rt(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y+WindowBorder)
-	if p.In(bottom) {
-		return wlr.EdgeBottom, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-
-	if (p.X < r.Min.X) && (p.Y < r.Min.Y) {
-		return wlr.EdgeTop | wlr.EdgeLeft, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-	if (p.X >= r.Max.X) && (p.Y < r.Min.Y) {
-		return wlr.EdgeTop | wlr.EdgeRight, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-	if (p.X < r.Min.X) && (p.Y >= r.Max.Y) {
-		return wlr.EdgeBottom | wlr.EdgeLeft, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-	if (p.X >= r.Max.X) && (p.Y >= r.Max.Y) {
-		return wlr.EdgeBottom | wlr.EdgeRight, wlr.Surface{}, geom.Point[float64]{}, true
-	}
-
-	// Where else could it possibly be if it gets to here?
-	panic(fmt.Errorf("this should not have happened\np = %+v\nr = %+v", p, r))
 }
 
 func (server *Server) onNewXwaylandSurface(surface wlr.XwaylandSurface) {
