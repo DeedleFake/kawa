@@ -8,9 +8,11 @@ import (
 
 // A focusTarget is something that focus can give the keyboard to.
 type focusTarget interface {
-	// focusSurface returns the surface that gets the keyboard, or false
-	// if t can't have it now or already has it.
-	focusSurface(server *Server) (wlr.Surface, bool)
+	// focusSurface returns the surface that gets the keyboard. It may
+	// be invalid, in which case focus does nothing.
+	focusSurface() wlr.Surface
+	// view returns the window behind t, or nil if t isn't part of one.
+	view() *View
 	// focused is called once t has the keyboard. prev is the window
 	// that had it, if any.
 	focused(server *Server, prev *View)
@@ -20,8 +22,21 @@ type focusTarget interface {
 // keyboard, so they also keep window activation, stacking, and the
 // status bar title in step with it.
 func (server *Server) focus(t focusTarget) {
-	s, ok := t.focusSurface(server)
-	if !ok {
+	s := t.focusSurface()
+	if !s.Valid() {
+		return
+	}
+
+	if ex := server.exclusiveLayer(); (ex != nil) && (ex.LayerSurface.Surface() != s) {
+		// A window gets the keyboard once the layer surface that has
+		// it to itself lets go.
+		if v := t.view(); v != nil {
+			server.prevFocus = v
+		}
+		return
+	}
+
+	if server.hasFocus(t, s) {
 		return
 	}
 
@@ -34,13 +49,26 @@ func (server *Server) focus(t focusTarget) {
 	server.updateTitles()
 }
 
+// hasFocus reports whether t already has the keyboard. A window has it
+// if any of its surfaces do.
+func (server *Server) hasFocus(t focusTarget, s wlr.Surface) bool {
+	if v := t.view(); v != nil {
+		return server.focusedView() == v
+	}
+	return server.seat.KeyboardState().FocusedSurface() == s
+}
+
 func (server *Server) clearFocus() {
 	server.seat.KeyboardNotifyClearFocus()
 	server.updateTitles()
 }
 
-func (view *View) focusSurface(server *Server) (wlr.Surface, bool) {
-	return viewContent{view, view.Surface()}.focusSurface(server)
+func (view *View) focusSurface() wlr.Surface {
+	return view.Surface()
+}
+
+func (view *View) view() *View {
+	return view
 }
 
 func (view *View) focused(server *Server, prev *View) {
@@ -56,28 +84,16 @@ type viewContent struct {
 	surface wlr.Surface
 }
 
-func (c viewContent) focusSurface(server *Server) (wlr.Surface, bool) {
-	if !c.surface.Valid() {
-		return wlr.Surface{}, false
-	}
-
-	// The window gets the keyboard once the layer surface that has it
-	// to itself lets go.
-	if server.exclusiveLayer() != nil {
-		server.prevFocus = c.View
-		return wlr.Surface{}, false
-	}
-
-	return c.surface, server.focusedView() != c.View
+func (c viewContent) focusSurface() wlr.Surface {
+	return c.surface
 }
 
-func (ls *LayerSurface) focusSurface(server *Server) (wlr.Surface, bool) {
-	if ex := server.exclusiveLayer(); (ex != nil) && (ex != ls) {
-		return wlr.Surface{}, false
-	}
+func (ls *LayerSurface) focusSurface() wlr.Surface {
+	return ls.LayerSurface.Surface()
+}
 
-	s := ls.LayerSurface.Surface()
-	return s, server.seat.KeyboardState().FocusedSurface() != s
+func (ls *LayerSurface) view() *View {
+	return nil
 }
 
 func (ls *LayerSurface) focused(server *Server, prev *View) {
