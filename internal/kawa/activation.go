@@ -118,7 +118,7 @@ func (server *Server) activateView(view *View) {
 		server.unhideView(view)
 		return
 	}
-	server.focusView(view, view.Surface())
+	server.focus(focusTarget{view: view})
 }
 
 func (server *Server) setViewAttention(view *View, attention bool) {

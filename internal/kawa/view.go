@@ -309,9 +309,8 @@ func (server *Server) onDestroyView(view *View) {
 	}
 
 	server.updateTitles()
-	allviews := xiter.Concat(slices.Values(server.tiled), slices.Values(server.views))
-	if n, ok := xiter.Drain(allviews); ok {
-		server.focusView(n, n.Surface())
+	if next := server.topView(); next != nil {
+		server.focus(focusTarget{view: next})
 	}
 }
 
@@ -330,7 +329,7 @@ func (server *Server) onMapView(view *View) {
 		if len(server.pressed) > 0 {
 			server.startBorderResizeFrom(view, wlr.EdgeNone, *nv)
 		} else {
-			server.focusView(view, view.Surface())
+			server.focus(focusTarget{view: view})
 		}
 		return
 	}
@@ -345,7 +344,7 @@ func (server *Server) onMapView(view *View) {
 
 	server.centerViewOnOutput(out, view)
 	if activate {
-		server.focusView(view, view.Surface())
+		server.focus(focusTarget{view: view})
 	}
 }
 
@@ -395,51 +394,6 @@ func (server *Server) resizeViewTo(out *Output, view *View, r geom.Rect[float64]
 	if s := view.Surface(); (out != nil) && s.Valid() {
 		s.SendEnter(out.Output)
 	}
-}
-
-func (server *Server) focusView(view *View, s wlr.Surface) {
-	if !s.Valid() {
-		if !view.Mapped() {
-			return
-		}
-		s = view.Surface()
-	}
-
-	// The window gets the keyboard once the layer surface that has it
-	// to itself lets go.
-	if server.exclusiveLayer() != nil {
-		server.prevFocus = view
-		return
-	}
-
-	pv := server.focusedView()
-	if pv == view {
-		return
-	}
-	if pv != nil {
-		pv.SetActivated(false)
-	}
-
-	server.keyboardEnter(s)
-
-	view.attention = false
-	view.SetActivated(true)
-	server.bringViewToFront(view)
-
-	server.updateTitles()
-}
-
-func (server *Server) keyboardEnter(s wlr.Surface) {
-	if k := server.seat.GetKeyboard(); k.Valid() {
-		server.seat.KeyboardNotifyEnter(s, k.Keycodes(), k.Modifiers())
-	} else {
-		server.seat.KeyboardNotifyEnter(s, nil, wlr.KeyboardModifiers{})
-	}
-}
-
-func (server *Server) focusedView() *View {
-	s := server.seat.KeyboardState().FocusedSurface()
-	return server.viewForSurface(s)
 }
 
 func (server *Server) viewForSurface(s wlr.Surface) *View {
@@ -509,7 +463,7 @@ func (server *Server) unhideView(view *View) {
 	server.removeHidden(slices.Index(server.hidden, view))
 
 	server.views = append(server.views, view)
-	server.focusView(view, view.Surface())
+	server.focus(focusTarget{view: view})
 	view.SetMinimized(false)
 }
 
@@ -547,7 +501,7 @@ func (server *Server) tileView(view *View) {
 	view.SetMaximized(true, true)
 
 	server.layoutTiles(nil)
-	server.focusView(view, view.Surface())
+	server.focus(focusTarget{view: view})
 }
 
 func (server *Server) untileView(view *View, restore bool) {
@@ -556,7 +510,7 @@ func (server *Server) untileView(view *View, restore bool) {
 	server.views = append(server.views, view)
 
 	server.layoutTiles(nil)
-	server.focusView(view, view.Surface())
+	server.focus(focusTarget{view: view})
 
 	view.SetMaximized(false, false)
 	if restore && !view.Restore.IsZero() {

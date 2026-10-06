@@ -61,7 +61,7 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.Pointer, b
 	switch h.kind {
 	case hitLayer:
 		if h.layer.LayerSurface.Current().KeyboardInteractive() != wlr.LayerSurfaceV1KeyboardInteractivityNone {
-			server.focusLayer(h.layer)
+			server.focus(focusTarget{layer: h.layer})
 		}
 		server.seat.PointerNotifyButton(t, b, wlr.ButtonPressed)
 	case hitDesktop:
@@ -69,10 +69,10 @@ func (m *inputModeNormal) CursorButtonPressed(server *Server, dev wlr.Pointer, b
 			server.startMenu(server.mainMenu, b)
 		}
 	case hitViewContent:
-		server.focusView(h.view, h.surface)
+		server.focus(focusTarget{view: h.view, surface: h.surface})
 		server.seat.PointerNotifyButton(t, b, wlr.ButtonPressed)
 	case hitViewBorder:
-		server.focusView(h.view, h.surface)
+		server.focus(focusTarget{view: h.view, surface: h.surface})
 		switch b {
 		case wlr.BtnLeft:
 			if !server.isViewTiled(h.view) {
@@ -99,7 +99,7 @@ type inputModeMove struct {
 
 func (server *Server) startMove(view *View) {
 	server.setCursor("grabbing")
-	server.focusView(view, view.Surface())
+	server.focus(focusTarget{view: view})
 
 	cc := server.cursorCoords()
 	server.inputMode = &inputModeMove{
@@ -149,7 +149,7 @@ func (server *Server) startBorderResize(view *View, edges wlr.Edges) {
 
 func (server *Server) startBorderResizeFrom(view *View, edges wlr.Edges, from geom.Rect[float64]) {
 	view.SetResizing(true)
-	server.focusView(view, view.Surface())
+	server.focus(focusTarget{view: view})
 	server.inputMode = &inputModeBorderResize{
 		view:  view,
 		edges: edges,
