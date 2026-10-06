@@ -27,6 +27,7 @@ type interaction interface {
 func (server *Server) begin(i interaction, view *View, cursor string) {
 	server.setCursor(cursor)
 	server.interaction = i
+	server.interactionView = view
 	server.overlay = overlay{target: view}
 }
 
@@ -34,6 +35,7 @@ func (server *Server) begin(i interaction, view *View, cursor string) {
 func (server *Server) endInteraction() {
 	server.setCursor("left_ptr")
 	server.interaction = nil
+	server.interactionView = nil
 	server.overlay = overlay{}
 	server.hover = hoverState{}
 }

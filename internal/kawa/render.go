@@ -21,9 +21,8 @@ type overlay struct {
 	// box is the rubber band that the pointer is drawing. Nothing is
 	// drawn if it's empty.
 	box geom.Rect[float64]
-	// target is the window that the interaction acts on. Its border is
-	// drawn in the selection color, and destroying it ends the
-	// interaction.
+	// target is the window whose border is drawn in the selection
+	// color.
 	target *View
 }
 

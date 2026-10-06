@@ -261,10 +261,7 @@ func (server *Server) addXDGToplevel(surface wlr.XDGSurface) {
 func (server *Server) onDestroyView(view *View) {
 	view.Release()
 
-	// A mode that is still holding on to the view, such as an
-	// in-progress move or resize, would otherwise use it after it's
-	// gone.
-	if server.overlay.target == view {
+	if server.interactionView == view {
 		server.endInteraction()
 	}
 	if i := slices.Index(server.hidden, view); i >= 0 {

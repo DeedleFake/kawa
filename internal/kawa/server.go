@@ -91,10 +91,12 @@ type Server struct {
 	prevFocus *View
 
 	// interaction is what the pointer is doing for kawa instead of for
-	// clients. It's nil while clients get the pointer.
-	interaction interaction
-	overlay     overlay
-	hover       hoverState
+	// clients. It's nil while clients get the pointer. interactionView
+	// is the window that it acts on, if any.
+	interaction     interaction
+	interactionView *View
+	overlay         overlay
+	hover           hoverState
 	// pressed holds the pointer buttons that are currently down.
 	pressed map[wlr.CursorButton]struct{}
 
